@@ -205,7 +205,7 @@ export default function SwipeDeck() {
 
   return (
     <>
-    <div className="pb-20 min-h-screen flex flex-col">
+    <div className="pb-24 min-h-screen flex flex-col">
       {/* Compact Header */}
       <div className="px-4 pt-5 pb-2 flex items-center justify-between flex-shrink-0">
         <div>

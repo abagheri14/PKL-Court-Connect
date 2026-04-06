@@ -116,7 +116,7 @@ export default function SubmitCourtScreen() {
   };
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="h-screen flex flex-col pb-[68px]">
       {/* Header */}
       <div className="relative overflow-hidden flex-shrink-0">
         <div className="relative px-5 pt-7 pb-3 flex items-center gap-3">

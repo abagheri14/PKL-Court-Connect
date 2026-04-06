@@ -685,7 +685,7 @@ export default function GroupsScreen() {
                     </Button>
                   </div>
                 )}
-                <div className="flex gap-2 pb-20">
+                <div className="flex gap-2 pb-24">
                   <Input
                     placeholder={t("groups.messagePlaceholder")}
                     value={chatMessage}
