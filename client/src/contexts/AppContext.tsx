@@ -151,22 +151,34 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const updateLocationMutation = trpc.users.updateLocation.useMutation();
   const updateLocationRef = useRef(updateLocationMutation.mutate);
   updateLocationRef.current = updateLocationMutation.mutate;
+  const lastSyncedPos = useRef<{ lat: number; lng: number; at: number }>({ lat: 0, lng: 0, at: 0 });
   useEffect(() => {
     if (!isAuthenticated || !navigator.geolocation) return;
-    let cancelled = false;
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        if (!cancelled) {
-          updateLocationRef.current({
-            lat: pos.coords.latitude,
-            lng: pos.coords.longitude,
-          });
-        }
-      },
-      () => {}, // silently ignore errors
-      { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
-    );
-    return () => { cancelled = true; };
+
+    const syncLocation = (pos: GeolocationPosition) => {
+      const { latitude, longitude } = pos.coords;
+      const now = Date.now();
+      // Throttle: only sync if moved >~100m or >60s since last sync
+      const dLat = Math.abs(latitude - lastSyncedPos.current.lat);
+      const dLng = Math.abs(longitude - lastSyncedPos.current.lng);
+      const elapsed = now - lastSyncedPos.current.at;
+      if ((dLat > 0.001 || dLng > 0.001 || lastSyncedPos.current.at === 0) && elapsed > 10000) {
+        lastSyncedPos.current = { lat: latitude, lng: longitude, at: now };
+        updateLocationRef.current({ lat: latitude, lng: longitude });
+      }
+    };
+
+    // Get immediate position
+    navigator.geolocation.getCurrentPosition(syncLocation, () => {}, {
+      enableHighAccuracy: true, timeout: 10000, maximumAge: 30000,
+    });
+
+    // Watch for ongoing movement
+    const watchId = navigator.geolocation.watchPosition(syncLocation, () => {}, {
+      enableHighAccuracy: false, timeout: 30000, maximumAge: 60000,
+    });
+
+    return () => { navigator.geolocation.clearWatch(watchId); };
   }, [isAuthenticated]);
 
   // Navigate based on auth state

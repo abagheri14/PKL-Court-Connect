@@ -211,6 +211,20 @@ export default function ChatScreen() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [messages.length]);
 
+  // Keep input visible when mobile virtual keyboard opens
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const onResize = () => {
+      // Scroll the chat to bottom when keyboard changes viewport
+      requestAnimationFrame(() => {
+        scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+      });
+    };
+    vv.addEventListener("resize", onResize);
+    return () => vv.removeEventListener("resize", onResize);
+  }, []);
+
   // Handle typing indicator
   const handleInputChange = (value: string) => {
     setInput(value);
@@ -258,9 +272,9 @@ export default function ChatScreen() {
   };
 
   return (
-    <div className="h-screen flex flex-col pb-[68px]">
+    <div className="h-[100dvh] flex flex-col pb-[68px]">
       {/* Header */}
-      <div className="card-elevated border-b border-primary/10 px-4 py-3 flex items-center gap-3 flex-shrink-0">
+      <div className="card-elevated border-b border-primary/10 px-4 py-3 flex items-center gap-3 flex-shrink-0 z-10">
         <button
           onClick={() => goBack()}
           className="p-2 rounded-xl glass hover:scale-105 transition-transform"
@@ -527,7 +541,7 @@ export default function ChatScreen() {
       )}
 
       {/* Input */}
-      <div className="card-elevated border-t border-primary/10 px-4 py-3 flex items-center gap-2 flex-shrink-0">
+      <div className="card-elevated border-t border-primary/10 px-4 py-3 flex items-center gap-2 flex-shrink-0 sticky bottom-[68px] z-10 bg-background/95 backdrop-blur-sm">
         <button
           className="p-2 text-muted-foreground hover:text-foreground disabled:opacity-50"
           disabled={photoUploading}

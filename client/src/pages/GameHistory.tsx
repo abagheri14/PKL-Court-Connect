@@ -1,8 +1,9 @@
 import { useApp } from "@/contexts/AppContext";
 import { trpc } from "@/lib/trpc";
-import { ArrowLeft, Calendar, Clock, MapPin, Users, Trophy, ChevronRight, Plus, Loader2, Star, Send, Filter, TrendingUp, Award, ChevronDown, BarChart3, Play, Check, X } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, MapPin, Users, Trophy, ChevronRight, Plus, Loader2, Star, Send, Filter, TrendingUp, Award, ChevronDown, BarChart3, Play, Check, X, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PlayerAvatar from "@/components/PlayerAvatar";
+import InvitePickerModal from "@/components/InvitePickerModal";
 import { cn } from "@/lib/utils";
 import { useState, useMemo } from "react";
 import { QueryError } from "@/components/QueryError";
@@ -66,6 +67,13 @@ export default function GameHistory() {
     onSuccess: () => { toast(t("gameHistory.scoreDisputed")); pastQuery.refetch(); },
     onError: (err: any) => toast.error(err.message),
   });
+  const cancelGameMutation = trpc.games.update.useMutation({
+    onSuccess: () => { toast.success(t("gameHistory.gameCancelled", "Game cancelled")); upcomingQuery.refetch(); setCancelConfirmId(null); },
+    onError: (err: any) => toast.error(err.message),
+  });
+  const [cancelConfirmId, setCancelConfirmId] = useState<number | null>(null);
+  const [inviteGameId, setInviteGameId] = useState<number | null>(null);
+  const inviteGame = (upcomingGames as any[]).find((g: any) => g.id === inviteGameId);
   const allGamesRaw = [...upcomingGames, ...pastGames];
   const seenGameIds = new Set<number>();
   const allGames = allGamesRaw.filter(g => { if (seenGameIds.has(g.id)) return false; seenGameIds.add(g.id); return true; });
@@ -124,6 +132,7 @@ export default function GameHistory() {
   const displayed = activeTab === "upcoming" ? displayedUpcoming : activeTab === "in-progress" ? inProgressGames : activeTab === "past" ? sortedPast : [];
 
   return (
+    <>
     <div className="pb-24 min-h-screen">
       <div className="relative overflow-hidden">
         <div className="absolute -top-20 -right-20 w-48 h-48 rounded-full bg-secondary/8 blur-3xl" />
@@ -384,7 +393,13 @@ export default function GameHistory() {
                           <PlayerAvatar user={{ id: p.userId, name: p.name, profilePhotoUrl: p.profilePhotoUrl, hasProfilePhoto: !!p.profilePhotoUrl }} size="sm" showBadges={false} />
                         </div>
                       ))}
-                      {game.currentPlayers < game.maxPlayers && activeTab === "upcoming" && (
+                      {game.currentPlayers < game.maxPlayers && activeTab === "upcoming" && game.organizerId === user?.id && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setInviteGameId(game.id); }}
+                          className="w-8 h-8 rounded-lg border-2 border-dashed border-secondary/30 flex items-center justify-center text-[10px] text-secondary ml-1.5 hover:bg-secondary/10 hover:border-secondary/50 transition-all active:scale-90"
+                        >+</button>
+                      )}
+                      {game.currentPlayers < game.maxPlayers && activeTab === "upcoming" && game.organizerId !== user?.id && (
                         <div className="w-8 h-8 rounded-lg border-2 border-dashed border-secondary/30 flex items-center justify-center text-[10px] text-secondary ml-1.5">+</div>
                       )}
                     </div>
@@ -430,6 +445,36 @@ export default function GameHistory() {
                         <Play size={14} />
                         {game.status === "in-progress" ? t("gamePlay.continueGame", "Continue Game") : t("gamePlay.startGame")}
                       </button>
+                    )}
+                    {/* Cancel game for organizer */}
+                    {activeTab === "upcoming" && game.organizerId === user?.id && game.status === "scheduled" && (
+                      cancelConfirmId === game.id ? (
+                        <div className="mt-2 p-2.5 rounded-xl bg-red-500/10 border border-red-500/20 animate-slide-up">
+                          <p className="text-xs font-semibold text-red-400 mb-2">{t("gameHistory.cancelConfirm", "Cancel this game?")}</p>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              className="flex-1 bg-red-500 text-white hover:bg-red-600 text-xs h-8"
+                              disabled={cancelGameMutation.isPending}
+                              onClick={(e) => { e.stopPropagation(); cancelGameMutation.mutate({ gameId: game.id, status: "cancelled" }); }}
+                            >
+                              {cancelGameMutation.isPending ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} className="mr-1" />}
+                              {t("common.confirm", "Confirm")}
+                            </Button>
+                            <Button size="sm" variant="outline" className="flex-1 text-xs h-8" onClick={(e) => { e.stopPropagation(); setCancelConfirmId(null); }}>
+                              {t("common.cancel", "Cancel")}
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setCancelConfirmId(game.id); }}
+                          className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-red-400 text-xs font-semibold bg-red-500/5 hover:bg-red-500/10 border border-red-500/10 transition-all active:scale-[0.97]"
+                        >
+                          <Trash2 size={12} />
+                          {t("gameHistory.cancelGame", "Cancel Game")}
+                        </button>
+                      )
                     )}
                   </div>
                 </div>
@@ -547,5 +592,15 @@ export default function GameHistory() {
       </div>
       )}
     </div>
+
+    {/* Invite Picker Modal */}
+    <InvitePickerModal
+      open={!!inviteGameId}
+      onClose={() => setInviteGameId(null)}
+      targetType="game"
+      targetId={inviteGameId ?? 0}
+      targetName={inviteGame?.locationName ?? inviteGame?.courtName ?? "Game"}
+    />
+    </>
   );
 }
