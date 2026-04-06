@@ -28,7 +28,10 @@ const badgeSizeMap = {
 export default function PlayerAvatar({ user, size = "md", showBadges = true, className }: PlayerAvatarProps) {
   const initials = getInitials(user);
 
-  const bgColor = user.hasProfilePhoto
+  // Infer hasProfilePhoto from profilePhotoUrl when not explicitly set
+  const hasPhoto = user.hasProfilePhoto ?? !!user.profilePhotoUrl;
+
+  const bgColor = hasPhoto
     ? getAvatarColor(user.id)
     : getSilhouetteColor(user.gender);
 
@@ -42,7 +45,7 @@ export default function PlayerAvatar({ user, size = "md", showBadges = true, cla
         )}
         style={{ backgroundColor: bgColor }}
       >
-        {user.hasProfilePhoto && user.profilePhotoUrl ? (
+        {hasPhoto && user.profilePhotoUrl ? (
           <>
             <img
               src={user.profilePhotoUrl}
@@ -56,7 +59,7 @@ export default function PlayerAvatar({ user, size = "md", showBadges = true, cla
             />
             <span className="avatar-fallback hidden font-bold absolute inset-0 flex items-center justify-center">{initials}</span>
           </>
-        ) : user.hasProfilePhoto ? (
+        ) : hasPhoto ? (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary to-primary/60">
             <span className="font-bold">{initials}</span>
           </div>
@@ -79,7 +82,7 @@ export default function PlayerAvatar({ user, size = "md", showBadges = true, cla
               <Crown className="w-full h-full fill-secondary" />
             </span>
           )}
-          {user.isPhotoVerified && user.hasProfilePhoto && (
+          {user.isPhotoVerified && hasPhoto && (
             <span className={cn("absolute -bottom-0.5 -right-0.5 text-green-400", badgeSizeMap[size])}>
               <CheckCircle className="w-full h-full fill-green-400 text-background" />
             </span>

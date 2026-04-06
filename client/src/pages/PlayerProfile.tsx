@@ -481,11 +481,9 @@ export default function PlayerProfile() {
               return (
                 <button
                   key={type}
+                  disabled={alreadyEndorsed}
                   onClick={() => {
-                    if (alreadyEndorsed) {
-                      setEndorsedTypes(endorsedTypes.filter(et => et !== type));
-                      toast(t("playerProfile.endorsementRemoved"));
-                    } else {
+                    if (!alreadyEndorsed) {
                       endorseMutation.mutate({ userId: player.id, type });
                       setEndorsedTypes([...endorsedTypes, type]);
                     }
