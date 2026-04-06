@@ -1241,7 +1241,7 @@ export const appRouter = router({
         groupType: z.enum(["social", "league", "tournament", "coaching"]).default("social"),
         isPrivate: z.boolean().default(false),
         locationCity: z.string().optional(),
-        photo: z.string().url().optional(),
+        photo: z.string().max(2000).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const sanitized = { ...input };
