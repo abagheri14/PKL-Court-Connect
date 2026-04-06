@@ -958,3 +958,30 @@ export const feedLikes = mysqlTable("feed_likes", {
   uniqueLike: uniqueIndex("idx_fl_unique").on(table.postId, table.userId),
   postIdx: index("idx_fl_post").on(table.postId),
 }));
+
+// =============================================================================
+// FEED REACTIONS (emoji reactions on posts - extends likes with emoji types)
+// =============================================================================
+export const feedReactions = mysqlTable("feed_reactions", {
+  id: int("id").autoincrement().primaryKey(),
+  postId: int("postId").notNull(),
+  userId: int("userId").notNull(),
+  emoji: varchar("emoji", { length: 16 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  uniqueReaction: uniqueIndex("idx_fr_unique").on(table.postId, table.userId, table.emoji),
+  postIdx: index("idx_fr_post").on(table.postId),
+}));
+
+// =============================================================================
+// FEED BOOKMARKS (saved posts)
+// =============================================================================
+export const feedBookmarks = mysqlTable("feed_bookmarks", {
+  id: int("id").autoincrement().primaryKey(),
+  postId: int("postId").notNull(),
+  userId: int("userId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  uniqueBookmark: uniqueIndex("idx_fb_unique").on(table.postId, table.userId),
+  userIdx: index("idx_fb_user").on(table.userId),
+}));

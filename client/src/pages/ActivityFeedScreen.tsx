@@ -9,7 +9,7 @@ import {
   HelpCircle, Lightbulb, Megaphone, Filter, Bookmark, Share2, RefreshCw,
   Sparkles, Zap, MapPin, Camera,
 } from "lucide-react";
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useGeolocation } from "@/hooks/useGeolocation";
@@ -304,18 +304,47 @@ function CommentSection({ postId }: { postId: number }) {
 }
 
 // ── Feed Post Card (Boo-style) ────────────────────────────────────────────
-function FeedPostCard({ post, onLikeToggle, onDelete }: {
-  post: any; onLikeToggle: (postId: number) => void; onDelete?: (postId: number) => void;
+function FeedPostCard({ post, onLikeToggle, onDelete, onRefresh }: {
+  post: any; onLikeToggle: (postId: number) => void; onDelete?: (postId: number) => void; onRefresh?: () => void;
 }) {
   const { user, navigate, selectPlayer } = useApp();
   const [showComments, setShowComments] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
   const [imageExpanded, setImageExpanded] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [showReportDialog, setShowReportDialog] = useState(false);
+  const [reportReason, setReportReason] = useState("");
   const isOwn = post.userId === user?.id;
+
+  const toggleBookmarkMutation = trpc.feed.toggleBookmark.useMutation({
+    onSuccess: (data) => {
+      toast(data.bookmarked ? "Saved! 🔖" : "Removed from saved");
+      onRefresh?.();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const toggleReactionMutation = trpc.feed.toggleReaction.useMutation({
+    onSuccess: () => { setShowReactions(false); onRefresh?.(); },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const reportPostMutation = trpc.feed.reportPost.useMutation({
+    onSuccess: () => { toast.success("Post reported. We'll review it."); setShowReportDialog(false); setReportReason(""); },
+    onError: (err) => toast.error(err.message),
+  });
 
   const handleProfileTap = () => {
     if (post.userId !== user?.id) { selectPlayer(post.userId); navigate("playerProfile"); }
+  };
+
+  const handleShare = async () => {
+    const shareText = `${post.userNickname || post.userName || "A player"}: ${post.content.slice(0, 140)}`;
+    if (navigator.share) {
+      try { await navigator.share({ title: "PKL Court Connect", text: shareText }); } catch { /* cancelled */ }
+    } else {
+      try { await navigator.clipboard.writeText(shareText); toast.success("Copied to clipboard!"); } catch { toast.error("Share not available"); }
+    }
   };
 
   const vibeTag = post.postType === "highlight" ? "🔥 Hot Take"
@@ -325,6 +354,9 @@ function FeedPostCard({ post, onLikeToggle, onDelete }: {
     : null;
 
   const userVibe = post.userSkillLevel;
+  const myReactions: string[] = post.myReactions || [];
+  const reactionCounts: Record<string, number> = post.reactions || {};
+  const totalReactions = Object.values(reactionCounts).reduce((a: number, b: any) => a + (b as number), 0);
 
   return (
     <>
@@ -377,11 +409,26 @@ function FeedPostCard({ post, onLikeToggle, onDelete }: {
               </div>
               <span className="text-[10px] text-muted-foreground">{formatTimeAgo(post.createdAt)}</span>
             </div>
-            <div className="flex items-center gap-1">
-              {isOwn && onDelete && (
-                <button onClick={() => onDelete(post.id)} className="p-1.5 text-muted-foreground/30 hover:text-red-400 transition-colors">
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
+            <div className="relative">
+              <button onClick={() => setShowMenu(!showMenu)} className="p-1.5 text-muted-foreground/40 hover:text-muted-foreground transition-colors">
+                <ChevronDown className="w-3.5 h-3.5" />
+              </button>
+              {showMenu && (
+                <div className="absolute top-full right-0 mt-1 bg-background border border-border/50 rounded-xl shadow-xl z-30 py-1 min-w-[140px]">
+                  <button onClick={() => { handleShare(); setShowMenu(false); }} className="flex items-center gap-2 w-full px-3 py-2 text-xs text-left hover:bg-muted/30 transition-colors">
+                    <Share2 className="w-3.5 h-3.5" /> Share
+                  </button>
+                  {isOwn && onDelete && (
+                    <button onClick={() => { onDelete(post.id); setShowMenu(false); }} className="flex items-center gap-2 w-full px-3 py-2 text-xs text-left text-red-400 hover:bg-red-500/10 transition-colors">
+                      <Trash2 className="w-3.5 h-3.5" /> Delete
+                    </button>
+                  )}
+                  {!isOwn && (
+                    <button onClick={() => { setShowReportDialog(true); setShowMenu(false); }} className="flex items-center gap-2 w-full px-3 py-2 text-xs text-left text-orange-400 hover:bg-orange-500/10 transition-colors">
+                      <Filter className="w-3.5 h-3.5" /> Report
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           </div>
@@ -401,14 +448,29 @@ function FeedPostCard({ post, onLikeToggle, onDelete }: {
             </button>
           )}
 
+          {/* Reaction summary */}
+          {totalReactions > 0 && (
+            <div className="flex items-center gap-1 mt-2">
+              <div className="flex -space-x-0.5">
+                {Object.entries(reactionCounts).slice(0, 5).map(([emoji]) => (
+                  <span key={emoji} className="text-xs">{emoji}</span>
+                ))}
+              </div>
+              <span className="text-[10px] text-muted-foreground ml-1">{totalReactions}</span>
+            </div>
+          )}
+
           {/* Quick reactions bar */}
           {showReactions && (
             <div className="flex items-center gap-1 mt-2 p-1.5 rounded-full bg-muted/20 w-fit animate-slide-up">
               {quickReactions.map((emoji) => (
                 <button
                   key={emoji}
-                  onClick={() => { toast(`${emoji} reaction sent!`); setShowReactions(false); }}
-                  className="w-8 h-8 rounded-full hover:bg-muted/40 flex items-center justify-center text-base transition-transform hover:scale-125 active:scale-90"
+                  onClick={() => toggleReactionMutation.mutate({ postId: post.id, emoji })}
+                  className={cn(
+                    "w-8 h-8 rounded-full flex items-center justify-center text-base transition-transform hover:scale-125 active:scale-90",
+                    myReactions.includes(emoji) ? "bg-[#BFFF00]/20 ring-1 ring-[#BFFF00]/40" : "hover:bg-muted/40"
+                  )}
                 >
                   {emoji}
                 </button>
@@ -450,13 +512,13 @@ function FeedPostCard({ post, onLikeToggle, onDelete }: {
             <div className="flex-1" />
 
             <button
-              onClick={() => { setSaved(!saved); toast(saved ? "Removed from saved" : "Saved! 🔖"); }}
+              onClick={() => toggleBookmarkMutation.mutate({ postId: post.id })}
               className={cn(
                 "p-1.5 rounded-full transition-colors",
-                saved ? "text-[#BFFF00]" : "text-muted-foreground/40 hover:text-muted-foreground/60"
+                post.isBookmarked ? "text-[#BFFF00]" : "text-muted-foreground/40 hover:text-muted-foreground/60"
               )}
             >
-              <Bookmark className={cn("w-3.5 h-3.5", saved && "fill-[#BFFF00]")} />
+              <Bookmark className={cn("w-3.5 h-3.5", post.isBookmarked && "fill-[#BFFF00]")} />
             </button>
           </div>
 
@@ -471,6 +533,40 @@ function FeedPostCard({ post, onLikeToggle, onDelete }: {
             <X size={20} />
           </button>
           <img src={post.photoUrl} alt="" className="max-w-full max-h-full object-contain" />
+        </div>
+      )}
+
+      {/* Report dialog */}
+      {showReportDialog && (
+        <div className="fixed inset-0 z-[100] bg-black/60 flex items-center justify-center p-4" onClick={() => setShowReportDialog(false)}>
+          <div className="bg-background rounded-2xl p-5 w-full max-w-sm border border-border/50" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-sm font-bold mb-3">Report Post</h3>
+            <div className="space-y-2 mb-3">
+              {["Spam or misleading", "Harassment or bullying", "Inappropriate content", "Other"].map((r) => (
+                <button
+                  key={r}
+                  onClick={() => setReportReason(r)}
+                  className={cn(
+                    "w-full text-left px-3 py-2 rounded-xl text-xs border transition-colors",
+                    reportReason === r ? "border-[#BFFF00]/40 bg-[#BFFF00]/10 text-[#BFFF00]" : "border-border/30 hover:bg-muted/20"
+                  )}
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={() => setShowReportDialog(false)} className="flex-1 text-xs">Cancel</Button>
+              <Button
+                size="sm"
+                onClick={() => reportPostMutation.mutate({ postId: post.id, reason: reportReason })}
+                disabled={!reportReason || reportPostMutation.isPending}
+                className="flex-1 text-xs bg-red-500 hover:bg-red-600 text-white"
+              >
+                {reportPostMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : "Report"}
+              </Button>
+            </div>
+          </div>
         </div>
       )}
     </>
@@ -501,19 +597,34 @@ function ActivityItemCard({ item }: { item: any }) {
 // ── Main Feed Screen (Boo-style) ──────────────────────────────────────────
 export default function ActivityFeedScreen() {
   const { user } = useApp();
-  const [tab, setTab] = useState<"posts" | "trending" | "activity" | "my">("posts");
+  const [tab, setTab] = useState<"posts" | "trending" | "saved" | "activity" | "my">("posts");
   const [filter, setFilter] = useState("all");
   const [refreshing, setRefreshing] = useState(false);
+  const [offset, setOffset] = useState(0);
+  const [allPosts, setAllPosts] = useState<any[]>([]);
+  const [hasMore, setHasMore] = useState(true);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+  const PAGE_SIZE = 30;
 
   const postsQuery = trpc.feed.posts.useQuery(
-    { limit: 30, offset: 0, filter: filter === "all" ? undefined : filter },
+    { limit: PAGE_SIZE, offset, filter: filter === "all" ? undefined : filter },
     { enabled: tab === "posts" || tab === "trending" }
   );
+
+  // Accumulate posts for infinite scroll
+  useEffect(() => {
+    if (postsQuery.data) {
+      const data = postsQuery.data as any[];
+      if (offset === 0) { setAllPosts(data); } else { setAllPosts(prev => [...prev, ...data]); }
+      setHasMore(data.length >= PAGE_SIZE);
+    }
+  }, [postsQuery.data, offset]);
+  const savedQuery = trpc.feed.bookmarks.useQuery({ limit: 50 }, { enabled: tab === "saved" });
   const communityQuery = trpc.feed.list.useQuery({ limit: 50 }, { enabled: tab === "activity" });
   const myQuery = trpc.feed.my.useQuery({ limit: 50 }, { enabled: tab === "my" });
 
   const toggleLikeMutation = trpc.feed.toggleLike.useMutation({
-    onSuccess: () => postsQuery.refetch(),
+    onSuccess: () => { postsQuery.refetch(); savedQuery.refetch(); },
     onError: (err) => toast.error(err.message),
   });
   const deletePostMutation = trpc.feed.deletePost.useMutation({
@@ -523,24 +634,35 @@ export default function ActivityFeedScreen() {
 
   const handleLikeToggle = useCallback((postId: number) => { toggleLikeMutation.mutate({ postId }); }, []);
   const handleDeletePost = useCallback((postId: number) => { deletePostMutation.mutate({ postId }); }, []);
-
   const handleRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([postsQuery.refetch(), communityQuery.refetch(), myQuery.refetch()]);
+    setOffset(0);
+    await Promise.all([postsQuery.refetch(), savedQuery.refetch(), communityQuery.refetch(), myQuery.refetch()]);
     setRefreshing(false);
     toast.success("Feed refreshed!");
   };
+  const handleRefetchPosts = useCallback(() => { postsQuery.refetch(); savedQuery.refetch(); }, []);
 
-  const allPosts: any[] = postsQuery.data ?? [];
-  // Trending = sorted by likes, then comments
+  const loadMore = useCallback(() => {
+    if (hasMore && !postsQuery.isFetching) { setOffset(prev => prev + PAGE_SIZE); }
+  }, [hasMore, postsQuery.isFetching]);
+
+  // Reset offset when filter or tab changes
+  const handleFilterChange = (v: string) => { setFilter(v); setOffset(0); setAllPosts([]); };
+  const handleTabChange = (t: typeof tab) => { setTab(t); setOffset(0); setAllPosts([]); };
+
   const trendingPosts = [...allPosts].sort((a, b) => (b.likesCount + b.commentsCount * 2) - (a.likesCount + a.commentsCount * 2));
   const posts = tab === "trending" ? trendingPosts : allPosts;
+  const savedPosts: any[] = savedQuery.data ?? [];
   const activityItems: any[] = tab === "activity" ? (communityQuery.data ?? []) : (myQuery.data ?? []);
-  const isLoading = (tab === "posts" || tab === "trending") ? postsQuery.isLoading : tab === "activity" ? communityQuery.isLoading : myQuery.isLoading;
+  const isLoading = (tab === "posts" || tab === "trending") ? postsQuery.isLoading && offset === 0
+    : tab === "saved" ? savedQuery.isLoading
+    : tab === "activity" ? communityQuery.isLoading : myQuery.isLoading;
 
   const tabs = [
     { key: "posts" as const, label: "Feed", icon: "✨" },
     { key: "trending" as const, label: "Hot", icon: "🔥" },
+    { key: "saved" as const, label: "Saved", icon: "🔖" },
     { key: "activity" as const, label: "Activity", icon: "⚡" },
     { key: "my" as const, label: "Mine", icon: "👤" },
   ];
@@ -569,13 +691,13 @@ export default function ActivityFeedScreen() {
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-1.5 mt-3">
+          <div className="flex gap-1 mt-3 overflow-x-auto scrollbar-none">
             {tabs.map((t) => (
               <button
                 key={t.key}
-                onClick={() => setTab(t.key)}
+                onClick={() => handleTabChange(t.key)}
                 className={cn(
-                  "flex-1 py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1",
+                  "flex-shrink-0 px-3 py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1",
                   tab === t.key
                     ? "bg-[#BFFF00]/15 text-[#BFFF00] border border-[#BFFF00]/30 shadow-[0_0_12px_rgba(191,255,0,0.05)]"
                     : "bg-muted/20 text-muted-foreground hover:bg-muted/30"
@@ -592,7 +714,7 @@ export default function ActivityFeedScreen() {
               {filterOptions.map((opt) => (
                 <button
                   key={opt.value}
-                  onClick={() => setFilter(opt.value)}
+                  onClick={() => handleFilterChange(opt.value)}
                   className={cn(
                     "px-2.5 py-1 rounded-full text-[10px] font-medium whitespace-nowrap transition-all shrink-0 flex items-center gap-1",
                     filter === opt.value
@@ -612,7 +734,7 @@ export default function ActivityFeedScreen() {
       {tab === "posts" && <NearbyStrip />}
 
       {/* Post composer */}
-      {(tab === "posts" || tab === "trending") && <PostComposer onSuccess={() => postsQuery.refetch()} />}
+      {(tab === "posts" || tab === "trending") && <PostComposer onSuccess={() => { setOffset(0); postsQuery.refetch(); }} />}
 
       {/* Content */}
       <div className="py-3 space-y-3">
@@ -632,7 +754,6 @@ export default function ActivityFeedScreen() {
             </div>
           ) : (
             <>
-              {/* Trending banner */}
               {tab === "trending" && posts.length > 0 && (
                 <div className="mx-4 p-3 rounded-2xl bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-500/20">
                   <div className="flex items-center gap-2">
@@ -643,9 +764,35 @@ export default function ActivityFeedScreen() {
                 </div>
               )}
               {posts.map((post: any) => (
-                <FeedPostCard key={post.id} post={post} onLikeToggle={handleLikeToggle} onDelete={handleDeletePost} />
+                <FeedPostCard key={post.id} post={post} onLikeToggle={handleLikeToggle} onDelete={handleDeletePost} onRefresh={handleRefetchPosts} />
               ))}
+              {/* Load more / infinite scroll trigger */}
+              {hasMore && tab === "posts" && (
+                <div ref={loadMoreRef} className="flex justify-center py-4">
+                  <button
+                    onClick={loadMore}
+                    disabled={postsQuery.isFetching}
+                    className="px-4 py-2 rounded-xl text-xs font-medium bg-muted/20 hover:bg-muted/40 text-muted-foreground transition-colors"
+                  >
+                    {postsQuery.isFetching ? <Loader2 className="w-4 h-4 animate-spin" /> : "Load more"}
+                  </button>
+                </div>
+              )}
             </>
+          )
+        ) : tab === "saved" ? (
+          savedPosts.length === 0 ? (
+            <div className="text-center py-16 animate-slide-up">
+              <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-[#BFFF00]/10 to-green-500/5 flex items-center justify-center mx-auto mb-4">
+                <Bookmark className="w-8 h-8 text-[#BFFF00]/40" />
+              </div>
+              <p className="text-sm font-semibold">No saved posts</p>
+              <p className="text-xs text-muted-foreground mt-1">Bookmark posts to see them here</p>
+            </div>
+          ) : (
+            savedPosts.map((post: any) => (
+              <FeedPostCard key={post.id} post={post} onLikeToggle={handleLikeToggle} onRefresh={handleRefetchPosts} />
+            ))
           )
         ) : (
           activityItems.length === 0 ? (

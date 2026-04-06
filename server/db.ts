@@ -9,7 +9,7 @@ import {
   gameResults, notificationPreferences, challenges, gameRounds, courtSubmissions,
   tournaments, tournamentParticipants, tournamentMatches, emailVerificationCodes,
   courtBookings, activityFeed, messageReactions, courtPhotos, rivalries, favoritePlayers, referrals,
-  feedPosts, feedComments, feedLikes,
+  feedPosts, feedComments, feedLikes, feedReactions, feedBookmarks,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -5148,18 +5148,47 @@ export async function getFeedPosts(userId: number, opts: {
     .limit(opts.limit ?? 30)
     .offset(opts.offset ?? 0);
 
-  // Check which posts the current user has liked
+  // Check which posts the current user has liked and bookmarked
   if (posts.length > 0) {
     const postIds = posts.map(p => p.id);
+    const postIdSql = sql`${sql.join(postIds.map(id => sql`${id}`), sql`, `)}`;
     const likes = await db.select({ postId: feedLikes.postId }).from(feedLikes)
       .where(and(
         eq(feedLikes.userId, userId),
-        sql`${feedLikes.postId} IN (${sql.join(postIds.map(id => sql`${id}`), sql`, `)})`
+        sql`${feedLikes.postId} IN (${postIdSql})`
       ));
+    const bookmarks = await db.select({ postId: feedBookmarks.postId }).from(feedBookmarks)
+      .where(and(
+        eq(feedBookmarks.userId, userId),
+        sql`${feedBookmarks.postId} IN (${postIdSql})`
+      ));
+    const reactions = await db.select({ postId: feedReactions.postId, emoji: feedReactions.emoji }).from(feedReactions)
+      .where(sql`${feedReactions.postId} IN (${postIdSql})`);
     const likedSet = new Set(likes.map(l => l.postId));
-    return posts.map(p => ({ ...p, isLiked: likedSet.has(p.id) }));
+    const bookmarkedSet = new Set(bookmarks.map(b => b.postId));
+    // Group reactions by post
+    const reactionsByPost: Record<number, Record<string, number>> = {};
+    for (const r of reactions) {
+      if (!reactionsByPost[r.postId]) reactionsByPost[r.postId] = {};
+      reactionsByPost[r.postId][r.emoji] = (reactionsByPost[r.postId][r.emoji] || 0) + 1;
+    }
+    // Check user's own reactions
+    const myReactions = await db.select({ postId: feedReactions.postId, emoji: feedReactions.emoji }).from(feedReactions)
+      .where(and(eq(feedReactions.userId, userId), sql`${feedReactions.postId} IN (${postIdSql})`));
+    const myReactionsByPost: Record<number, string[]> = {};
+    for (const r of myReactions) {
+      if (!myReactionsByPost[r.postId]) myReactionsByPost[r.postId] = [];
+      myReactionsByPost[r.postId].push(r.emoji);
+    }
+    return posts.map(p => ({
+      ...p,
+      isLiked: likedSet.has(p.id),
+      isBookmarked: bookmarkedSet.has(p.id),
+      reactions: reactionsByPost[p.id] || {},
+      myReactions: myReactionsByPost[p.id] || [],
+    }));
   }
-  return posts.map(p => ({ ...p, isLiked: false }));
+  return posts.map(p => ({ ...p, isLiked: false, isBookmarked: false, reactions: {}, myReactions: [] }));
 }
 
 export async function toggleFeedLike(userId: number, postId: number) {
@@ -5210,6 +5239,69 @@ export async function deleteFeedPost(userId: number, postId: number) {
   if (post.userId !== userId) throw new Error("Not authorized");
   await db.delete(feedComments).where(eq(feedComments.postId, postId));
   await db.delete(feedLikes).where(eq(feedLikes.postId, postId));
+  await db.delete(feedReactions).where(eq(feedReactions.postId, postId));
+  await db.delete(feedBookmarks).where(eq(feedBookmarks.postId, postId));
   await db.delete(feedPosts).where(eq(feedPosts.id, postId));
+  return { success: true };
+}
+
+// ── Feed Reactions ────────────────────────────────────────────────────────
+export async function toggleFeedReaction(userId: number, postId: number, emoji: string) {
+  const db = await getDb();
+  const [existing] = await db.select({ id: feedReactions.id }).from(feedReactions)
+    .where(and(eq(feedReactions.postId, postId), eq(feedReactions.userId, userId), eq(feedReactions.emoji, emoji))).limit(1);
+  if (existing) {
+    await db.delete(feedReactions).where(eq(feedReactions.id, existing.id));
+    return { added: false, emoji };
+  } else {
+    await db.insert(feedReactions).values({ postId, userId, emoji });
+    return { added: true, emoji };
+  }
+}
+
+// ── Feed Bookmarks ────────────────────────────────────────────────────────
+export async function toggleFeedBookmark(userId: number, postId: number) {
+  const db = await getDb();
+  const [existing] = await db.select({ id: feedBookmarks.id }).from(feedBookmarks)
+    .where(and(eq(feedBookmarks.postId, postId), eq(feedBookmarks.userId, userId))).limit(1);
+  if (existing) {
+    await db.delete(feedBookmarks).where(eq(feedBookmarks.id, existing.id));
+    return { bookmarked: false };
+  } else {
+    await db.insert(feedBookmarks).values({ postId, userId });
+    return { bookmarked: true };
+  }
+}
+
+export async function getBookmarkedPosts(userId: number, limit = 30) {
+  const db = await getDb();
+  const posts = await db.select({
+    id: feedPosts.id, userId: feedPosts.userId, content: feedPosts.content,
+    photoUrl: feedPosts.photoUrl, postType: feedPosts.postType,
+    likesCount: feedPosts.likesCount, commentsCount: feedPosts.commentsCount,
+    createdAt: feedPosts.createdAt,
+    userName: users.name, userNickname: users.nickname, userPhoto: users.profilePhotoUrl,
+    userLevel: users.level, userSkillLevel: users.skillLevel,
+    bookmarkedAt: feedBookmarks.createdAt,
+  }).from(feedBookmarks)
+    .innerJoin(feedPosts, eq(feedBookmarks.postId, feedPosts.id))
+    .leftJoin(users, eq(feedPosts.userId, users.id))
+    .where(eq(feedBookmarks.userId, userId))
+    .orderBy(desc(feedBookmarks.createdAt))
+    .limit(limit);
+  return posts.map(p => ({ ...p, isLiked: false, isBookmarked: true, reactions: {}, myReactions: [] }));
+}
+
+// ── Report Post ───────────────────────────────────────────────────────────
+export async function reportFeedPost(userId: number, postId: number, reason: string) {
+  const db = await getDb();
+  const [post] = await db.select({ userId: feedPosts.userId }).from(feedPosts).where(eq(feedPosts.id, postId)).limit(1);
+  if (!post) throw new Error("Post not found");
+  // Use reports table (targetType = 'feed_post')
+  await db.insert(reports).values({
+    reporterId: userId,
+    reportedId: post.userId,
+    reason: `[Feed Post #${postId}] ${reason}`,
+  } as any);
   return { success: true };
 }

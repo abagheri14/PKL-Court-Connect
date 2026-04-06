@@ -156,7 +156,6 @@ export const appRouter = router({
         await db.createPasswordResetToken(user.id, token);
         // In production, send email with reset link containing the token
         // await sendEmail(user.email, { subject: "Password Reset", ... });
-        console.log(`[Auth] Password reset token created for user ${user.id} at ${new Date().toISOString()}`);
         return { success: true, message: "If an account exists with this email, a reset link has been sent." };
       }),
     resetPassword: publicProcedure
@@ -2122,6 +2121,18 @@ export const appRouter = router({
     deletePost: protectedProcedure
       .input(z.object({ postId: z.number() }))
       .mutation(({ ctx, input }) => db.deleteFeedPost(ctx.user.id, input.postId)),
+    toggleReaction: protectedProcedure
+      .input(z.object({ postId: z.number(), emoji: z.string().min(1).max(16) }))
+      .mutation(({ ctx, input }) => db.toggleFeedReaction(ctx.user.id, input.postId, input.emoji)),
+    toggleBookmark: protectedProcedure
+      .input(z.object({ postId: z.number() }))
+      .mutation(({ ctx, input }) => db.toggleFeedBookmark(ctx.user.id, input.postId)),
+    bookmarks: protectedProcedure
+      .input(z.object({ limit: z.number().min(1).max(100).default(30) }).optional())
+      .query(({ ctx, input }) => db.getBookmarkedPosts(ctx.user.id, input?.limit ?? 30)),
+    reportPost: protectedProcedure
+      .input(z.object({ postId: z.number(), reason: z.string().min(1).max(500) }))
+      .mutation(({ ctx, input }) => db.reportFeedPost(ctx.user.id, input.postId, input.reason)),
   }),
 
   // ── Favorite Players ───────────────────────────────────────────────────

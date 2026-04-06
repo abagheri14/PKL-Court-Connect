@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { PKLBallIcon } from "@/components/PKLBallLogo";
 import {
-  Crown, Heart, MapPin, Loader2, ThumbsUp,
+  Crown, Heart, MapPin, Loader2, ThumbsUp, Rocket,
   Star, X, Sparkles, Trophy, Flame, Target, CheckCircle, RotateCcw, SlidersHorizontal,
 } from "lucide-react";
 import { QueryError } from "@/components/QueryError";
@@ -75,6 +75,13 @@ export default function SwipeDeck() {
       } else {
         toast.info("No recent swipe to undo");
       }
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const boostMutation = trpc.swipes.boost.useMutation({
+    onSuccess: (result: any) => {
+      toast.success(`Profile boosted! ${result.boostsRemaining ?? 0} boosts remaining`);
     },
     onError: (err) => toast.error(err.message),
   });
@@ -427,6 +434,25 @@ export default function SwipeDeck() {
             ) : !superRallyUsed ? (
               <span className="text-[6px] font-bold uppercase tracking-wider">{t("swipe.super")}</span>
             ) : null}
+          </button>
+
+          {/* Profile Boost Button */}
+          <button
+            onClick={() => boostMutation.mutate()}
+            disabled={boostMutation.isPending || !user?.isPremium}
+            className={cn(
+              "w-11 h-11 rounded-xl flex flex-col items-center justify-center transition-all",
+              user?.isPremium
+                ? "bg-gradient-to-br from-purple-500/15 to-pink-500/10 border border-purple-500/30 text-purple-400 hover:shadow-[0_0_20px_rgba(168,85,247,0.15)] active:scale-90"
+                : "bg-gradient-to-br from-purple-500/15 to-pink-500/10 border border-purple-500/30 text-purple-400 active:scale-90 relative"
+            )}
+          >
+            {boostMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <Rocket size={16} />}
+            {!user?.isPremium ? (
+              <span className="text-[6px] font-bold uppercase tracking-wider flex items-center gap-0.5"><Crown size={7} />PRO</span>
+            ) : (
+              <span className="text-[6px] font-bold uppercase tracking-wider">Boost</span>
+            )}
           </button>
         </div>
       )}

@@ -17,6 +17,21 @@ import { toast } from "sonner";
 const skillLevels = ["Beginner", "2.5", "3.0", "3.5", "4.0", "4.5", "5.0+"];
 const vibes = ["Social", "Competitive", "Both"] as const;
 const playStyles = ["Power Player", "Kitchen Master", "Strategist", "Defender", "All-Courter"];
+const handednessOptions = [
+  { value: "right" as const, label: "Right", icon: "🤚" },
+  { value: "left" as const, label: "Left", icon: "✋" },
+  { value: "ambidextrous" as const, label: "Ambi", icon: "🙌" },
+];
+const paceOptions = [
+  { value: "fast" as const, label: "Fast & Aggressive", icon: "⚡" },
+  { value: "rally" as const, label: "Rally & Patient", icon: "🎯" },
+  { value: "both" as const, label: "Both", icon: "🔄" },
+];
+const courtPrefOptions = [
+  { value: "indoor" as const, label: "Indoor", icon: "🏢" },
+  { value: "outdoor" as const, label: "Outdoor", icon: "☀️" },
+  { value: "both" as const, label: "Both", icon: "🏓" },
+];
 const MAX_PHOTOS = 6;
 
 export default function EditProfile() {
@@ -47,6 +62,10 @@ export default function EditProfile() {
     if (Array.isArray(ps)) return ps;
     return String(ps).split(",").map(s => s.trim()).filter(Boolean);
   });
+  const [handedness, setHandedness] = useState<"left" | "right" | "ambidextrous">(user?.handedness ?? "right");
+  const [pace, setPace] = useState<"fast" | "rally" | "both">(user?.pace ?? "both");
+  const [courtPreference, setCourtPreference] = useState<"indoor" | "outdoor" | "both">(user?.courtPreference ?? "both");
+  const [goals, setGoals] = useState(user?.goals ?? "");
 
   // Multi-photo management
   const photosQuery = trpc.photos.list.useQuery();
@@ -85,6 +104,10 @@ export default function EditProfile() {
       skillLevel: skill,
       vibe: vibe.toLowerCase() as "social" | "competitive" | "both",
       playStyle: styles.join(", "),
+      handedness,
+      pace,
+      courtPreference,
+      goals: goals || undefined,
     });
   };
 
@@ -257,6 +280,67 @@ export default function EditProfile() {
               </button>
             ))}
           </div>
+        </div>
+
+        {/* Handedness */}
+        <div>
+          <Label>Dominant Hand</Label>
+          <div className="grid grid-cols-3 gap-2 mt-2">
+            {handednessOptions.map(h => (
+              <button
+                key={h.value}
+                onClick={() => setHandedness(h.value)}
+                className={cn("px-3 py-2.5 rounded-lg text-sm font-medium border transition-all flex items-center justify-center gap-1.5", handedness === h.value ? "border-secondary bg-secondary/20 text-secondary" : "border-border bg-background/30 text-muted-foreground hover:border-muted-foreground")}
+              >
+                <span>{h.icon}</span> {h.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Pace Preference */}
+        <div>
+          <Label>Pace Preference</Label>
+          <div className="grid grid-cols-3 gap-2 mt-2">
+            {paceOptions.map(p => (
+              <button
+                key={p.value}
+                onClick={() => setPace(p.value)}
+                className={cn("px-3 py-2.5 rounded-lg text-xs font-medium border transition-all flex items-center justify-center gap-1", pace === p.value ? "border-secondary bg-secondary/20 text-secondary" : "border-border bg-background/30 text-muted-foreground hover:border-muted-foreground")}
+              >
+                <span>{p.icon}</span> {p.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Court Preference */}
+        <div>
+          <Label>Court Preference</Label>
+          <div className="grid grid-cols-3 gap-2 mt-2">
+            {courtPrefOptions.map(c => (
+              <button
+                key={c.value}
+                onClick={() => setCourtPreference(c.value)}
+                className={cn("px-3 py-2.5 rounded-lg text-sm font-medium border transition-all flex items-center justify-center gap-1.5", courtPreference === c.value ? "border-secondary bg-secondary/20 text-secondary" : "border-border bg-background/30 text-muted-foreground hover:border-muted-foreground")}
+              >
+                <span>{c.icon}</span> {c.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Goals */}
+        <div>
+          <Label>Pickleball Goals</Label>
+          <Textarea
+            value={goals}
+            onChange={e => setGoals(e.target.value)}
+            className="bg-background/50 mt-1 min-h-[80px]"
+            placeholder="What are your pickleball goals? (e.g., Reach 4.0 rating, win a local tournament, make new friends...)"
+            maxLength={300}
+          />
+          <p className="text-xs text-muted-foreground text-right mt-1">{goals.length}/300</p>
         </div>
       </div>
     </div>
