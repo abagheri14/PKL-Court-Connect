@@ -1,0 +1,1 @@
+ALTER TABLE `swipes` ADD COLUMN `isSuperRally` boolean NOT NULL DEFAULT false;

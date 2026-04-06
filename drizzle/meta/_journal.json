@@ -1,0 +1,62 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1770689887902,
+      "tag": "0000_harsh_zarek",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1775126558926,
+      "tag": "0001_safe_chameleon",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1775213000000,
+      "tag": "0002_coaching_groups_enhancements",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1775300000000,
+      "tag": "0003_add_performance_indexes",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1775225329369,
+      "tag": "0004_dashing_silver_samurai",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1775400000000,
+      "tag": "0007_add_challenges_table",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1775500000000,
+      "tag": "0008_add_court_submissions",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1775600000000,
+      "tag": "0009_add_score_confirmed",
+      "breakpoints": true
+    }
+  ]
+}
