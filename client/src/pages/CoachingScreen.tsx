@@ -284,7 +284,7 @@ export default function CoachingScreen() {
     const isJoined = participants.some((p: any) => p.userId === user?.id && p.status === "confirmed");
     const isPendingApproval = participants.some((p: any) => p.userId === user?.id && p.status === "pending");
     const avgRating = reviews.length > 0 ? (reviews.reduce((sum: number, r: any) => sum + r.rating, 0) / reviews.length).toFixed(1) : null;
-    const confirmedParticipants = participants.filter((p: any) => p.status === "confirmed");
+    const confirmedParticipants = participants.filter((p: any) => p.status === "confirmed" && p.userId !== session.organizerId);
 
     const startEditPlan = () => {
       setPlanAgenda(session.agenda || "");

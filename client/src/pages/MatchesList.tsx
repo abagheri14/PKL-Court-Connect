@@ -2,15 +2,16 @@ import { useApp } from "@/contexts/AppContext";
 import { trpc } from "@/lib/trpc";
 import PlayerAvatar from "@/components/PlayerAvatar";
 import { getDisplayName, formatTimeAgo } from "@/lib/avatarUtils";
-import { Lock, Search, Loader2, Heart } from "lucide-react";
+import { Lock, Search, Loader2, Heart, Crown, Eye } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { QueryError } from "@/components/QueryError";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 
 export default function MatchesList() {
-  const { selectMatch, selectPlayer } = useApp();
+  const { selectMatch, selectPlayer, user, navigate } = useApp();
   const { t } = useTranslation();
   const [search, setSearch] = useState("");
 
@@ -19,6 +20,13 @@ export default function MatchesList() {
     staleTime: 15000,
   });
   const matches = matchesQuery.data ?? [];
+
+  // "Who Rallied You" — available for all users but blurred for non-premium
+  const whoLikedQuery = trpc.swipes.whoLikedYou.useQuery(undefined, {
+    enabled: !!user?.isPremium,
+    refetchInterval: 30000,
+  });
+  const whoLiked: any[] = whoLikedQuery.data ?? [];
 
   if (matchesQuery.isLoading) {
     return (
@@ -62,6 +70,42 @@ export default function MatchesList() {
       </div>
 
       <div className="px-5">
+        {/* "Rallied You" section — blurred for non-premium */}
+        {(whoLiked.length > 0 || !user?.isPremium) && (
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-sm font-bold flex items-center gap-1.5">
+                <Heart size={14} className="text-pink-400" />
+                {t("matches.ralliedYou", "Rallied You")}
+                {!user?.isPremium && <Crown size={11} className="text-secondary" />}
+              </h2>
+              {!user?.isPremium && (
+                <Button onClick={() => navigate("premium")} size="sm" variant="outline" className="text-[10px] h-6 gap-1 border-secondary/30 text-secondary">
+                  <Eye size={10} /> {t("matches.seeWho", "See Who")}
+                </Button>
+              )}
+            </div>
+            <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
+              {user?.isPremium ? (
+                whoLiked.map((entry: any) => (
+                  <button key={entry.id} onClick={() => selectPlayer(entry.user?.id ?? entry.swiperId)} className="flex-shrink-0 w-16 flex flex-col items-center gap-1">
+                    <PlayerAvatar user={entry.user ?? { id: entry.swiperId, name: "?", hasProfilePhoto: false }} size="md" showBadges={false} />
+                    <span className="text-[9px] text-muted-foreground font-medium truncate w-full text-center">{getDisplayName(entry.user ?? { name: "?" })}</span>
+                  </button>
+                ))
+              ) : (
+                // Blurred placeholder tiles for non-premium
+                Array.from({ length: 4 }).map((_, i) => (
+                  <button key={i} onClick={() => navigate("premium")} className="flex-shrink-0 w-16 flex flex-col items-center gap-1">
+                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-pink-500/20 to-purple-500/20 blur-[6px] ring-2 ring-pink-400/20" />
+                    <span className="text-[9px] text-muted-foreground font-medium blur-sm">Player</span>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
         {filtered.length === 0 ? (
           <div className="text-center py-12 animate-slide-up">
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/15 to-primary/10 flex items-center justify-center mx-auto mb-3">

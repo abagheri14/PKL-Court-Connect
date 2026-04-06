@@ -38,6 +38,8 @@ export default function GroupsScreen() {
   const [newType, setNewType] = useState<"social" | "league" | "tournament" | "coaching">("social");
   const [newPrivate, setNewPrivate] = useState(false);
   const [newCity, setNewCity] = useState("");
+  const [newPhoto, setNewPhoto] = useState("");
+  const newPhotoInputRef = useRef<HTMLInputElement>(null);
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<"chat" | "games" | "leaderboard" | "manage">("chat");
   const [showGroupInfo, setShowGroupInfo] = useState(false);
@@ -147,6 +149,7 @@ export default function GroupsScreen() {
       setNewName("");
       setNewDesc("");
       setNewCity("");
+      setNewPhoto("");
       // Navigate into the new group immediately
       if (data?.groupId) {
         setGroupView("mine");
@@ -682,7 +685,7 @@ export default function GroupsScreen() {
                     </Button>
                   </div>
                 )}
-                <div className="flex gap-2 sticky bottom-[68px] z-10 bg-background/95 backdrop-blur-sm py-3">
+                <div className="flex gap-2 pb-20">
                   <Input
                     placeholder={t("groups.messagePlaceholder")}
                     value={chatMessage}
@@ -1017,6 +1020,48 @@ export default function GroupsScreen() {
         <div className="px-5 pb-4 animate-slide-up">
           <div className="card-elevated rounded-xl p-4 space-y-3">
             <h3 className="text-sm font-bold">{t("groups.createGroup")}</h3>
+            {/* Group Photo */}
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => newPhotoInputRef.current?.click()}
+                className="relative w-16 h-16 rounded-xl bg-muted/20 border-2 border-dashed border-muted-foreground/30 flex items-center justify-center overflow-hidden hover:border-primary/50 transition-colors"
+              >
+                {newPhoto ? (
+                  <img src={newPhoto} alt="Group" className="w-full h-full object-cover" />
+                ) : (
+                  <Camera size={20} className="text-muted-foreground/50" />
+                )}
+              </button>
+              <div className="flex-1 text-xs text-muted-foreground">
+                {newPhoto ? (
+                  <button onClick={() => setNewPhoto("")} className="text-red-400 hover:text-red-300 text-xs">Remove photo</button>
+                ) : (
+                  "Add a group photo (optional)"
+                )}
+              </div>
+              <input
+                ref={newPhotoInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  if (file.size > 10 * 1024 * 1024) { toast.error(t("common.fileTooLarge")); return; }
+                  const formData = new FormData();
+                  formData.append("file", file);
+                  formData.append("purpose", "group");
+                  try {
+                    const res = await fetch("/api/upload", { method: "POST", body: formData, credentials: "include" });
+                    if (!res.ok) throw new Error("Upload failed");
+                    const data = await res.json();
+                    setNewPhoto(data.url);
+                    toast.success(t("common.photoUploaded"));
+                  } catch { toast.error(t("common.uploadFailed")); }
+                }}
+              />
+            </div>
             <Input placeholder="Group name" value={newName} onChange={e => setNewName(e.target.value)} className="bg-background/50" />
             <Input placeholder="Description (optional)" value={newDesc} onChange={e => setNewDesc(e.target.value)} className="bg-background/50" />
             <Input placeholder="City (optional)" value={newCity} onChange={e => setNewCity(e.target.value)} className="bg-background/50" />
@@ -1040,7 +1085,7 @@ export default function GroupsScreen() {
               {newPrivate ? t("groups.private") : t("groups.public")}
             </button>
             <Button
-              onClick={() => createMutation.mutate({ name: newName, description: newDesc || undefined, groupType: newType, isPrivate: newPrivate, locationCity: newCity || undefined })}
+              onClick={() => createMutation.mutate({ name: newName, description: newDesc || undefined, groupType: newType, isPrivate: newPrivate, locationCity: newCity || undefined, photo: newPhoto || undefined })}
               disabled={!newName.trim() || createMutation.isPending}
               className="w-full bg-gradient-to-r from-primary to-accent text-white"
             >

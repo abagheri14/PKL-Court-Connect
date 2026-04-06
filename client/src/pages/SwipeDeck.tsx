@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { PKLBallIcon } from "@/components/PKLBallLogo";
 import {
   Crown, Heart, MapPin, Loader2, ThumbsUp,
-  Star, X, Sparkles, Trophy, Flame, Target, CheckCircle, RotateCcw,
+  Star, X, Sparkles, Trophy, Flame, Target, CheckCircle, RotateCcw, SlidersHorizontal,
 } from "lucide-react";
 import { QueryError } from "@/components/QueryError";
 import MatchCelebration from "@/components/MatchCelebration";
@@ -23,8 +23,20 @@ export default function SwipeDeck() {
   const { lat, lng, loading: geoLoading, error: geoError } = useGeolocation({ fallbackLat: user?.latitude, fallbackLng: user?.longitude });
 
   const [matchData, setMatchData] = useState<{ player: any } | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
+  const [filterRadius, setFilterRadius] = useState(25);
+  const [filterVibe, setFilterVibe] = useState("");
+  const [filterSkill, setFilterSkill] = useState("");
+  const [filterAgeMin, setFilterAgeMin] = useState(18);
+  const [filterAgeMax, setFilterAgeMax] = useState(99);
 
-  const candidatesQuery = trpc.swipes.candidates.useQuery({ lat, lng, radiusMiles: 25 }, { enabled: !!(lat && lng) });
+  const candidatesQuery = trpc.swipes.candidates.useQuery({
+    lat, lng, radiusMiles: filterRadius,
+    ...(filterVibe ? { vibe: filterVibe } : {}),
+    ...(user?.isPremium && filterSkill ? { skillLevel: filterSkill } : {}),
+    ...(user?.isPremium && filterAgeMin > 18 ? { ageMin: filterAgeMin } : {}),
+    ...(user?.isPremium && filterAgeMax < 99 ? { ageMax: filterAgeMax } : {}),
+  }, { enabled: !!(lat && lng), staleTime: 60_000 });
   const remainingQuery = trpc.swipes.remaining.useQuery();
   const unmatchedQuery = trpc.matches.getUnmatched.useQuery(undefined, { enabled: !!user?.isPremium });
   const unmatchedUsers: any[] = unmatchedQuery.data ?? [];
@@ -93,7 +105,7 @@ export default function SwipeDeck() {
   const maxSwipes = user?.maxDailySwipes ?? 25;
 
   // All handlers and useCallbacks must come before any early returns (Rules of Hooks)
-  const SWIPE_THRESHOLD = 100;
+  const SWIPE_THRESHOLD = 60;
 
   // Use a ref for handleSwipe to avoid stale closure in handlePointerUp
   const handleSwipeRef = useRef<(dir: "left" | "right") => void>(() => {});
@@ -195,20 +207,72 @@ export default function SwipeDeck() {
             {t("swipe.playersNearby", { count: candidates.length - swipeIndex })}
           </p>
         </div>
-        <div className="relative w-10 h-10">
-          <svg viewBox="0 0 40 40" className="w-full h-full -rotate-90">
-            <circle cx="20" cy="20" r="16" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-muted/20" />
-            <circle cx="20" cy="20" r="16" fill="none" strokeWidth="2.5" strokeDasharray={`${swipePercent} ${100 - swipePercent}`} strokeLinecap="round" className="text-primary transition-all duration-500" />
-          </svg>
-          <div className="absolute inset-0 flex items-center justify-center">
-            {user.isPremium ? (
-              <Crown size={12} className="text-secondary" />
-            ) : (
-              <span className="text-[10px] font-bold stat-number">{swipesRemaining}</span>
-            )}
+        <div className="flex items-center gap-2">
+          <button onClick={() => setShowFilters(v => !v)} className={cn("w-10 h-10 rounded-xl flex items-center justify-center transition-all", showFilters ? "bg-primary/20 text-primary" : "bg-muted/10 text-muted-foreground hover:bg-muted/20")}>
+            <SlidersHorizontal size={16} />
+          </button>
+          <div className="relative w-10 h-10">
+            <svg viewBox="0 0 40 40" className="w-full h-full -rotate-90">
+              <circle cx="20" cy="20" r="16" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-muted/20" />
+              <circle cx="20" cy="20" r="16" fill="none" strokeWidth="2.5" strokeDasharray={`${swipePercent} ${100 - swipePercent}`} strokeLinecap="round" className="text-primary transition-all duration-500" />
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center">
+              {user.isPremium ? (
+                <Crown size={12} className="text-secondary" />
+              ) : (
+                <span className="text-[10px] font-bold stat-number">{swipesRemaining}</span>
+              )}
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Filter Panel */}
+      {showFilters && (
+        <div className="px-4 pb-3 animate-slide-up">
+          <div className="card-elevated rounded-xl p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold">{t("swipe.filters", "Filters")}</h3>
+              <button onClick={() => { setFilterRadius(25); setFilterVibe(""); setFilterSkill(""); setFilterAgeMin(18); setFilterAgeMax(99); }} className="text-[10px] text-primary font-medium">{t("swipe.resetFilters", "Reset")}</button>
+            </div>
+            <div>
+              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide block mb-1">{t("swipe.distance", "Distance")} — {filterRadius} mi</label>
+              <input type="range" min={1} max={100} value={filterRadius} onChange={e => setFilterRadius(Number(e.target.value))} className="w-full accent-primary h-1.5" />
+            </div>
+            <div>
+              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide block mb-1">{t("swipe.vibeFilter", "Vibe")}</label>
+              <div className="flex gap-1.5">
+                {["", "social", "competitive", "both"].map(v => (
+                  <button key={v} onClick={() => setFilterVibe(v)} className={cn("px-2.5 py-1 rounded-lg text-[10px] font-medium transition-all", filterVibe === v ? "pill-tab-active text-white" : "bg-muted/10 text-muted-foreground")}>
+                    {v === "" ? "All" : v.charAt(0).toUpperCase() + v.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className={cn(!user?.isPremium && "opacity-50")}>
+              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide block mb-1">
+                {t("swipe.skillFilter", "Skill Level")} {!user?.isPremium && <Crown size={9} className="inline text-secondary ml-1" />}
+              </label>
+              <div className="flex gap-1 flex-wrap">
+                {["", "Beginner", "2.5", "3.0", "3.5", "4.0", "4.5", "5.0+"].map(s => (
+                  <button key={s} onClick={() => { if (!user?.isPremium) { navigate("premium"); return; } setFilterSkill(s); }} className={cn("px-2 py-1 rounded-lg text-[10px] font-medium transition-all", filterSkill === s ? "pill-tab-active text-white" : "bg-muted/10 text-muted-foreground")}>
+                    {s || "All"}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className={cn(!user?.isPremium && "opacity-50")}>
+              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide block mb-1">
+                {t("swipe.ageFilter", "Age Range")} — {filterAgeMin}–{filterAgeMax} {!user?.isPremium && <Crown size={9} className="inline text-secondary ml-1" />}
+              </label>
+              <div className="flex gap-2 items-center">
+                <input type="range" min={18} max={99} value={filterAgeMin} onChange={e => { if (!user?.isPremium) { navigate("premium"); return; } setFilterAgeMin(Math.min(Number(e.target.value), filterAgeMax)); }} className="flex-1 accent-primary h-1.5" />
+                <input type="range" min={18} max={99} value={filterAgeMax} onChange={e => { if (!user?.isPremium) { navigate("premium"); return; } setFilterAgeMax(Math.max(Number(e.target.value), filterAgeMin)); }} className="flex-1 accent-primary h-1.5" />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Card Area */}
       <div className="flex-1 flex flex-col items-center px-3 min-h-0 py-2">
@@ -288,7 +352,7 @@ export default function SwipeDeck() {
                 )}
                 style={!exitDir ? {
                   transform: `translate(${dragX}px, ${dragY}px) rotate(${rotation}deg)`,
-                  transition: isDragging.current ? "none" : "transform 0.3s ease-out",
+                  transition: isDragging.current ? "none" : "transform 0.2s ease-out",
                 } : undefined}
               >
                 <PlayerCard player={currentPlayer} />

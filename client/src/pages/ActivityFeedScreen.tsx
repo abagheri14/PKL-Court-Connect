@@ -255,79 +255,101 @@ function FeedPostCard({ post, onLikeToggle, onDelete }: {
     }
   };
 
+  // Boo-style vibe tags based on post type
+  const vibeTag = post.postType === "highlight" ? "🔥 Hot Take"
+    : post.postType === "question" ? "💭 Curious"
+    : post.postType === "tip" ? "💡 Pro Tip"
+    : post.postType === "looking_for_players" ? "🎯 Rally Up"
+    : null;
+
   return (
-    <div className="card-elevated mx-4 p-4">
-      {/* Header */}
-      <div className="flex items-start gap-3">
-        <button onClick={handleProfileTap}>
-          <PlayerAvatar
-            user={{ id: post.userId, name: post.userName, profilePhotoUrl: post.userPhoto }}
-            size="sm"
-            showBadges={false}
-          />
-        </button>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <button onClick={handleProfileTap} className="text-sm font-semibold hover:text-[#BFFF00] transition-colors truncate">
-              {post.userNickname || post.userName || "Player"}
-            </button>
-            {post.userLevel && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#BFFF00]/10 text-[#BFFF00] font-medium">
-                Lv.{post.userLevel}
-              </span>
-            )}
-            {post.postType !== "general" && (
-              <span className="flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full bg-muted/30 text-muted-foreground font-medium">
-                <PostTypeIcon className="w-2.5 h-2.5" />
-                {postTypeLabels[post.postType]}
-              </span>
-            )}
-          </div>
-          <span className="text-[10px] text-muted-foreground">{formatTimeAgo(post.createdAt)}</span>
-        </div>
-        {isOwn && onDelete && (
-          <button onClick={() => onDelete(post.id)} className="p-1 text-muted-foreground/40 hover:text-red-400 transition-colors">
-            <Trash2 className="w-3.5 h-3.5" />
-          </button>
-        )}
-      </div>
-
-      {/* Content */}
-      <p className="mt-3 text-sm text-foreground/90 whitespace-pre-wrap break-words">{post.content}</p>
-
-      {/* Photo */}
-      {post.photoUrl && (
-        <div className="mt-3 rounded-lg overflow-hidden">
-          <img src={post.photoUrl} alt="" className="w-full max-h-[300px] object-cover" />
-        </div>
+    <div className="card-elevated mx-4 rounded-2xl overflow-hidden">
+      {/* Boo-style accent bar for special post types */}
+      {post.postType !== "general" && (
+        <div className={cn(
+          "h-1",
+          post.postType === "highlight" ? "bg-gradient-to-r from-orange-400 to-pink-500" :
+          post.postType === "question" ? "bg-gradient-to-r from-blue-400 to-purple-500" :
+          post.postType === "tip" ? "bg-gradient-to-r from-[#BFFF00] to-green-400" :
+          "bg-gradient-to-r from-primary to-accent"
+        )} />
       )}
 
-      {/* Actions */}
-      <div className="flex items-center gap-4 mt-3 pt-2 border-t border-border/10">
-        <button
-          onClick={() => onLikeToggle(post.id)}
-          className={cn(
-            "flex items-center gap-1.5 text-xs transition-all",
-            post.isLiked ? "text-pink-400" : "text-muted-foreground/60 hover:text-pink-400"
+      <div className="p-4">
+        {/* Header */}
+        <div className="flex items-start gap-3">
+          <button onClick={handleProfileTap} className="relative">
+            <PlayerAvatar
+              user={{ id: post.userId, name: post.userName, profilePhotoUrl: post.userPhoto, hasProfilePhoto: !!post.userPhoto }}
+              size="sm"
+              showBadges={false}
+            />
+            {post.userLevel && (
+              <span className="absolute -bottom-1 -right-1 text-[8px] px-1 py-0.5 rounded-full bg-[#BFFF00] text-black font-bold leading-none">
+                {post.userLevel}
+              </span>
+            )}
+          </button>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <button onClick={handleProfileTap} className="text-sm font-semibold hover:text-[#BFFF00] transition-colors truncate">
+                {post.userNickname || post.userName || "Player"}
+              </button>
+              {vibeTag && (
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted/30 text-muted-foreground font-medium">
+                  {vibeTag}
+                </span>
+              )}
+            </div>
+            <span className="text-[10px] text-muted-foreground">{formatTimeAgo(post.createdAt)}</span>
+          </div>
+          {isOwn && onDelete && (
+            <button onClick={() => onDelete(post.id)} className="p-1 text-muted-foreground/40 hover:text-red-400 transition-colors">
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
           )}
-        >
-          <Heart className={cn("w-4 h-4 transition-transform", post.isLiked && "fill-pink-400 scale-110")} />
-          <span>{post.likesCount || ""}</span>
-        </button>
-        <button
-          onClick={() => setShowComments(!showComments)}
-          className={cn(
-            "flex items-center gap-1.5 text-xs transition-colors",
-            showComments ? "text-[#BFFF00]" : "text-muted-foreground/60 hover:text-[#BFFF00]"
-          )}
-        >
-          <MessageCircle className="w-4 h-4" />
-          <span>{post.commentsCount || ""}</span>
-        </button>
-      </div>
+        </div>
 
-      {/* Comments */}
-      {showComments && <CommentSection postId={post.id} />}
+        {/* Content — Boo-style larger text for short posts */}
+        <p className={cn(
+          "mt-3 whitespace-pre-wrap break-words",
+          post.content.length < 100 ? "text-base font-medium text-foreground" : "text-sm text-foreground/90"
+        )}>{post.content}</p>
+
+        {/* Photo */}
+        {post.photoUrl && (
+          <div className="mt-3 rounded-xl overflow-hidden">
+            <img src={post.photoUrl} alt="" className="w-full max-h-[300px] object-cover" />
+          </div>
+        )}
+
+        {/* Boo-style engagement bar */}
+        <div className="flex items-center gap-1 mt-3 pt-2 border-t border-border/10">
+          <button
+            onClick={() => onLikeToggle(post.id)}
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs transition-all",
+              post.isLiked ? "bg-pink-500/15 text-pink-400" : "bg-muted/20 text-muted-foreground/60 hover:bg-pink-500/10 hover:text-pink-400"
+            )}
+          >
+            <Heart className={cn("w-4 h-4 transition-transform", post.isLiked && "fill-pink-400 scale-110")} />
+            <span>{post.likesCount || ""}</span>
+          </button>
+          <button
+            onClick={() => setShowComments(!showComments)}
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs transition-colors",
+              showComments ? "bg-[#BFFF00]/15 text-[#BFFF00]" : "bg-muted/20 text-muted-foreground/60 hover:bg-[#BFFF00]/10 hover:text-[#BFFF00]"
+            )}
+          >
+            <MessageCircle className="w-4 h-4" />
+            <span>{post.commentsCount || ""}</span>
+          </button>
+        </div>
+
+        {/* Comments */}
+        {showComments && <CommentSection postId={post.id} />}
+      </div>
     </div>
   );
 }

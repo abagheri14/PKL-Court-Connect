@@ -45,6 +45,7 @@ export default function OnboardingFlow() {
 
   const [fullName, setFullName] = useState("");
   const [nickname, setNickname] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
   const [gender, setGender] = useState("");
   const [skill, setSkill] = useState("");
   const [hand, setHand] = useState("Right");
@@ -79,6 +80,7 @@ export default function OnboardingFlow() {
       await completeOnboardingMutation.mutateAsync({
         name: fullName || undefined,
         nickname: nickname || undefined,
+        dateOfBirth: dateOfBirth || undefined,
         skillLevel: skill || "4.0",
         vibe: vibeMap[vibe] || "both",
         pace: paceMap[pace] || "both",
@@ -127,6 +129,11 @@ export default function OnboardingFlow() {
                     </button>
                   ))}
                 </div>
+              </div>
+              <div>
+                <Label>{t("onboarding.dateOfBirth", "Date of Birth")}</Label>
+                <Input type="date" value={dateOfBirth} onChange={e => setDateOfBirth(e.target.value)} className="bg-background/50 mt-1" max={new Date(new Date().getFullYear() - 18, new Date().getMonth(), new Date().getDate()).toISOString().split("T")[0]} />
+                <p className="text-[10px] text-muted-foreground mt-1">{t("onboarding.ageRequirement", "You must be at least 18 years old")}</p>
               </div>
             </div>
           </div>
@@ -364,6 +371,20 @@ export default function OnboardingFlow() {
               if (step === 0 && !gender) {
                 toast.error(t("onboarding.selectGenderError", "Please select your gender"));
                 return;
+              }
+              if (step === 0 && !dateOfBirth) {
+                toast.error(t("onboarding.dobRequired", "Please enter your date of birth"));
+                return;
+              }
+              if (step === 0 && dateOfBirth) {
+                const dob = new Date(dateOfBirth);
+                const ageDiff = Date.now() - dob.getTime();
+                const ageDate = new Date(ageDiff);
+                const age = Math.abs(ageDate.getUTCFullYear() - 1970);
+                if (age < 18) {
+                  toast.error(t("onboarding.under18", "You must be at least 18 years old to use PKL Court Connect"));
+                  return;
+                }
               }
               if (step === 1 && !skill) {
                 toast.error(t("onboarding.selectSkillError"));

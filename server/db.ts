@@ -338,6 +338,20 @@ export async function getUserMatches(userId: number) {
   );
 }
 
+export async function areUsersMatched(userId1: number, userId2: number): Promise<boolean> {
+  const db = await getDb();
+  const [match] = await db.select({ id: matches.id }).from(matches).where(
+    and(
+      eq(matches.isActive, true),
+      or(
+        and(eq(matches.user1Id, userId1), eq(matches.user2Id, userId2)),
+        and(eq(matches.user1Id, userId2), eq(matches.user2Id, userId1)),
+      )
+    )
+  ).limit(1);
+  return !!match;
+}
+
 export async function unmatch(userId: number, matchId: number) {
   const db = await getDb();
   // Only allow unmatching if the user is part of this match
@@ -2786,7 +2800,7 @@ export async function reorderUserPhotos(userId: number, photoIds: number[]) {
 // =============================================================================
 
 export async function completeOnboarding(userId: number, data: {
-  name?: string; nickname?: string; skillLevel?: string; vibe?: string;
+  name?: string; nickname?: string; dateOfBirth?: Date; age?: number; skillLevel?: string; vibe?: string;
   pace?: string; playStyle?: string; goals?: string; courtPreference?: string;
   handedness?: string; gender?: string; availabilityWeekdays?: boolean;
   availabilityWeekends?: boolean; availabilityMornings?: boolean;
@@ -3176,7 +3190,7 @@ export async function getEndorsementsSummary(userId: number) {
 }
 
 /** Get swipe candidates (nearby users not yet swiped) */
-export async function getSwipeCandidates(userId: number, lat: number, lng: number, radiusMiles: number) {
+export async function getSwipeCandidates(userId: number, lat: number, lng: number, radiusMiles: number, filters?: { vibe?: string; skillLevel?: string; ageMin?: number; ageMax?: number }) {
   const db = await getDb();
   const alreadySwiped = await db.select({ swipedId: swipes.swipedId })
     .from(swipes)
@@ -3189,7 +3203,21 @@ export async function getSwipeCandidates(userId: number, lat: number, lng: numbe
   for (const id of Array.from(blockedIds)) swipedIds.add(id);
 
   const nearby = await getNearbyUsersWithDistance(userId, lat, lng, radiusMiles);
-  const filtered = nearby.filter(u => !swipedIds.has(u.id));
+  let filtered = nearby.filter(u => !swipedIds.has(u.id));
+
+  // Apply optional filters
+  if (filters?.vibe) {
+    filtered = filtered.filter(u => (u as any).vibe === filters.vibe || (u as any).vibe === "both");
+  }
+  if (filters?.skillLevel) {
+    filtered = filtered.filter(u => (u as any).skillLevel === filters.skillLevel);
+  }
+  if (filters?.ageMin) {
+    filtered = filtered.filter(u => (u as any).age != null && (u as any).age >= filters.ageMin!);
+  }
+  if (filters?.ageMax) {
+    filtered = filtered.filter(u => (u as any).age != null && (u as any).age <= filters.ageMax!);
+  }
 
   if (filtered.length === 0) return [];
 

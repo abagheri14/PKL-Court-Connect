@@ -112,6 +112,11 @@ interface AppContextType {
   // Match celebration (triggered from real-time notifications)
   pendingMatchPlayer: any | null;
   clearPendingMatch: () => void;
+  // Level-up / game-win celebrations
+  pendingLevelUp: number | null;
+  clearPendingLevelUp: () => void;
+  pendingGameWin: { gameType?: string } | null;
+  clearPendingGameWin: () => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -129,6 +134,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [createGameGroupId, setCreateGameGroupId] = useState<number | null>(null);
   const [selectedTournamentId, setSelectedTournamentId] = useState<number | null>(null);
   const [pendingMatchPlayer, setPendingMatchPlayer] = useState<any | null>(null);
+  const [pendingLevelUp, setPendingLevelUp] = useState<number | null>(null);
+  const [pendingGameWin, setPendingGameWin] = useState<{ gameType?: string } | null>(null);
 
   // ── Auth: check if user is already logged in ──────────────────────────
   const userQuery = trpc.auth.me.useQuery(undefined, {
@@ -151,34 +158,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const updateLocationMutation = trpc.users.updateLocation.useMutation();
   const updateLocationRef = useRef(updateLocationMutation.mutate);
   updateLocationRef.current = updateLocationMutation.mutate;
-  const lastSyncedPos = useRef<{ lat: number; lng: number; at: number }>({ lat: 0, lng: 0, at: 0 });
   useEffect(() => {
     if (!isAuthenticated || !navigator.geolocation) return;
-
-    const syncLocation = (pos: GeolocationPosition) => {
-      const { latitude, longitude } = pos.coords;
-      const now = Date.now();
-      // Throttle: only sync if moved >~100m or >60s since last sync
-      const dLat = Math.abs(latitude - lastSyncedPos.current.lat);
-      const dLng = Math.abs(longitude - lastSyncedPos.current.lng);
-      const elapsed = now - lastSyncedPos.current.at;
-      if ((dLat > 0.001 || dLng > 0.001 || lastSyncedPos.current.at === 0) && elapsed > 10000) {
-        lastSyncedPos.current = { lat: latitude, lng: longitude, at: now };
-        updateLocationRef.current({ lat: latitude, lng: longitude });
-      }
-    };
-
-    // Get immediate position
-    navigator.geolocation.getCurrentPosition(syncLocation, () => {}, {
-      enableHighAccuracy: true, timeout: 10000, maximumAge: 30000,
-    });
-
-    // Watch for ongoing movement
-    const watchId = navigator.geolocation.watchPosition(syncLocation, () => {}, {
-      enableHighAccuracy: false, timeout: 30000, maximumAge: 60000,
-    });
-
-    return () => { navigator.geolocation.clearWatch(watchId); };
+    let cancelled = false;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        if (!cancelled) {
+          updateLocationRef.current({
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+          });
+        }
+      },
+      () => {}, // silently ignore errors
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
+    );
+    return () => { cancelled = true; };
   }, [isAuthenticated]);
 
   // Navigate based on auth state
@@ -304,6 +299,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (type === "match" && notification?.matchedUser) {
         setPendingMatchPlayer(notification.matchedUser);
         return; // celebration overlay handles everything
+      }
+
+      // ── Level-up notification ──
+      if (type === "level_up" && notification?.newLevel) {
+        setPendingLevelUp(Number(notification.newLevel));
+        return;
+      }
+
+      // ── Game win notification ──
+      if (type === "game_won" || type === "tournament_won") {
+        setPendingGameWin({ gameType: type === "tournament_won" ? "tournament" : "casual" });
+        return;
       }
 
       // ── Game invite / game started → actionable banner ──
@@ -557,6 +564,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const clearPendingMatch = useCallback(() => setPendingMatchPlayer(null), []);
+  const clearPendingLevelUp = useCallback(() => setPendingLevelUp(null), []);
+  const clearPendingGameWin = useCallback(() => setPendingGameWin(null), []);
 
   // Keep refs in sync so the socket handler always uses the latest callbacks
   navigateRef.current = navigate;
@@ -613,6 +622,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         toggleReadReceipts,
         pendingMatchPlayer,
         clearPendingMatch,
+        pendingLevelUp,
+        clearPendingLevelUp,
+        pendingGameWin,
+        clearPendingGameWin,
       }}
     >
       {children}

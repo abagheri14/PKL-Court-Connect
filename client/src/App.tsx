@@ -44,13 +44,15 @@ import FavoritePlayersScreen from "./pages/FavoritePlayersScreen";
 import ReferralsScreen from "./pages/ReferralsScreen";
 import ChallengeOverlay from "./components/ChallengeOverlay";
 import MatchCelebration from "./components/MatchCelebration";
+import LevelUpCelebration from "./components/LevelUpCelebration";
+import GameWinCelebration from "./components/GameWinCelebration";
 
 const screensWithoutBottomNav = new Set([
   "login", "onboarding", "tutorial",
 ]);
 
 function AppRouter() {
-  const { screen, isLoading, isAuthenticated, pendingMatchPlayer, clearPendingMatch, setActiveTab } = useApp();
+  const { screen, isLoading, isAuthenticated, pendingMatchPlayer, clearPendingMatch, pendingLevelUp, clearPendingLevelUp, pendingGameWin, clearPendingGameWin, setActiveTab } = useApp();
 
   if (isLoading) return <SplashScreen />;
 
@@ -144,6 +146,12 @@ function AppRouter() {
             setActiveTab("matches");
           }}
         />
+      )}
+      {pendingLevelUp != null && (
+        <LevelUpCelebration newLevel={pendingLevelUp} onClose={clearPendingLevelUp} />
+      )}
+      {pendingGameWin != null && (
+        <GameWinCelebration gameType={pendingGameWin.gameType as any} onClose={clearPendingGameWin} />
       )}
     </div>
   );

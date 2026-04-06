@@ -270,6 +270,7 @@ export const appRouter = router({
       .input(z.object({
         name: z.string().optional(),
         nickname: z.string().optional(),
+        dateOfBirth: z.string().optional(),
         skillLevel: z.string().optional(),
         vibe: z.enum(["competitive", "social", "both"]).optional(),
         pace: z.enum(["fast", "rally", "both"]).optional(),
@@ -285,11 +286,21 @@ export const appRouter = router({
         availabilityEvenings: z.boolean().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const sanitized = { ...input };
+        const sanitized = { ...input } as any;
         if (sanitized.name) sanitized.name = sanitizeString(sanitized.name);
         if (sanitized.nickname) sanitized.nickname = sanitizeString(sanitized.nickname);
         if (sanitized.goals) sanitized.goals = sanitizeString(sanitized.goals);
         if (sanitized.playStyle) sanitized.playStyle = sanitizeString(sanitized.playStyle);
+        // Compute age from dateOfBirth
+        if (sanitized.dateOfBirth) {
+          const dob = new Date(sanitized.dateOfBirth);
+          const ageDiff = Date.now() - dob.getTime();
+          const ageDate = new Date(ageDiff);
+          const age = Math.abs(ageDate.getUTCFullYear() - 1970);
+          if (age < 18) throw new TRPCError({ code: "BAD_REQUEST", message: "You must be at least 18 years old to use PKL Court Connect" });
+          sanitized.age = age;
+          sanitized.dateOfBirth = dob;
+        }
         await db.completeOnboarding(ctx.user.id, sanitized);
         // Award Rookie Ready badge
         db.checkAndAwardAchievements(ctx.user.id).catch(() => {});
@@ -353,12 +364,28 @@ export const appRouter = router({
     remaining: protectedProcedure
       .query(({ ctx }) => db.getSwipesRemaining(ctx.user.id)),
     candidates: protectedProcedure
-      .input(z.object({ lat: z.number().min(-90).max(90), lng: z.number().min(-180).max(180), radiusMiles: z.number().min(1).max(500).default(25) }))
+      .input(z.object({
+        lat: z.number().min(-90).max(90),
+        lng: z.number().min(-180).max(180),
+        radiusMiles: z.number().min(1).max(500).default(25),
+        skillLevel: z.string().optional(),
+        ageMin: z.number().min(18).max(99).optional(),
+        ageMax: z.number().min(18).max(99).optional(),
+        vibe: z.string().optional(),
+      }))
       .query(async ({ ctx, input }) => {
         const me = await db.getUserById(ctx.user.id);
         const lat = me?.travelModeLat ?? input.lat;
         const lng = me?.travelModeLng ?? input.lng;
-        return db.getSwipeCandidates(ctx.user.id, lat, lng, input.radiusMiles);
+        // Premium filters: ageMin/ageMax/skillLevel gated to premium
+        const filters: any = {};
+        if (input.vibe) filters.vibe = input.vibe;
+        if (me?.isPremium) {
+          if (input.skillLevel) filters.skillLevel = input.skillLevel;
+          if (input.ageMin) filters.ageMin = input.ageMin;
+          if (input.ageMax) filters.ageMax = input.ageMax;
+        }
+        return db.getSwipeCandidates(ctx.user.id, lat, lng, input.radiusMiles, filters);
       }),
     whoLikedYou: protectedProcedure
       .query(async ({ ctx }) => {
@@ -1139,6 +1166,14 @@ export const appRouter = router({
       }))
       .mutation(async ({ ctx, input }) => {
         if (input.challengedId === ctx.user.id) throw new TRPCError({ code: "BAD_REQUEST", message: "Cannot challenge yourself" });
+        // Non-match challenges require premium
+        const isMatched = await db.areUsersMatched(ctx.user.id, input.challengedId);
+        if (!isMatched) {
+          const challenger = await db.getUserById(ctx.user.id);
+          if (!challenger?.isPremium) {
+            throw new TRPCError({ code: "FORBIDDEN", message: "Upgrade to Premium to challenge players you haven't matched with" });
+          }
+        }
         const sanitized = { ...input };
         if (sanitized.message) sanitized.message = sanitizeString(sanitized.message);
         if (sanitized.notes) sanitized.notes = sanitizeString(sanitized.notes);
@@ -1206,6 +1241,7 @@ export const appRouter = router({
         groupType: z.enum(["social", "league", "tournament", "coaching"]).default("social"),
         isPrivate: z.boolean().default(false),
         locationCity: z.string().optional(),
+        photo: z.string().url().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const sanitized = { ...input };
@@ -1498,7 +1534,7 @@ export const appRouter = router({
       .input(z.object({ userId: z.number().optional() }).optional())
       .query(({ ctx, input }) => db.getUserPhotos(input?.userId ?? ctx.user.id)),
     add: protectedProcedure
-      .input(z.object({ photoUrl: z.string().max(2048).refine(url => /^(https?:\/\/|\/api\/files\/|\/uploads\/)/.test(url), { message: "Invalid photo URL" }) }))
+      .input(z.object({ photoUrl: z.string().url().max(2048) }))
       .mutation(({ ctx, input }) => db.addUserPhoto(ctx.user.id, input.photoUrl)),
     remove: protectedProcedure
       .input(z.object({ photoId: z.number() }))

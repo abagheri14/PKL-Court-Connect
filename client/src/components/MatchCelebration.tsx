@@ -78,9 +78,9 @@ export default function MatchCelebration({ player, onClose, onMessage }: MatchCe
         <div className="flex items-center gap-6 mb-10">
           {/* You */}
           <div className="relative">
-            <div className="w-24 h-24 rounded-full ring-4 ring-secondary/50 shadow-[0_0_30px_rgba(255,215,0,0.3)] overflow-hidden">
+            <div className="w-28 h-28 rounded-full ring-4 ring-secondary/50 shadow-[0_0_30px_rgba(255,215,0,0.3)] overflow-hidden">
               {user ? (
-                <PlayerAvatar user={{ id: user.id, name: user.name, profilePhotoUrl: user.profilePhotoUrl, hasProfilePhoto: !!user.profilePhotoUrl }} size="lg" showBadges={false} className="w-24 h-24" />
+                <PlayerAvatar user={{ id: user.id, name: user.name, profilePhotoUrl: user.profilePhotoUrl, hasProfilePhoto: !!user.profilePhotoUrl }} size="xl" showBadges={false} className="w-28 h-28" />
               ) : (
                 <div className="w-full h-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
                   <span className="text-3xl">🏓</span>
@@ -99,8 +99,8 @@ export default function MatchCelebration({ player, onClose, onMessage }: MatchCe
 
           {/* Match */}
           <div className="relative">
-            <div className="w-24 h-24 rounded-full ring-4 ring-secondary/50 shadow-[0_0_30px_rgba(255,215,0,0.3)] overflow-hidden">
-              <PlayerAvatar user={player} size="lg" showBadges={false} className="w-24 h-24" />
+            <div className="w-28 h-28 rounded-full ring-4 ring-secondary/50 shadow-[0_0_30px_rgba(255,215,0,0.3)] overflow-hidden">
+              <PlayerAvatar user={player} size="xl" showBadges={false} className="w-28 h-28" />
             </div>
             <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-secondary text-black text-[10px] font-bold whitespace-nowrap max-w-[100px] truncate">
               {displayName}
