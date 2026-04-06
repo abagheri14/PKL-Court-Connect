@@ -1534,7 +1534,7 @@ export const appRouter = router({
       .input(z.object({ userId: z.number().optional() }).optional())
       .query(({ ctx, input }) => db.getUserPhotos(input?.userId ?? ctx.user.id)),
     add: protectedProcedure
-      .input(z.object({ photoUrl: z.string().url().max(2048) }))
+      .input(z.object({ photoUrl: z.string().max(2048) }))
       .mutation(({ ctx, input }) => db.addUserPhoto(ctx.user.id, input.photoUrl)),
     remove: protectedProcedure
       .input(z.object({ photoId: z.number() }))
