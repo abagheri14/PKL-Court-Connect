@@ -1,0 +1,70 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# Render Blueprint — PKL Court Connect
+# ══════════════════════════════════════════════════════════════════════════════
+# Deploy: Connect this repo on https://dashboard.render.com → New → Blueprint
+# ══════════════════════════════════════════════════════════════════════════════
+
+services:
+  - type: web
+    name: pkl-court-connect
+    runtime: node
+    region: ohio
+    plan: free
+    buildCommand: |
+      npm install -g pnpm &&
+      pnpm install --frozen-lockfile &&
+      pnpm build
+    startCommand: node dist/index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: VITE_APP_ID
+        value: pkl-court-connect
+      - key: PORT
+        value: 3000
+      # ── Stripe (optional) ──
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: STRIPE_PRICE_MONTHLY
+        sync: false
+      - key: STRIPE_PRICE_ANNUAL
+        sync: false
+      # ── Firebase Push (optional) ──
+      - key: VITE_FIREBASE_API_KEY
+        sync: false
+      - key: VITE_FIREBASE_AUTH_DOMAIN
+        sync: false
+      - key: VITE_FIREBASE_PROJECT_ID
+        sync: false
+      - key: VITE_FIREBASE_STORAGE_BUCKET
+        sync: false
+      - key: VITE_FIREBASE_MESSAGING_SENDER_ID
+        sync: false
+      - key: VITE_FIREBASE_APP_ID
+        sync: false
+      - key: VITE_FIREBASE_VAPID_KEY
+        sync: false
+      # ── Web Push VAPID (optional) ──
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_SUBJECT
+        sync: false
+      # ── SMTP Email (optional) ──
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM
+        sync: false
