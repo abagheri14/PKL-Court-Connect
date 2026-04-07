@@ -204,7 +204,7 @@ export const appRouter = router({
         handedness: z.enum(["left", "right", "ambidextrous"]).optional(),
         goals: z.string().optional(),
         courtPreference: z.enum(["indoor", "outdoor", "both"]).optional(),
-        profilePhotoUrl: z.string().nullable().optional(),
+        profilePhotoUrl: z.string().max(10_000_000).nullable().optional(),
         hasProfilePhoto: z.boolean().optional(),
         e2ePublicKey: z.string().optional(),
       }))
@@ -463,7 +463,7 @@ export const appRouter = router({
     sendMessage: protectedProcedure
       .input(z.object({
         conversationId: z.number(),
-        content: z.string().max(5000).optional(),
+        content: z.string().max(10_000_000).optional(),
         messageType: z.enum(["text", "image", "video", "location_pin", "system"]).default("text"),
         locationLat: z.number().optional(),
         locationLng: z.number().optional(),
@@ -568,7 +568,7 @@ export const appRouter = router({
         isFree: z.boolean().default(true),
         costInfo: z.string().max(200).optional(),
         amenities: z.string().max(500).optional(),
-        photoUrl: z.string().max(1000).optional(),
+        photoUrl: z.string().max(10_000_000).optional(),
         notes: z.string().max(500).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
@@ -634,7 +634,7 @@ export const appRouter = router({
       .input(z.object({ courtId: z.number() }))
       .query(({ input }) => db.getCourtPhotos(input.courtId)),
     addPhoto: protectedProcedure
-      .input(z.object({ courtId: z.number(), photoUrl: z.string().max(1000), caption: z.string().max(255).optional() }))
+      .input(z.object({ courtId: z.number(), photoUrl: z.string().max(10_000_000), caption: z.string().max(255).optional() }))
       .mutation(async ({ ctx, input }) => {
         const sanitized = { ...input };
         if (sanitized.caption) sanitized.caption = sanitizeString(sanitized.caption);
@@ -1245,7 +1245,7 @@ export const appRouter = router({
         groupType: z.enum(["social", "league", "tournament", "coaching"]).default("social"),
         isPrivate: z.boolean().default(false),
         locationCity: z.string().optional(),
-        photo: z.string().max(2000).optional(),
+        photo: z.string().max(10_000_000).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const sanitized = { ...input };
@@ -1476,7 +1476,7 @@ export const appRouter = router({
       .input(z.object({ coachingId: z.number() }))
       .query(({ input }) => db.getCoachingAnnouncements(input.coachingId)),
     postAnnouncement: protectedProcedure
-      .input(z.object({ coachingId: z.number(), content: z.string().min(1).max(2000) }))
+      .input(z.object({ coachingId: z.number(), content: z.string().min(1).max(5000) }))
       .mutation(async ({ ctx, input }) => {
         try {
           return await db.createCoachingAnnouncement(ctx.user.id, input.coachingId, sanitizeString(input.content));
@@ -1538,7 +1538,7 @@ export const appRouter = router({
       .input(z.object({ userId: z.number().optional() }).optional())
       .query(({ ctx, input }) => db.getUserPhotos(input?.userId ?? ctx.user.id)),
     add: protectedProcedure
-      .input(z.object({ photoUrl: z.string().max(2048) }))
+      .input(z.object({ photoUrl: z.string().max(10_000_000) }))
       .mutation(({ ctx, input }) => db.addUserPhoto(ctx.user.id, input.photoUrl)),
     remove: protectedProcedure
       .input(z.object({ photoId: z.number() }))
@@ -2109,8 +2109,8 @@ export const appRouter = router({
       })),
     createPost: protectedProcedure
       .input(z.object({
-        content: z.string().min(1).max(2000),
-        photoUrl: z.string().optional(),
+        content: z.string().min(1).max(5000),
+        photoUrl: z.string().max(10_000_000).optional(),
         postType: z.enum(["general", "highlight", "question", "tip", "looking_for_players"]).optional(),
       }))
       .mutation(({ ctx, input }) => db.createFeedPost(ctx.user.id, input)),
@@ -2118,7 +2118,7 @@ export const appRouter = router({
       .input(z.object({ postId: z.number() }))
       .mutation(({ ctx, input }) => db.toggleFeedLike(ctx.user.id, input.postId)),
     addComment: protectedProcedure
-      .input(z.object({ postId: z.number(), content: z.string().min(1).max(1000) }))
+      .input(z.object({ postId: z.number(), content: z.string().min(1).max(5000) }))
       .mutation(({ ctx, input }) => db.addFeedComment(ctx.user.id, input.postId, input.content)),
     getComments: protectedProcedure
       .input(z.object({ postId: z.number(), limit: z.number().min(1).max(100).default(50) }))
