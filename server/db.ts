@@ -61,6 +61,15 @@ export async function ensureSchema(): Promise<void> {
     }
   }
 
+  // Helper: safely change column type (for TEXT → MEDIUMTEXT upgrades)
+  async function modifyColumnType(table: string, column: string, newType: string) {
+    try {
+      await db.execute(sql.raw(`ALTER TABLE \`${table}\` MODIFY COLUMN \`${column}\` ${newType}`));
+    } catch (e: any) {
+      console.error(`[Schema] Failed to modify ${table}.${column}:`, e?.message);
+    }
+  }
+
   console.log("[Schema] Ensuring all columns and tables exist...");
 
   // --- Users table columns that may be missing ---
@@ -170,6 +179,10 @@ export async function ensureSchema(): Promise<void> {
       \`updatedAt\` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     )
   `);
+
+  // --- Upgrade TEXT → MEDIUMTEXT for columns that may store base64 data URLs ---
+  await modifyColumnType("users", "profilePhotoUrl", "MEDIUMTEXT DEFAULT NULL");
+  await modifyColumnType("messages", "content", "MEDIUMTEXT DEFAULT NULL");
 
   console.log("[Schema] Schema check complete.");
 }
@@ -438,6 +451,19 @@ export async function getWhoLikedYou(userId: number) {
       eq(swipes.direction, "rally"),
       sql`${swipes.swiperId} NOT IN (${alreadySwipedSubquery})`,
     ));
+}
+
+/** Get count of users who liked you (available to all users) */
+export async function getWhoLikedYouCount(userId: number): Promise<number> {
+  const db = await getDb();
+  const alreadySwipedSubquery = db.select({ swipedId: swipes.swipedId }).from(swipes).where(eq(swipes.swiperId, userId));
+  const result = await db.select({ count: sql<number>`COUNT(*)` }).from(swipes)
+    .where(and(
+      eq(swipes.swipedId, userId),
+      eq(swipes.direction, "rally"),
+      sql`${swipes.swiperId} NOT IN (${alreadySwipedSubquery})`,
+    ));
+  return Number(result[0]?.count ?? 0);
 }
 
 /** Activate profile boost (premium feature) */
@@ -3050,7 +3076,7 @@ export async function getUserMatchesEnriched(userId: number) {
 
   // Batch fetch last message for each conversation using a subquery approach
   const convIds = Array.from(new Set(otherIdToConvId.values()));
-  let lastMsgByConv = new Map<number, { content: string | null; sentAt: Date }>();
+  let lastMsgByConv = new Map<number, { content: string | null; sentAt: Date; messageType: string }>();
   let unreadByConv = new Map<number, number>();
 
   if (convIds.length > 0) {
@@ -3059,6 +3085,7 @@ export async function getUserMatchesEnriched(userId: number) {
       conversationId: messages.conversationId,
       content: messages.content,
       sentAt: messages.sentAt,
+      messageType: messages.messageType,
     }).from(messages)
       .where(and(
         sql`${messages.conversationId} IN (${sql.join(convIds.map(id => sql`${id}`), sql`, `)})`,
@@ -3069,7 +3096,7 @@ export async function getUserMatchesEnriched(userId: number) {
     // Keep only the first (newest) per conversation
     for (const row of lastMsgRows) {
       if (!lastMsgByConv.has(row.conversationId)) {
-        lastMsgByConv.set(row.conversationId, { content: row.content, sentAt: row.sentAt });
+        lastMsgByConv.set(row.conversationId, { content: row.content, sentAt: row.sentAt, messageType: row.messageType });
       }
     }
 
@@ -3110,6 +3137,7 @@ export async function getUserMatchesEnriched(userId: number) {
       user: sanitizeUser(otherUser),
       conversationId: convId,
       lastMessage: lastMsg?.content ?? null,
+      lastMessageType: lastMsg?.messageType ?? null,
       lastMessageAt: lastMsg?.sentAt ?? m.matchedAt,
       unreadCount: convId ? (unreadByConv.get(convId) ?? 0) : 0,
     });

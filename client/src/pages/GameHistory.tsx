@@ -306,7 +306,7 @@ export default function GameHistory() {
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-secondary/15 to-orange-500/10 flex items-center justify-center mx-auto mb-3">
               <Calendar size={28} className="text-muted-foreground/40" />
             </div>
-            <p className="text-sm font-medium text-muted-foreground">{t("gameHistory.noGames")}</p>
+            <p className="text-sm font-medium text-muted-foreground">{t("gameHistory.noGames", { tab: activeTab })}</p>
             {activeTab === "upcoming" && (
               <Button onClick={() => navigate("createGame")} size="sm" className="mt-3 bg-secondary text-background text-xs">
                 <Plus size={12} className="mr-1" /> {t("gameHistory.createFirstGame")}

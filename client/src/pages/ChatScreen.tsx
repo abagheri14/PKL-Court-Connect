@@ -334,6 +334,7 @@ export default function ChatScreen() {
           const content = decryptedMessages.get(msg.id) ?? msg.content ?? "";
           const isCheers = content.startsWith("🎉") || content.startsWith("🏆") || content.startsWith("🔥") || content.startsWith("⭐");
           const isLocationPin = msg.messageType === "location_pin";
+          const isImage = msg.messageType === "image" || /\.(png|jpe?g|gif|webp)$/i.test(content) || (content.startsWith("/api/files/") && !isLocationPin);
 
           return (
             <div key={msg.id} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
@@ -345,6 +346,8 @@ export default function ChatScreen() {
                     ? "px-4 py-3 bg-gradient-to-br from-secondary/20 via-yellow-500/10 to-orange-500/10 border border-secondary/30 rounded-2xl"
                     : isLocationPin
                     ? "overflow-hidden rounded-2xl border border-primary/20"
+                    : isImage
+                    ? "p-1 rounded-2xl overflow-hidden"
                     : `px-3.5 py-2.5 ${isMine
                         ? "bg-gradient-to-r from-primary to-accent text-white rounded-br-md shadow-[0_2px_12px_rgba(168,85,247,0.15)]"
                         : "card-elevated rounded-bl-md"
@@ -394,6 +397,20 @@ export default function ChatScreen() {
                 ) : isCheers ? (
                   <div className="text-center">
                     <p className="text-2xl mb-1">{content}</p>
+                    <p className={`text-[10px] mt-1 ${isMine ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
+                      {new Date(msg.sentAt).toLocaleTimeString(i18n.language, { hour: "numeric", minute: "2-digit" })}
+                      {isMine && msg.readAt && user?.isPremium && " ✓✓"}
+                    </p>
+                  </div>
+                ) : isImage ? (
+                  <div>
+                    <img
+                      src={content.startsWith("data:") || content.startsWith("http") ? content : content.startsWith("/") ? content : `/api/files/${content}`}
+                      alt="Shared photo"
+                      className="max-w-[240px] max-h-[320px] rounded-xl object-cover cursor-pointer"
+                      onClick={() => window.open(content.startsWith("data:") || content.startsWith("http") ? content : content.startsWith("/") ? content : `/api/files/${content}`, "_blank")}
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                    />
                     <p className={`text-[10px] mt-1 ${isMine ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
                       {new Date(msg.sentAt).toLocaleTimeString(i18n.language, { hour: "numeric", minute: "2-digit" })}
                       {isMine && msg.readAt && user?.isPremium && " ✓✓"}

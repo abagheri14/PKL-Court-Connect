@@ -392,6 +392,11 @@ export const appRouter = router({
         if (!user?.isPremium) throw new TRPCError({ code: "FORBIDDEN", message: "Premium feature: See Who Liked You" });
         return db.getWhoLikedYou(ctx.user.id);
       }),
+    whoLikedYouCount: protectedProcedure
+      .query(async ({ ctx }) => {
+        const count = await db.getWhoLikedYouCount(ctx.user.id);
+        return { count };
+      }),
     boost: protectedProcedure
       .mutation(({ ctx }) => db.activateProfileBoost(ctx.user.id)),
     undo: protectedProcedure

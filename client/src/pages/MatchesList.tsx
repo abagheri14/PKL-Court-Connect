@@ -28,6 +28,12 @@ export default function MatchesList() {
   });
   const whoLiked: any[] = whoLikedQuery.data ?? [];
 
+  // Count available to all users — shows honest number
+  const whoLikedCountQuery = trpc.swipes.whoLikedYouCount.useQuery(undefined, {
+    refetchInterval: 30000,
+  });
+  const likedYouCount = whoLikedCountQuery.data?.count ?? 0;
+
   if (matchesQuery.isLoading) {
     return (
       <div className="pb-24 min-h-screen flex items-center justify-center">
@@ -70,8 +76,8 @@ export default function MatchesList() {
       </div>
 
       <div className="px-5">
-        {/* "Rallied You" section — blurred for non-premium */}
-        {(whoLiked.length > 0 || !user?.isPremium) && (
+        {/* "Rallied You" section — show real count, blurred for non-premium */}
+        {(whoLiked.length > 0 || (!user?.isPremium && likedYouCount > 0)) && (
           <div className="mb-4">
             <div className="flex items-center justify-between mb-2">
               <h2 className="text-sm font-bold flex items-center gap-1.5">
@@ -94,13 +100,20 @@ export default function MatchesList() {
                   </button>
                 ))
               ) : (
-                // Blurred placeholder tiles for non-premium
-                Array.from({ length: 4 }).map((_, i) => (
-                  <button key={i} onClick={() => navigate("premium")} className="flex-shrink-0 w-16 flex flex-col items-center gap-1">
-                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-pink-500/20 to-purple-500/20 blur-[6px] ring-2 ring-pink-400/20" />
-                    <span className="text-[9px] text-muted-foreground font-medium blur-sm">Player</span>
-                  </button>
-                ))
+                // Show real count with blurred previews for non-premium
+                <button onClick={() => navigate("premium")} className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-pink-500/10 to-purple-500/10 border border-pink-400/20 w-full">
+                  <div className="flex -space-x-3">
+                    {Array.from({ length: Math.min(likedYouCount, 3) }).map((_, i) => (
+                      <div key={i} className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-500/30 to-purple-500/30 blur-[4px] ring-2 ring-background" />
+                    ))}
+                  </div>
+                  <div className="flex flex-col items-start">
+                    <span className="text-sm font-semibold">
+                      {likedYouCount === 1 ? "1 person rallied you" : `${likedYouCount} people rallied you`}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">Upgrade to see who</span>
+                  </div>
+                </button>
               )}
             </div>
           </div>
@@ -146,7 +159,7 @@ export default function MatchesList() {
                   <div className="flex items-center gap-1.5 mt-0.5">
                     <Lock size={9} className="text-green-400 flex-shrink-0" />
                     <p className={cn("text-xs truncate", match.unreadCount > 0 ? "text-foreground font-medium" : "text-muted-foreground")}>
-                      {match.lastMessage || t("matches.sendFirstMessage")}
+                      {match.lastMessageType === "image" ? "📷 Photo" : match.lastMessageType === "location_pin" ? "📍 Location" : match.lastMessage || t("matches.sendFirstMessage")}
                     </p>
                   </div>
                 </div>

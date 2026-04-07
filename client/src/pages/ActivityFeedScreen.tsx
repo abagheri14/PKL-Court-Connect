@@ -9,7 +9,7 @@ import {
   HelpCircle, Lightbulb, Megaphone, Filter, Bookmark, Share2, RefreshCw,
   Sparkles, Zap, MapPin, Camera,
 } from "lucide-react";
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, type TouchEvent as ReactTouchEvent } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useGeolocation } from "@/hooks/useGeolocation";
@@ -303,6 +303,33 @@ function CommentSection({ postId }: { postId: number }) {
   );
 }
 
+// ── Skeleton Loading Card ─────────────────────────────────────────────────
+function FeedSkeleton() {
+  return (
+    <div className="card-elevated mx-4 rounded-2xl overflow-hidden animate-pulse">
+      <div className="p-4">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-full bg-muted/30" />
+          <div className="flex-1 space-y-2">
+            <div className="h-3 w-24 rounded-full bg-muted/30" />
+            <div className="h-2 w-16 rounded-full bg-muted/20" />
+          </div>
+        </div>
+        <div className="mt-3 space-y-2">
+          <div className="h-3 w-full rounded-full bg-muted/20" />
+          <div className="h-3 w-3/4 rounded-full bg-muted/20" />
+        </div>
+        <div className="mt-3 h-48 rounded-2xl bg-muted/15" />
+        <div className="flex items-center gap-2 mt-3 pt-2.5 border-t border-border/10">
+          <div className="h-7 w-16 rounded-full bg-muted/20" />
+          <div className="h-7 w-16 rounded-full bg-muted/20" />
+          <div className="h-7 w-8 rounded-full bg-muted/20" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Feed Post Card (Boo-style) ────────────────────────────────────────────
 function FeedPostCard({ post, onLikeToggle, onDelete, onRefresh }: {
   post: any; onLikeToggle: (postId: number) => void; onDelete?: (postId: number) => void; onRefresh?: () => void;
@@ -314,6 +341,8 @@ function FeedPostCard({ post, onLikeToggle, onDelete, onRefresh }: {
   const [showMenu, setShowMenu] = useState(false);
   const [showReportDialog, setShowReportDialog] = useState(false);
   const [reportReason, setReportReason] = useState("");
+  const [showHeartAnim, setShowHeartAnim] = useState(false);
+  const lastTapRef = useRef(0);
   const isOwn = post.userId === user?.id;
 
   const toggleBookmarkMutation = trpc.feed.toggleBookmark.useMutation({
@@ -336,6 +365,16 @@ function FeedPostCard({ post, onLikeToggle, onDelete, onRefresh }: {
 
   const handleProfileTap = () => {
     if (post.userId !== user?.id) { selectPlayer(post.userId); navigate("playerProfile"); }
+  };
+
+  const handleDoubleTap = () => {
+    const now = Date.now();
+    if (now - lastTapRef.current < 300) {
+      if (!post.isLiked) onLikeToggle(post.id);
+      setShowHeartAnim(true);
+      setTimeout(() => setShowHeartAnim(false), 800);
+    }
+    lastTapRef.current = now;
   };
 
   const handleShare = async () => {
@@ -441,11 +480,16 @@ function FeedPostCard({ post, onLikeToggle, onDelete, onRefresh }: {
             "text-sm text-foreground/90"
           )}>{post.content}</p>
 
-          {/* Photo (tap to expand) */}
+          {/* Photo (tap to expand, double-tap to like) */}
           {post.photoUrl && (
-            <button onClick={() => setImageExpanded(true)} className="mt-3 rounded-2xl overflow-hidden w-full text-left">
-              <img src={post.photoUrl} alt="" className="w-full max-h-[320px] object-cover rounded-2xl" />
-            </button>
+            <div className="relative mt-3 rounded-2xl overflow-hidden" onClick={handleDoubleTap}>
+              <img src={post.photoUrl} alt="" className="w-full max-h-[320px] object-cover rounded-2xl cursor-pointer" />
+              {showHeartAnim && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <Heart className="w-20 h-20 text-pink-500 fill-pink-500 animate-[heartPop_0.8s_ease-out_forwards] drop-shadow-lg" />
+                </div>
+              )}
+            </div>
           )}
 
           {/* Reaction summary */}
@@ -604,6 +648,9 @@ export default function ActivityFeedScreen() {
   const [allPosts, setAllPosts] = useState<any[]>([]);
   const [hasMore, setHasMore] = useState(true);
   const loadMoreRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const pullStartY = useRef<number | null>(null);
+  const [pullDistance, setPullDistance] = useState(0);
   const PAGE_SIZE = 30;
 
   const postsQuery = trpc.feed.posts.useQuery(
@@ -647,6 +694,35 @@ export default function ActivityFeedScreen() {
     if (hasMore && !postsQuery.isFetching) { setOffset(prev => prev + PAGE_SIZE); }
   }, [hasMore, postsQuery.isFetching]);
 
+  // IntersectionObserver for true infinite scroll
+  useEffect(() => {
+    const el = loadMoreRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting && hasMore && !postsQuery.isFetching) { loadMore(); } },
+      { rootMargin: "200px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasMore, postsQuery.isFetching, loadMore]);
+
+  // Pull-to-refresh handlers
+  const handlePullStart = useCallback((e: ReactTouchEvent) => {
+    if (scrollContainerRef.current && scrollContainerRef.current.scrollTop <= 0) {
+      pullStartY.current = e.touches[0].clientY;
+    }
+  }, []);
+  const handlePullMove = useCallback((e: ReactTouchEvent) => {
+    if (pullStartY.current === null) return;
+    const dy = e.touches[0].clientY - pullStartY.current;
+    if (dy > 0 && dy < 150) setPullDistance(dy);
+  }, []);
+  const handlePullEnd = useCallback(() => {
+    if (pullDistance > 60) handleRefresh();
+    setPullDistance(0);
+    pullStartY.current = null;
+  }, [pullDistance, handleRefresh]);
+
   // Reset offset when filter or tab changes
   const handleFilterChange = (v: string) => { setFilter(v); setOffset(0); setAllPosts([]); };
   const handleTabChange = (t: typeof tab) => { setTab(t); setOffset(0); setAllPosts([]); };
@@ -668,7 +744,14 @@ export default function ActivityFeedScreen() {
   ];
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div ref={scrollContainerRef} className="min-h-screen bg-background pb-24 overflow-y-auto" onTouchStart={handlePullStart} onTouchMove={handlePullMove} onTouchEnd={handlePullEnd}>
+      {/* Pull-to-refresh indicator */}
+      {pullDistance > 0 && (
+        <div className="flex justify-center transition-all" style={{ height: pullDistance * 0.5, opacity: Math.min(pullDistance / 60, 1) }}>
+          <RefreshCw className={cn("w-5 h-5 text-[#BFFF00] transition-transform", pullDistance > 60 && "animate-spin")} style={{ transform: `rotate(${pullDistance * 3}deg)` }} />
+        </div>
+      )}
+
       {/* Header */}
       <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md border-b border-border/20">
         <div className="px-4 py-3">
@@ -739,9 +822,10 @@ export default function ActivityFeedScreen() {
       {/* Content */}
       <div className="py-3 space-y-3">
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-16 gap-3">
-            <Loader2 className="w-6 h-6 animate-spin text-[#BFFF00]" />
-            <span className="text-xs text-muted-foreground">Loading feed...</span>
+          <div className="space-y-3">
+            <FeedSkeleton />
+            <FeedSkeleton />
+            <FeedSkeleton />
           </div>
         ) : (tab === "posts" || tab === "trending") ? (
           posts.length === 0 ? (
@@ -763,19 +847,15 @@ export default function ActivityFeedScreen() {
                   <p className="text-[10px] text-muted-foreground mt-1">Posts sorted by engagement</p>
                 </div>
               )}
-              {posts.map((post: any) => (
-                <FeedPostCard key={post.id} post={post} onLikeToggle={handleLikeToggle} onDelete={handleDeletePost} onRefresh={handleRefetchPosts} />
+              {posts.map((post: any, i: number) => (
+                <div key={post.id} className="animate-feed-card-in" style={{ animationDelay: `${Math.min(i * 50, 300)}ms` }}>
+                  <FeedPostCard post={post} onLikeToggle={handleLikeToggle} onDelete={handleDeletePost} onRefresh={handleRefetchPosts} />
+                </div>
               ))}
-              {/* Load more / infinite scroll trigger */}
+              {/* Infinite scroll sentinel */}
               {hasMore && tab === "posts" && (
                 <div ref={loadMoreRef} className="flex justify-center py-4">
-                  <button
-                    onClick={loadMore}
-                    disabled={postsQuery.isFetching}
-                    className="px-4 py-2 rounded-xl text-xs font-medium bg-muted/20 hover:bg-muted/40 text-muted-foreground transition-colors"
-                  >
-                    {postsQuery.isFetching ? <Loader2 className="w-4 h-4 animate-spin" /> : "Load more"}
-                  </button>
+                  {postsQuery.isFetching && <Loader2 className="w-5 h-5 animate-spin text-[#BFFF00]" />}
                 </div>
               )}
             </>

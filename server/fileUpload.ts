@@ -2,29 +2,21 @@ import type { Express, Request, Response, NextFunction } from "express";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import { uploadFile } from "./storage";
 import { sdk } from "./_core/sdk";
 import { COOKIE_NAME } from "@shared/const";
 import { parse as parseCookieHeader } from "cookie";
 
 const UPLOAD_DIR = path.join(process.cwd(), "uploads");
 
-// Ensure upload directory exists
+// Ensure upload directory exists (for serving legacy files)
 if (!fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }
 
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, UPLOAD_DIR),
-  filename: (_req, file, cb) => {
-    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-    cb(null, `${uniqueSuffix}${path.extname(file.originalname)}`);
-  },
-});
-
+// Use memory storage — files never touch disk, converted to base64 data URLs
 const upload = multer({
-  storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
   fileFilter: (_req, file, cb) => {
     const allowedTypes = /jpeg|jpg|png|gif|webp/;
     const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
@@ -69,23 +61,12 @@ export function setupFileUpload(app: Express) {
         return;
       }
 
-      const ALLOWED_PURPOSES = ["profile", "court", "game", "group", "coaching", "chat", "general"];
-      const rawPurpose = (req.body?.purpose as string) || "general";
-      const purpose = ALLOWED_PURPOSES.includes(rawPurpose) ? rawPurpose : "general";
-      const key = `${purpose}/${req.file.filename}`;
-      
-      // Try uploading to S3 if configured, otherwise serve from local filesystem
-      try {
-        const fileBuffer = fs.readFileSync(req.file.path);
-        await uploadFile(key, fileBuffer, req.file.mimetype || "application/octet-stream");
-        // Clean up local file after successful upload
-        fs.promises.unlink(req.file.path).catch(() => {});
-        res.json({ url: `/api/files/${key}`, key });
-      } catch (uploadErr) {
-        console.warn("[Upload] S3 upload failed, falling back to local storage:", uploadErr);
-        // Fallback: serve from local filesystem (file already saved by multer)
-        res.json({ url: `/api/files/${req.file.filename}`, key: req.file.filename, fallback: true });
-      }
+      // Convert buffer to base64 data URL — persists in DB, survives redeploys
+      const mimeType = req.file.mimetype || "image/jpeg";
+      const base64 = req.file.buffer.toString("base64");
+      const dataUrl = `data:${mimeType};base64,${base64}`;
+
+      res.json({ url: dataUrl, key: `inline-${Date.now()}` });
     } catch (err: any) {
       res.status(500).json({ error: err.message || "Upload failed" });
     }

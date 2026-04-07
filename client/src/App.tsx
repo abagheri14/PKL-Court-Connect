@@ -46,6 +46,7 @@ import ChallengeOverlay from "./components/ChallengeOverlay";
 import MatchCelebration from "./components/MatchCelebration";
 import LevelUpCelebration from "./components/LevelUpCelebration";
 import GameWinCelebration from "./components/GameWinCelebration";
+import { useSwipeNavigation } from "./hooks/useSwipeNavigation";
 
 const screensWithoutBottomNav = new Set([
   "login", "onboarding", "tutorial",
@@ -131,8 +132,10 @@ function AppRouter() {
     }
   };
 
+  const swipe = useSwipeNavigation();
+
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background text-foreground" onTouchStart={swipe.onTouchStart} onTouchEnd={swipe.onTouchEnd}>
       <OfflineBanner />
       {renderScreen()}
       {!screensWithoutBottomNav.has(screen) && isAuthenticated && <BottomNav />}
