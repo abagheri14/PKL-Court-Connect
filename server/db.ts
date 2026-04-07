@@ -183,6 +183,12 @@ export async function ensureSchema(): Promise<void> {
   // --- Upgrade TEXT → MEDIUMTEXT for columns that may store base64 data URLs ---
   await modifyColumnType("users", "profilePhotoUrl", "MEDIUMTEXT DEFAULT NULL");
   await modifyColumnType("messages", "content", "MEDIUMTEXT DEFAULT NULL");
+  await modifyColumnType("user_photos", "photoUrl", "MEDIUMTEXT NOT NULL");
+  await modifyColumnType("courts", "photoUrl", "MEDIUMTEXT DEFAULT NULL");
+  await modifyColumnType("court_photos", "photoUrl", "MEDIUMTEXT NOT NULL");
+  await modifyColumnType("feed_posts", "photoUrl", "MEDIUMTEXT DEFAULT NULL");
+  await modifyColumnType("feed_posts", "content", "MEDIUMTEXT NOT NULL");
+  await modifyColumnType("groups", "photo", "MEDIUMTEXT DEFAULT NULL");
 
   console.log("[Schema] Schema check complete.");
 }
