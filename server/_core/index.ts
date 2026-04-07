@@ -84,10 +84,16 @@ async function startServer() {
     console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
   }
 
+  // Ensure DB schema is up-to-date BEFORE accepting any requests
+  try {
+    await ensureSchema();
+    console.log("[Schema] Database schema verified.");
+  } catch (err) {
+    console.error("[Schema] Migration failed (server starting anyway):", err);
+  }
+
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
-    // Ensure DB schema is up-to-date (adds missing columns/tables)
-    ensureSchema().catch(err => console.error("[Schema] Migration failed:", err));
     // Seed data on startup (idempotent)
     seedAchievements().catch(err => console.error("[Achievements] Seed failed:", err));
     seedCourts().catch(err => console.error("[Courts] Seed failed:", err));
