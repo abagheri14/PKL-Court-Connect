@@ -11,7 +11,7 @@ import { serveStatic, setupVite } from "./vite";
 import { setupSocketIO } from "../websocket";
 import { setupStripeWebhook } from "../stripeWebhook";
 import { setupFileUpload } from "../fileUpload";
-import { seedAchievements, seedCourts, seedTestAccounts } from "../db";
+import { seedAchievements, seedCourts, seedTestAccounts, ensureSchema } from "../db";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -86,6 +86,8 @@ async function startServer() {
 
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
+    // Ensure DB schema is up-to-date (adds missing columns/tables)
+    ensureSchema().catch(err => console.error("[Schema] Migration failed:", err));
     // Seed data on startup (idempotent)
     seedAchievements().catch(err => console.error("[Achievements] Seed failed:", err));
     seedCourts().catch(err => console.error("[Courts] Seed failed:", err));

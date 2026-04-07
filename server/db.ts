@@ -36,6 +36,145 @@ export async function getDb(): Promise<ReturnType<typeof drizzle>> {
 }
 
 // =============================================================================
+// RUNTIME SCHEMA MIGRATION (ensures columns/tables exist even if db:push fails)
+// =============================================================================
+
+export async function ensureSchema(): Promise<void> {
+  const db = await getDb();
+
+  // Helper: run ALTER TABLE ADD COLUMN, ignore "Duplicate column" error (1060)
+  async function addColumnIfMissing(table: string, colDef: string) {
+    try {
+      await db.execute(sql.raw(`ALTER TABLE \`${table}\` ADD COLUMN ${colDef}`));
+    } catch (e: any) {
+      if (e?.errno === 1060 || e?.code === 'ER_DUP_FIELDNAME') return; // already exists
+      console.error(`[Schema] Failed to add column to ${table}: ${colDef}`, e?.message);
+    }
+  }
+
+  // Helper: run CREATE TABLE IF NOT EXISTS
+  async function createTableIfMissing(ddl: string) {
+    try {
+      await db.execute(sql.raw(ddl));
+    } catch (e: any) {
+      console.error(`[Schema] CREATE TABLE failed:`, e?.message);
+    }
+  }
+
+  console.log("[Schema] Ensuring all columns and tables exist...");
+
+  // --- Users table columns that may be missing ---
+  await addColumnIfMissing("users", "`handedness` enum('left','right','ambidextrous') DEFAULT 'right'");
+  await addColumnIfMissing("users", "`pace` enum('fast','rally','both') DEFAULT 'both'");
+  await addColumnIfMissing("users", "`courtPreference` enum('indoor','outdoor','both') DEFAULT 'both'");
+  await addColumnIfMissing("users", "`goals` text DEFAULT NULL");
+
+  // --- Swipes ---
+  await addColumnIfMissing("swipes", "`isSuperRally` boolean NOT NULL DEFAULT false");
+
+  // --- Games ---
+  await addColumnIfMissing("games", "`groupId` int DEFAULT NULL");
+
+  // --- Shared coaching ---
+  await addColumnIfMissing("shared_coaching", "`courtId` int DEFAULT NULL");
+  await addColumnIfMissing("shared_coaching", "`locationLat` float DEFAULT NULL");
+  await addColumnIfMissing("shared_coaching", "`locationLng` float DEFAULT NULL");
+  await addColumnIfMissing("shared_coaching", "`locationName` varchar(255) DEFAULT NULL");
+
+  // --- Game results ---
+  await addColumnIfMissing("game_results", "`scoreConfirmedBy` text DEFAULT NULL");
+  await addColumnIfMissing("game_results", "`scoreDisputed` boolean DEFAULT false");
+
+  // --- Feed reactions and bookmarks tables ---
+  await createTableIfMissing(`
+    CREATE TABLE IF NOT EXISTS \`feed_reactions\` (
+      \`id\` int NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      \`postId\` int NOT NULL,
+      \`userId\` int NOT NULL,
+      \`emoji\` varchar(16) NOT NULL,
+      \`createdAt\` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE KEY \`uniq_feed_reaction\` (\`postId\`, \`userId\`, \`emoji\`)
+    )
+  `);
+
+  await createTableIfMissing(`
+    CREATE TABLE IF NOT EXISTS \`feed_bookmarks\` (
+      \`id\` int NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      \`postId\` int NOT NULL,
+      \`userId\` int NOT NULL,
+      \`createdAt\` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE KEY \`uniq_feed_bookmark\` (\`postId\`, \`userId\`)
+    )
+  `);
+
+  // --- Other tables that may be missing ---
+  await createTableIfMissing(`
+    CREATE TABLE IF NOT EXISTS \`push_subscriptions\` (
+      \`id\` int NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      \`userId\` int NOT NULL,
+      \`endpoint\` text NOT NULL,
+      \`p256dh\` text NOT NULL,
+      \`auth\` text NOT NULL,
+      \`createdAt\` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  await createTableIfMissing(`
+    CREATE TABLE IF NOT EXISTS \`password_reset_tokens\` (
+      \`id\` int NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      \`userId\` int NOT NULL,
+      \`token\` varchar(255) NOT NULL,
+      \`expiresAt\` timestamp NOT NULL,
+      \`usedAt\` timestamp NULL,
+      \`createdAt\` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  await createTableIfMissing(`
+    CREATE TABLE IF NOT EXISTS \`account_deletion_tokens\` (
+      \`id\` int NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      \`userId\` int NOT NULL,
+      \`token\` varchar(255) NOT NULL,
+      \`expiresAt\` timestamp NOT NULL,
+      \`createdAt\` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  await createTableIfMissing(`
+    CREATE TABLE IF NOT EXISTS \`game_results\` (
+      \`id\` int NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      \`gameId\` int NOT NULL UNIQUE,
+      \`winnerTeam\` enum('team1','team2','draw') DEFAULT NULL,
+      \`team1Score\` int DEFAULT 0,
+      \`team2Score\` int DEFAULT 0,
+      \`team1PlayerIds\` text DEFAULT NULL,
+      \`team2PlayerIds\` text DEFAULT NULL,
+      \`recordedBy\` int DEFAULT NULL,
+      \`recordedAt\` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      \`scoreConfirmedBy\` text DEFAULT NULL,
+      \`scoreDisputed\` boolean DEFAULT false
+    )
+  `);
+
+  await createTableIfMissing(`
+    CREATE TABLE IF NOT EXISTS \`notification_preferences\` (
+      \`id\` int NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      \`userId\` int NOT NULL UNIQUE,
+      \`matchNotif\` boolean NOT NULL DEFAULT true,
+      \`messageNotif\` boolean NOT NULL DEFAULT true,
+      \`gameInviteNotif\` boolean NOT NULL DEFAULT true,
+      \`achievementNotif\` boolean NOT NULL DEFAULT true,
+      \`systemNotif\` boolean NOT NULL DEFAULT true,
+      \`pushEnabled\` boolean NOT NULL DEFAULT true,
+      \`emailEnabled\` boolean NOT NULL DEFAULT true,
+      \`updatedAt\` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )
+  `);
+
+  console.log("[Schema] Schema check complete.");
+}
+
+// =============================================================================
 // USER QUERIES
 // =============================================================================
 
