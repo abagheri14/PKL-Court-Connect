@@ -1449,7 +1449,8 @@ export const appRouter = router({
         try {
           return await db.updateCoachingSession(ctx.user.id, coachingId, sanitized);
         } catch (e: any) {
-          throw new TRPCError({ code: e.code === "FORBIDDEN" ? "FORBIDDEN" : e.code === "NOT_FOUND" ? "NOT_FOUND" : "INTERNAL_SERVER_ERROR", message: e.message });
+          const code = e.code === "FORBIDDEN" ? "FORBIDDEN" : e.code === "NOT_FOUND" ? "NOT_FOUND" : "INTERNAL_SERVER_ERROR";
+          throw new TRPCError({ code, message: code === "INTERNAL_SERVER_ERROR" ? "Failed to update coaching session" : e.message });
         }
       }),
     cancel: protectedProcedure
@@ -1458,7 +1459,8 @@ export const appRouter = router({
         try {
           return await db.cancelCoachingSession(ctx.user.id, input.coachingId);
         } catch (e: any) {
-          throw new TRPCError({ code: e.code === "FORBIDDEN" ? "FORBIDDEN" : e.code === "NOT_FOUND" ? "NOT_FOUND" : "INTERNAL_SERVER_ERROR", message: e.message });
+          const code = e.code === "FORBIDDEN" ? "FORBIDDEN" : e.code === "NOT_FOUND" ? "NOT_FOUND" : "INTERNAL_SERVER_ERROR";
+          throw new TRPCError({ code, message: code === "INTERNAL_SERVER_ERROR" ? "Failed to cancel coaching session" : e.message });
         }
       }),
     complete: protectedProcedure
@@ -1467,7 +1469,8 @@ export const appRouter = router({
         try {
           return await db.completeCoachingSession(ctx.user.id, input.coachingId);
         } catch (e: any) {
-          throw new TRPCError({ code: e.code === "FORBIDDEN" ? "FORBIDDEN" : e.code === "NOT_FOUND" ? "NOT_FOUND" : "INTERNAL_SERVER_ERROR", message: e.message });
+          const code = e.code === "FORBIDDEN" ? "FORBIDDEN" : e.code === "NOT_FOUND" ? "NOT_FOUND" : "INTERNAL_SERVER_ERROR";
+          throw new TRPCError({ code, message: code === "INTERNAL_SERVER_ERROR" ? "Failed to complete coaching session" : e.message });
         }
       }),
     getMySessions: protectedProcedure
@@ -1481,7 +1484,7 @@ export const appRouter = router({
         try {
           return await db.createCoachingAnnouncement(ctx.user.id, input.coachingId, sanitizeString(input.content));
         } catch (e: any) {
-          throw new TRPCError({ code: "FORBIDDEN", message: e.message });
+          throw new TRPCError({ code: "FORBIDDEN", message: "Not authorized to post announcement" });
         }
       }),
   }),
@@ -1580,12 +1583,13 @@ export const appRouter = router({
     getDownloadUrl: protectedProcedure
       .input(z.object({ key: z.string() }))
       .query(async ({ ctx, input }) => {
-        // Validate the key belongs to the requesting user or is a shared resource (court photos)
-        const userPrefix = `/${ctx.user.id}/`;
-        const isOwnFile = input.key.includes(userPrefix);
-        const isCourtPhoto = input.key.startsWith("court-photo/");
-        const isChatVideo = input.key.startsWith("chat-video/");
-        if (!isOwnFile && !isCourtPhoto && !isChatVideo) {
+        // Validate the key belongs to the requesting user or is a shared resource
+        // Key format from getUploadUrl: "purpose/userId/timestamp-filename"
+        const keyParts = input.key.split("/");
+        const isOwnFile = keyParts.length >= 2 && keyParts[1] === String(ctx.user.id);
+        const isCourtPhoto = input.key.startsWith("court-photo/") || input.key.startsWith("court/");
+        const isChatMedia = input.key.startsWith("chat-video/") || input.key.startsWith("chat/");
+        if (!isOwnFile && !isCourtPhoto && !isChatMedia) {
           throw new TRPCError({ code: "FORBIDDEN", message: "Access denied to this file" });
         }
         const url = await getSignedUrl(input.key);
@@ -1619,6 +1623,7 @@ export const appRouter = router({
         if (!priceId) {
           throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Stripe price IDs not configured." });
         }
+        const baseUrl = process.env.APP_BASE_URL || `http://localhost:${process.env.PORT || 3000}`;
         const session = await stripe.checkout.sessions.create({
           mode: "subscription",
           payment_method_types: ["card"],
@@ -1626,8 +1631,8 @@ export const appRouter = router({
           customer_email: ctx.user.email ?? undefined,
           metadata: { userId: String(ctx.user.id) },
           subscription_data: { metadata: { userId: String(ctx.user.id) } },
-          success_url: `${ctx.req.headers.origin || "http://localhost:3000"}/?premium=success`,
-          cancel_url: `${ctx.req.headers.origin || "http://localhost:3000"}/?premium=cancelled`,
+          success_url: `${baseUrl}/?premium=success`,
+          cancel_url: `${baseUrl}/?premium=cancelled`,
         });
         return { sessionId: session.id, url: session.url };
       }),
@@ -2113,13 +2118,16 @@ export const appRouter = router({
         photoUrl: z.string().max(10_000_000).optional(),
         postType: z.enum(["general", "highlight", "question", "tip", "looking_for_players"]).optional(),
       }))
-      .mutation(({ ctx, input }) => db.createFeedPost(ctx.user.id, input)),
+      .mutation(({ ctx, input }) => db.createFeedPost(ctx.user.id, {
+        ...input,
+        content: sanitizeString(input.content),
+      })),
     toggleLike: protectedProcedure
       .input(z.object({ postId: z.number() }))
       .mutation(({ ctx, input }) => db.toggleFeedLike(ctx.user.id, input.postId)),
     addComment: protectedProcedure
       .input(z.object({ postId: z.number(), content: z.string().min(1).max(5000) }))
-      .mutation(({ ctx, input }) => db.addFeedComment(ctx.user.id, input.postId, input.content)),
+      .mutation(({ ctx, input }) => db.addFeedComment(ctx.user.id, input.postId, sanitizeString(input.content))),
     getComments: protectedProcedure
       .input(z.object({ postId: z.number(), limit: z.number().min(1).max(100).default(50) }))
       .query(({ input }) => db.getFeedComments(input.postId, input.limit)),
@@ -2137,7 +2145,7 @@ export const appRouter = router({
       .query(({ ctx, input }) => db.getBookmarkedPosts(ctx.user.id, input?.limit ?? 30)),
     reportPost: protectedProcedure
       .input(z.object({ postId: z.number(), reason: z.string().min(1).max(500) }))
-      .mutation(({ ctx, input }) => db.reportFeedPost(ctx.user.id, input.postId, input.reason)),
+      .mutation(({ ctx, input }) => db.reportFeedPost(ctx.user.id, input.postId, sanitizeString(input.reason))),
   }),
 
   // ── Favorite Players ───────────────────────────────────────────────────

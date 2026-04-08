@@ -3,7 +3,7 @@ import { trpc } from "@/lib/trpc";
 import PlayerAvatar from "@/components/PlayerAvatar";
 import { getDisplayName } from "@/lib/avatarUtils";
 import { cn } from "@/lib/utils";
-import { ArrowLeft, Play, Pause, Trophy, Users, Plus, Minus, RotateCcw, CheckCircle, AlertTriangle, Clock, ChevronRight, Undo2 } from "lucide-react";
+import { ArrowLeft, Play, Trophy, Users, Plus, Minus, RotateCcw, CheckCircle, AlertTriangle, Clock, ChevronRight, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { toast } from "sonner";

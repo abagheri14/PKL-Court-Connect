@@ -68,7 +68,7 @@ export function setupFileUpload(app: Express) {
 
       res.json({ url: dataUrl, key: `inline-${Date.now()}` });
     } catch (err: any) {
-      res.status(500).json({ error: err.message || "Upload failed" });
+      res.status(500).json({ error: "Upload failed" });
     }
   });
 

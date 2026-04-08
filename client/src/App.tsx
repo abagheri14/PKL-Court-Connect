@@ -6,6 +6,7 @@ import { AppProvider, useApp } from "./contexts/AppContext";
 import BottomNav from "./components/BottomNav";
 import { OfflineBanner } from "./components/OfflineBanner";
 import SplashScreen from "./components/SplashScreen";
+import { lazy, Suspense } from "react";
 
 // Pages
 import LoginScreen from "./pages/LoginScreen";
@@ -19,8 +20,8 @@ import ChatScreen from "./pages/ChatScreen";
 import ProfileScreen from "./pages/ProfileScreen";
 import PlayerProfile from "./pages/PlayerProfile";
 import EditProfile from "./pages/EditProfile";
-import CourtsScreen from "./pages/CourtsScreen";
-import CourtDetail from "./pages/CourtDetail";
+const CourtsScreen = lazy(() => import("./pages/CourtsScreen"));
+const CourtDetail = lazy(() => import("./pages/CourtDetail"));
 import GameHistory from "./pages/GameHistory";
 import CreateGameScreen from "./pages/CreateGameScreen";
 import AchievementsScreen from "./pages/AchievementsScreen";
@@ -35,7 +36,7 @@ import GroupsScreen from "./pages/GroupsScreen";
 import CoachingScreen from "./pages/CoachingScreen";
 import PendingRequestsScreen from "./pages/PendingRequestsScreen";
 import GamePlayScreen from "./pages/GamePlayScreen";
-import SubmitCourtScreen from "./pages/SubmitCourtScreen";
+const SubmitCourtScreen = lazy(() => import("./pages/SubmitCourtScreen"));
 import TournamentsScreen from "./pages/TournamentsScreen";
 import TournamentDetailScreen from "./pages/TournamentDetailScreen";
 import CreateTournamentScreen from "./pages/CreateTournamentScreen";
@@ -134,7 +135,9 @@ function AppRouter() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <OfflineBanner />
-      {renderScreen()}
+      <Suspense fallback={<div className="min-h-screen bg-background" />}>
+        {renderScreen()}
+      </Suspense>
       {!screensWithoutBottomNav.has(screen) && isAuthenticated && <BottomNav />}
       {isAuthenticated && <ChallengeOverlay />}
       {pendingMatchPlayer && (

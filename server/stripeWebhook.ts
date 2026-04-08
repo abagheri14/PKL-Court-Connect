@@ -81,10 +81,8 @@ export function setupStripeWebhook(app: Express) {
             let userId = Number(subscription.metadata?.userId);
             // Fallback: look up user by Stripe customer email if metadata is missing
             if ((!Number.isInteger(userId) || userId <= 0) && subscription.customer) {
-              const { default: Stripe } = await import("stripe");
-              const stripe2 = new Stripe(stripeKey);
               try {
-                const customer = await stripe2.customers.retrieve(subscription.customer as string) as any;
+                const customer = await stripe.customers.retrieve(subscription.customer as string) as any;
                 if (customer.email) {
                   const foundUser = await db.getUserByEmail(customer.email);
                   if (foundUser) userId = foundUser.id;
@@ -107,10 +105,8 @@ export function setupStripeWebhook(app: Express) {
             let userId = Number(subscription.metadata?.userId);
             // Fallback: look up user by Stripe customer email if metadata is missing
             if ((!Number.isInteger(userId) || userId <= 0) && subscription.customer) {
-              const { default: Stripe } = await import("stripe");
-              const stripe2 = new Stripe(stripeKey);
               try {
-                const customer = await stripe2.customers.retrieve(subscription.customer as string) as any;
+                const customer = await stripe.customers.retrieve(subscription.customer as string) as any;
                 if (customer.email) {
                   const foundUser = await db.getUserByEmail(customer.email);
                   if (foundUser) userId = foundUser.id;

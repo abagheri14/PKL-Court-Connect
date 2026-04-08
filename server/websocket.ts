@@ -90,6 +90,11 @@ export function setupSocketIO(io: SocketIOServer) {
       locationName?: string;
     }) => {
       try {
+        // Runtime validation for WebSocket payloads (TypeScript types are compile-time only)
+        if (!data || typeof data.conversationId !== "number" || !Number.isInteger(data.conversationId)) {
+          socket.emit("chat:error", { error: "Invalid conversation ID" });
+          return;
+        }
         // Rate limit WebSocket messages
         if (!checkSocketRateLimit(socket.id)) {
           socket.emit("chat:error", { error: "Too many messages. Please slow down." });
@@ -131,6 +136,7 @@ export function setupSocketIO(io: SocketIOServer) {
 
     // Join conversation room — verify participant first
     socket.on("chat:join", async (conversationId: number) => {
+      if (typeof conversationId !== "number" || !Number.isInteger(conversationId)) return;
       const isParticipant = await db.isConversationParticipant(userId, conversationId);
       if (isParticipant) {
         socket.join(`conversation:${conversationId}`);
@@ -169,12 +175,15 @@ export function setupSocketIO(io: SocketIOServer) {
 
     // ── Game Events ────────────────────────────────────────────────────
     socket.on("game:join", async (gameId: number) => {
+      if (typeof gameId !== "number" || !Number.isInteger(gameId)) return;
       const isParticipant = await db.isGameParticipant(userId, gameId);
       if (!isParticipant) return;
       socket.join(`game:${gameId}`);
     });
 
     socket.on("game:update", async (data: { gameId: number; update: { field: string; value: string | number | boolean } }) => {
+      if (!data || typeof data.gameId !== "number" || !Number.isInteger(data.gameId)) return;
+      if (!data.update || typeof data.update.field !== "string") return;
       if (!checkSocketRateLimit(socket.id)) return;
       // Validate the caller is a participant
       const isParticipant = await db.isGameParticipant(userId, data.gameId);
@@ -182,11 +191,21 @@ export function setupSocketIO(io: SocketIOServer) {
       // Whitelist allowed fields
       const ALLOWED_FIELDS = ["notes", "currentRound"];
       if (!ALLOWED_FIELDS.includes(data.update?.field)) return;
-      io.to(`game:${data.gameId}`).emit("game:updated", data);
+      // Sanitize string values before broadcasting
+      const sanitizedValue = typeof data.update.value === "string"
+        ? data.update.value.replace(/<[^>]*>/g, "").trim().slice(0, 5000)
+        : data.update.value;
+      io.to(`game:${data.gameId}`).emit("game:updated", {
+        ...data,
+        update: { field: data.update.field, value: sanitizedValue },
+      });
     });
 
     // Real-time score sync — broadcast to other players in the game room
     socket.on("game:scoreUpdate", async (data: { gameId: number; team1Score: number; team2Score: number; currentRound: number; servingTeam: 1 | 2; updatedBy: number }) => {
+      if (!data || typeof data.gameId !== "number" || !Number.isInteger(data.gameId)) return;
+      if (typeof data.team1Score !== "number" || typeof data.team2Score !== "number") return;
+      if (typeof data.currentRound !== "number" || typeof data.updatedBy !== "number") return;
       if (!checkSocketRateLimit(socket.id)) return;
       // Validate the caller is a participant and the updatedBy matches the socket user
       if (data.updatedBy !== userId) return;

@@ -27,7 +27,7 @@ import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { cn } from "@/lib/utils";
 
-mapboxgl.accessToken = "pk.eyJ1IjoiYWxhbmxpZ2h0IiwiYSI6ImNtbmtsZjkzbjB6eDkycXE0cjE1ZzRqYWUifQ.CgiZXUNHpZ1riJC1VVZhNQ";
+mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN || "";
 
 interface MapViewProps {
   className?: string;

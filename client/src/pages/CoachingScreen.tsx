@@ -6,7 +6,7 @@ import {
   ArrowLeft, GraduationCap, Plus, MapPin, Clock, Users, DollarSign, Calendar,
   Loader2, Star, MessageSquare, ChevronLeft, ChevronDown, Target, BookOpen,
   TrendingUp, Dumbbell, Brain, Edit3, X, Check, CheckCircle2, XCircle,
-  ClipboardList, ListChecks, Wrench, FileText, Save, Award, Trash2, Send, Megaphone, Search, UserPlus,
+  ClipboardList, ListChecks, Wrench, Save, Award, Trash2, Send, Megaphone, Search, UserPlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect, useRef, useCallback } from "react";

@@ -1,9 +1,9 @@
 function requireEnv(name: string): string {
   const value = process.env[name];
   if (!value) {
-    console.error(`[ENV] Required environment variable ${name} is not set`);
+    throw new Error(`[ENV] Required environment variable ${name} is not set. Server cannot start.`);
   }
-  return value ?? "";
+  return value;
 }
 
 export const ENV = {
