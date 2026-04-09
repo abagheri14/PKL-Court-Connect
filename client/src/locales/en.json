@@ -1229,5 +1229,11 @@
     "failedToLoad": "Failed to load courts",
     "courtsOnMap": "{{count}} courts on map",
     "courtsNearby": "{{count}} courts nearby"
+  },
+  "notFoundPage": {
+    "title": "Page Not Found",
+    "description": "Sorry, the page you are looking for doesn't exist.",
+    "moved": "It may have been moved or deleted.",
+    "goHome": "Go Home"
   }
 }

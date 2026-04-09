@@ -665,6 +665,9 @@ export const appRouter = router({
       }))
       .mutation(async ({ ctx, input }) => {
         const sanitized = { ...input, startTime: new Date(input.startTime), endTime: new Date(input.endTime) };
+        if (sanitized.endTime <= sanitized.startTime) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "End time must be after start time" });
+        }
         if (input.notes) sanitized.notes = sanitizeString(input.notes);
         return db.createCourtBooking(ctx.user.id, sanitized);
       }),
@@ -845,6 +848,12 @@ export const appRouter = router({
         if (!await db.isGameParticipant(ctx.user.id, input.gameId)) {
           throw new TRPCError({ code: "FORBIDDEN", message: "Only game participants can record results" });
         }
+        // Validate no player is on both teams
+        const team1Set = new Set(input.team1PlayerIds);
+        const overlap = input.team2PlayerIds.filter(id => team1Set.has(id));
+        if (overlap.length > 0) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Players cannot be on both teams" });
+        }
         // Validate all referenced players are actual game participants
         const allPlayerIds = Array.from(new Set([...input.team1PlayerIds, ...input.team2PlayerIds]));
         for (const pid of allPlayerIds) {
@@ -901,6 +910,11 @@ export const appRouter = router({
         winBy: z.number().min(1).max(5).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
+        // Validate no player is on both teams
+        const t1Set = new Set(input.team1PlayerIds);
+        if (input.team2PlayerIds.some(id => t1Set.has(id))) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Players cannot be on both teams" });
+        }
         const result = await db.startGameWithTeams(ctx.user.id, input.gameId, input.team1PlayerIds, input.team2PlayerIds, {
           pointsToWin: input.pointsToWin,
           bestOf: input.bestOf,
@@ -946,13 +960,17 @@ export const appRouter = router({
         const result = await db.saveGameRound(ctx.user.id, input.gameId, input);
         // Broadcast round update to all players in the game room
         if (input.completed && input.winnerTeam) {
-          broadcastToGameRoom(input.gameId, "game:roundComplete", {
-            gameId: input.gameId,
-            roundNumber: input.roundNumber,
-            team1Score: input.team1Score,
-            team2Score: input.team2Score,
-            winnerTeam: input.winnerTeam,
-          });
+          try {
+            broadcastToGameRoom(input.gameId, "game:roundComplete", {
+              gameId: input.gameId,
+              roundNumber: input.roundNumber,
+              team1Score: input.team1Score,
+              team2Score: input.team2Score,
+              winnerTeam: input.winnerTeam,
+            });
+          } catch (e) {
+            console.error("[Game] Round broadcast failed:", e);
+          }
         }
         return result;
       }),
@@ -968,13 +986,22 @@ export const appRouter = router({
         team2PlayerIds: z.array(z.number()).min(1),
       }))
       .mutation(async ({ ctx, input }) => {
+        // Validate no player is on both teams
+        const t1Check = new Set(input.team1PlayerIds);
+        if (input.team2PlayerIds.some(id => t1Check.has(id))) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Players cannot be on both teams" });
+        }
         const result = await db.completeGame(ctx.user.id, input.gameId, input);
         // Broadcast game completion to all players in the game room for instant UI update
-        broadcastToGameRoom(input.gameId, "game:completed", {
-          gameId: input.gameId,
-          team1Score: input.team1Score,
-          team2Score: input.team2Score,
-        });
+        try {
+          broadcastToGameRoom(input.gameId, "game:completed", {
+            gameId: input.gameId,
+            team1Score: input.team1Score,
+            team2Score: input.team2Score,
+          });
+        } catch (e) {
+          console.error("[Game] Broadcast failed:", e);
+        }
         // Notify all participants that the game is complete
         const allPlayerIds = Array.from(new Set([...input.team1PlayerIds, ...input.team2PlayerIds]));
         const winnerTeam = input.team1Score > input.team2Score ? "team1" : "team2";

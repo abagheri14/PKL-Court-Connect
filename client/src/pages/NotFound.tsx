@@ -2,9 +2,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { AlertCircle, Home } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
+import { useTranslation } from "react-i18next";
 
 export default function NotFound() {
   const { navigate } = useApp();
+  const { t } = useTranslation();
 
   const handleGoHome = () => {
     navigate("home");
@@ -24,13 +26,13 @@ export default function NotFound() {
           <h1 className="text-4xl font-bold text-foreground mb-2">404</h1>
 
           <h2 className="text-xl font-semibold text-muted-foreground mb-4">
-            Page Not Found
+            {t("notFoundPage.title")}
           </h2>
 
           <p className="text-muted-foreground mb-8 leading-relaxed">
-            Sorry, the page you are looking for doesn't exist.
+            {t("notFoundPage.description")}
             <br />
-            It may have been moved or deleted.
+            {t("notFoundPage.moved")}
           </p>
 
           <div
@@ -42,7 +44,7 @@ export default function NotFound() {
               className="px-6 py-2.5 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
             >
               <Home className="w-4 h-4 mr-2" />
-              Go Home
+              {t("notFoundPage.goHome")}
             </Button>
           </div>
         </CardContent>

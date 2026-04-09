@@ -414,7 +414,7 @@ export const reports = mysqlTable("reports", {
 // =============================================================================
 // GROUPS
 // =============================================================================
-export const groups = mysqlTable("groups", {
+export const groups = mysqlTable("pkl_groups", {
   id: int("id").autoincrement().primaryKey(),
   name: varchar("name", { length: 100 }).notNull(),
   description: text("description"),
