@@ -1215,9 +1215,6 @@
     "realtimeEnabled": "Real-time notifications enabled!",
     "enableFailed": "Failed to enable notifications"
   },
-  "courtPickerModal": {
-    "selectThisCourt": "Select This Court"
-  },
   "courtsScreen": {
     "viewCourtDetails": "View Court Details",
     "courtMap": "Court Map",
@@ -1230,10 +1227,23 @@
     "courtsOnMap": "{{count}} courts on map",
     "courtsNearby": "{{count}} courts nearby"
   },
-  "notFoundPage": {
-    "title": "Page Not Found",
-    "description": "Sorry, the page you are looking for doesn't exist.",
-    "moved": "It may have been moved or deleted.",
-    "goHome": "Go Home"
+  "dashboardLayout": {
+    "signInToContinue": "Sign in to continue",
+    "authRequired": "Access to this dashboard requires authentication. Continue to launch the login flow.",
+    "signIn": "Sign in"
+  },
+  "imageCropper": {
+    "cropPhoto": "Crop Photo",
+    "cancel": "Cancel",
+    "usePhoto": "Use Photo"
+  },
+  "courtPickerModal": {
+    "map": "Map",
+    "list": "List",
+    "selectThisCourt": "Select This Court"
+  },
+  "locationPicker": {
+    "selectCourt": "Select Court",
+    "customLocation": "Custom Location"
   }
 }

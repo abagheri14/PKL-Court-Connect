@@ -37,6 +37,9 @@ export function usePhotoUpload(options: UsePhotoUploadOptions = {}) {
 
       const data = await res.json();
       const url = data.url as string;
+      // Revoke local blob URL now that upload succeeded
+      if (preview) URL.revokeObjectURL(preview);
+      setPreview(url);
       toast.success(t("photoUpload.success"));
       onSuccess?.(url);
     } catch (err: any) {
@@ -50,6 +53,7 @@ export function usePhotoUpload(options: UsePhotoUploadOptions = {}) {
   }, [purpose, onSuccess]);
 
   const handleCropComplete = useCallback(async (croppedBlob: Blob) => {
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
     setCropSrc(null);
     const localUrl = URL.createObjectURL(croppedBlob);
     setPreview(localUrl);
@@ -57,8 +61,9 @@ export function usePhotoUpload(options: UsePhotoUploadOptions = {}) {
   }, [uploadBlob]);
 
   const handleCropCancel = useCallback(() => {
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
     setCropSrc(null);
-  }, []);
+  }, [cropSrc]);
 
   const openFilePicker = useCallback(() => {
     if (!inputRef.current) {

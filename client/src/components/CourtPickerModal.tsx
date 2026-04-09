@@ -180,11 +180,11 @@ export default function CourtPickerModal({ open, onClose, onSelect, title }: Cou
           <button onClick={() => setView("map")}
             className={cn("px-3 py-1.5 rounded-lg text-xs font-semibold transition-all",
               view === "map" ? "pill-tab-active text-white" : "bg-muted/10 text-muted-foreground"
-            )}>Map</button>
+            )}>{t("courtPickerModal.map")}</button>
           <button onClick={() => setView("list")}
             className={cn("px-3 py-1.5 rounded-lg text-xs font-semibold transition-all",
               view === "list" ? "pill-tab-active text-white" : "bg-muted/10 text-muted-foreground"
-            )}>List</button>
+            )}>{t("courtPickerModal.list")}</button>
         </div>
       </div>
 

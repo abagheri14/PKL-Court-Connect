@@ -3,6 +3,7 @@ import ReactCrop, { type Crop, type PixelCrop, centerCrop, makeAspectCrop } from
 import "react-image-crop/dist/ReactCrop.css";
 import { Button } from "@/components/ui/button";
 import { X, Check, RotateCw } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface ImageCropperProps {
   imageSrc: string;
@@ -24,6 +25,7 @@ export default function ImageCropper({ imageSrc, onCropComplete, onCancel, aspec
   const [crop, setCrop] = useState<Crop>();
   const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
   const imgRef = useRef<HTMLImageElement>(null);
+  const { t } = useTranslation();
 
   const onImageLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
     const { width, height } = e.currentTarget;
@@ -72,7 +74,7 @@ export default function ImageCropper({ imageSrc, onCropComplete, onCancel, aspec
         <button onClick={onCancel} className="p-2 rounded-xl bg-white/10 hover:bg-white/20 transition-colors">
           <X size={20} className="text-white" />
         </button>
-        <h2 className="text-white font-bold text-sm">Crop Photo</h2>
+        <h2 className="text-white font-bold text-sm">{t("imageCropper.cropPhoto")}</h2>
         <button
           onClick={getCroppedImg}
           disabled={!completedCrop}
@@ -106,14 +108,14 @@ export default function ImageCropper({ imageSrc, onCropComplete, onCancel, aspec
       {/* Actions */}
       <div className="flex items-center justify-center gap-4 px-4 py-4 bg-black/50 backdrop-blur-sm">
         <Button onClick={onCancel} variant="outline" className="border-white/20 text-white hover:bg-white/10">
-          Cancel
+          {t("imageCropper.cancel")}
         </Button>
         <Button
           onClick={getCroppedImg}
           disabled={!completedCrop}
           className="bg-gradient-to-r from-primary to-accent text-white shadow-[0_0_16px_rgba(168,85,247,0.3)]"
         >
-          <Check size={16} className="mr-1.5" /> Use Photo
+          <Check size={16} className="mr-1.5" /> {t("imageCropper.usePhoto")}
         </Button>
       </div>
     </div>

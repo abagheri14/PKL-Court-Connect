@@ -163,7 +163,7 @@ export default function LocationPickerSection({ value, onChange, label, accentCo
             mode === "court" ? "border-secondary bg-secondary/10 text-secondary" : "border-border hover:border-secondary/30"
           )}
         >
-          <Building2 size={14} /> Select Court
+          <Building2 size={14} /> {t("locationPicker.selectCourt")}
         </button>
         <button
           onClick={handleSwitchToCustom}
@@ -172,7 +172,7 @@ export default function LocationPickerSection({ value, onChange, label, accentCo
             mode === "custom" ? "border-secondary bg-secondary/10 text-secondary" : "border-border hover:border-secondary/30"
           )}
         >
-          <MapPinned size={14} /> Custom Location
+          <MapPinned size={14} /> {t("locationPicker.customLocation")}
         </button>
       </div>
 
