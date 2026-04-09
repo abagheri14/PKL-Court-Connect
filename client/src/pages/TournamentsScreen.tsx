@@ -67,7 +67,7 @@ export default function TournamentsScreen() {
       <div className="sticky top-0 z-30 bg-background/95 backdrop-blur border-b border-border px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button onClick={goBack} className="p-1 rounded-lg hover:bg-muted"><ArrowLeft className="w-5 h-5" /></button>
+            <button onClick={goBack} aria-label="Go back" className="p-1 rounded-lg hover:bg-muted"><ArrowLeft className="w-5 h-5" /></button>
             <div className="flex items-center gap-2">
               <Trophy className="w-5 h-5 text-[#FFC107]" />
               <h1 className="text-lg font-bold">Tournaments</h1>

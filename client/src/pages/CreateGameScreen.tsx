@@ -31,6 +31,7 @@ const gameTypeMap: Record<string, string> = {
 export default function CreateGameScreen() {
   const { navigate, goBack, createGameGroupId, setCreateGameGroupId } = useApp();
   const { t, i18n } = useTranslation();
+  const utils = trpc.useUtils();
   const courtsQuery = trpc.courts.list.useQuery();
   const courts: any[] = courtsQuery.data ?? [];
   const [createdGameId, setCreatedGameId] = useState<number | null>(null);
@@ -39,6 +40,8 @@ export default function CreateGameScreen() {
   const createGameMutation = trpc.games.create.useMutation({
     onSuccess: (data: any) => {
       toast.success(t("createGame.gameCreated"));
+      utils.games.upcoming.invalidate();
+      utils.games.list.invalidate();
       setCreateGameGroupId(null);
       if (data?.id) {
         setCreatedGameId(data.id);
@@ -98,7 +101,7 @@ export default function CreateGameScreen() {
   return (
     <div className="pb-24 min-h-screen">
       <div className="px-4 pt-6 pb-3 flex items-center gap-3">
-        <button onClick={() => goBack()} className="p-1 rounded-full hover:bg-muted/20">
+        <button onClick={() => goBack()} aria-label="Go back" className="p-1 rounded-full hover:bg-muted/20">
           <ArrowLeft size={20} />
         </button>
         <h1 className="text-lg font-bold">{t("createGame.title")}</h1>

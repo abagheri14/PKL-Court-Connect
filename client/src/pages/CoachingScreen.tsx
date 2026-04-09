@@ -800,7 +800,7 @@ export default function CoachingScreen() {
         <div className="absolute -top-20 -right-20 w-48 h-48 rounded-full bg-secondary/8 blur-3xl" />
         <div className="relative px-5 pt-7 pb-4">
           <div className="flex items-center gap-3 mb-4">
-            <button onClick={() => goBack()} className="p-2 rounded-xl glass hover:scale-105 transition-transform">
+            <button onClick={() => goBack()} aria-label="Go back" className="p-2 rounded-xl glass hover:scale-105 transition-transform">
               <ArrowLeft size={18} />
             </button>
             <div className="flex-1">

@@ -56,7 +56,7 @@ export default function SuperAdminDashboard() {
       <div className="relative overflow-hidden">
         <div className="absolute -top-20 -right-20 w-48 h-48 rounded-full bg-accent/8 blur-3xl" />
         <div className="relative px-5 pt-7 pb-3 flex items-center gap-3">
-          <button onClick={() => goBack()} className="p-2 rounded-xl glass hover:scale-105 transition-transform">
+          <button onClick={() => goBack()} aria-label="Go back" className="p-2 rounded-xl glass hover:scale-105 transition-transform">
             <ArrowLeft size={18} />
           </button>
           <h1 className="text-lg font-bold tracking-tight">Super Admin</h1>

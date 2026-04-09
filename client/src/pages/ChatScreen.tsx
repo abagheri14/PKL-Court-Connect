@@ -263,6 +263,7 @@ export default function ChatScreen() {
       <div className="card-elevated border-b border-primary/10 px-4 py-3 flex items-center gap-3 flex-shrink-0">
         <button
           onClick={() => goBack()}
+          aria-label="Go back"
           className="p-2 rounded-xl glass hover:scale-105 transition-transform"
         >
           <ArrowLeft size={18} />

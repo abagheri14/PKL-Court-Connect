@@ -404,8 +404,8 @@ export default function HomeDashboard() {
                   <span className="font-medium">{game.currentPlayers}/{game.maxPlayers} {t("common.players")}</span>
                 </div>
                 <div className="flex items-center gap-1.5 mt-2.5">
-                  {game.participants.filter((p: any) => p.status === "confirmed").slice(0, 4).map((p: any, i: number) => (
-                    <div key={i} className="-ml-1.5 first:ml-0">
+                  {game.participants.filter((p: any) => p.status === "confirmed").slice(0, 4).map((p: any) => (
+                    <div key={p.userId} className="-ml-1.5 first:ml-0">
                       <PlayerAvatar user={{ id: p.userId, name: p.name, profilePhotoUrl: p.profilePhotoUrl, hasProfilePhoto: !!p.profilePhotoUrl }} size="sm" showBadges={false} />
                     </div>
                   ))}

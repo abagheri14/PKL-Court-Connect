@@ -88,7 +88,7 @@ export default function PendingRequestsScreen() {
       {/* Header */}
       <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border">
         <div className="px-4 py-3 flex items-center gap-3">
-          <button onClick={goBack} className="p-2 -ml-2 rounded-xl hover:bg-muted/50 transition-colors">
+          <button onClick={goBack} aria-label="Go back" className="p-2 -ml-2 rounded-xl hover:bg-muted/50 transition-colors">
             <ArrowLeft size={20} />
           </button>
           <div className="flex-1">

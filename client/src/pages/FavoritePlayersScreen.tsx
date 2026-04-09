@@ -19,7 +19,7 @@ export default function FavoritePlayersScreen() {
     <div className="min-h-screen bg-background pb-24">
       <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm border-b border-border/30 px-4 py-3">
         <div className="flex items-center gap-3">
-          <button onClick={goBack} className="p-1.5 rounded-full hover:bg-muted/50">
+          <button onClick={goBack} aria-label="Go back" className="p-1.5 rounded-full hover:bg-muted/50">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <Heart className="w-5 h-5 text-pink-400" />

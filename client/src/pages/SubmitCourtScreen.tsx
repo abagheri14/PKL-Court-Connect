@@ -120,7 +120,7 @@ export default function SubmitCourtScreen() {
       {/* Header */}
       <div className="relative overflow-hidden flex-shrink-0">
         <div className="relative px-5 pt-7 pb-3 flex items-center gap-3">
-          <button onClick={() => step === "form" ? setStep("pin") : goBack()} className="p-2 rounded-xl glass hover:scale-105 transition-transform">
+          <button onClick={() => step === "form" ? setStep("pin") : goBack()} aria-label="Go back" className="p-2 rounded-xl glass hover:scale-105 transition-transform">
             <ArrowLeft size={18} />
           </button>
           <div>

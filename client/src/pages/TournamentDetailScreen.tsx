@@ -98,7 +98,7 @@ export default function TournamentDetailScreen() {
   if (detailQuery.isError || !tournament) {
     return (
       <div className="min-h-screen bg-background p-4">
-        <button onClick={goBack} className="p-1 rounded-lg hover:bg-muted"><ArrowLeft className="w-5 h-5" /></button>
+        <button onClick={goBack} aria-label="Go back" className="p-1 rounded-lg hover:bg-muted"><ArrowLeft className="w-5 h-5" /></button>
         <QueryError message="Failed to load tournament" onRetry={refetchAll} />
       </div>
     );
@@ -136,7 +136,7 @@ export default function TournamentDetailScreen() {
       <div className="sticky top-0 z-30 bg-background/95 backdrop-blur border-b border-border">
         <div className="px-4 py-3">
           <div className="flex items-center gap-3">
-            <button onClick={goBack} className="p-1 rounded-lg hover:bg-muted"><ArrowLeft className="w-5 h-5" /></button>
+            <button onClick={goBack} aria-label="Go back" className="p-1 rounded-lg hover:bg-muted"><ArrowLeft className="w-5 h-5" /></button>
             <div className="flex-1 min-w-0">
               <h1 className="text-lg font-bold truncate">{tournament.name}</h1>
               <p className={cn("text-xs font-medium", getStatusColor(tournament.status))}>

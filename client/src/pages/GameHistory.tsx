@@ -128,7 +128,7 @@ export default function GameHistory() {
       <div className="relative overflow-hidden">
         <div className="absolute -top-20 -right-20 w-48 h-48 rounded-full bg-secondary/8 blur-3xl" />
         <div className="relative px-5 pt-7 pb-3 flex items-center gap-3">
-          <button onClick={() => goBack()} className="p-2 rounded-xl glass hover:scale-105 transition-transform">
+          <button onClick={() => goBack()} aria-label="Go back" className="p-2 rounded-xl glass hover:scale-105 transition-transform">
             <ArrowLeft size={18} />
           </button>
           <h1 className="text-lg font-bold tracking-tight">{t("gameHistory.title")}</h1>
@@ -301,6 +301,10 @@ export default function GameHistory() {
         )}
         {(upcomingQuery.isError || pastQuery.isError) && !displayed.length ? (
           <QueryError message={t("gameHistory.failedToLoadGames")} onRetry={() => { upcomingQuery.refetch(); pastQuery.refetch(); }} />
+        ) : (upcomingQuery.isLoading || pastQuery.isLoading || inProgressQuery.isLoading) && displayed.length === 0 ? (
+          <div className="flex justify-center py-12">
+            <Loader2 size={28} className="animate-spin text-muted-foreground/40" />
+          </div>
         ) : displayed.length === 0 ? (
           <div className="text-center py-12 animate-slide-up">
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-secondary/15 to-orange-500/10 flex items-center justify-center mx-auto mb-3">
@@ -379,8 +383,8 @@ export default function GameHistory() {
                   <div>
                     <p className="text-[10px] text-muted-foreground mb-1.5 font-medium">{t("gameHistory.participants")}</p>
                     <div className="flex items-center flex-wrap">
-                      {(game.participants ?? []).filter((p: any) => p.status === "confirmed").map((p: any, i: number) => (
-                        <div key={i} className="-ml-1.5 first:ml-0">
+                      {(game.participants ?? []).filter((p: any) => p.status === "confirmed").map((p: any) => (
+                        <div key={p.userId} className="-ml-1.5 first:ml-0">
                           <PlayerAvatar user={{ id: p.userId, name: p.name, profilePhotoUrl: p.profilePhotoUrl, hasProfilePhoto: !!p.profilePhotoUrl }} size="sm" showBadges={false} />
                         </div>
                       ))}

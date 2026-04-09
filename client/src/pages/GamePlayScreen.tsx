@@ -509,7 +509,7 @@ export default function GamePlayScreen() {
       <div className="pb-24 min-h-screen">
         {/* Header */}
         <div className="px-4 pt-6 pb-3 flex items-center gap-3">
-          <button onClick={() => goBack()} className="p-1 rounded-full hover:bg-muted/20">
+          <button onClick={() => goBack()} aria-label="Go back" className="p-1 rounded-full hover:bg-muted/20">
             <ArrowLeft size={20} />
           </button>
           <h1 className="text-lg font-bold">{t("gamePlay.teamSetup")}</h1>
@@ -739,7 +739,7 @@ export default function GamePlayScreen() {
       <div className="pb-24 min-h-screen">
         {/* Header */}
         <div className="px-4 pt-6 pb-2 flex items-center justify-between">
-          <button onClick={() => goBack()} className="p-1 rounded-full hover:bg-muted/20">
+          <button onClick={() => goBack()} aria-label="Go back" className="p-1 rounded-full hover:bg-muted/20">
             <ArrowLeft size={20} />
           </button>
           <div className="text-center">
@@ -956,7 +956,7 @@ export default function GamePlayScreen() {
     <div className="pb-24 min-h-screen">
       {/* Header */}
       <div className="px-4 pt-6 pb-3 flex items-center gap-3">
-        <button onClick={() => goBack()} className="p-1 rounded-full hover:bg-muted/20">
+        <button onClick={() => goBack()} aria-label="Go back" className="p-1 rounded-full hover:bg-muted/20">
           <ArrowLeft size={20} />
         </button>
         <h1 className="text-lg font-bold">{t("gamePlay.gameSummary")}</h1>

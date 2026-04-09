@@ -20,9 +20,9 @@ const faqEntries = [
 export default function HelpScreen() {
   const { t } = useTranslation();
   const { navigate, goBack } = useApp();
-  const faqs = faqEntries.map(f => ({ q: t(`help.${f.qKey}`), a: t(`help.${f.aKey}`) }));
+  const faqs = faqEntries.map(f => ({ qKey: f.qKey, q: t(`help.${f.qKey}`), a: t(`help.${f.aKey}`) }));
   const [search, setSearch] = useState("");
-  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+  const [expandedKey, setExpandedKey] = useState<string | null>(null);
   const [activeGuide, setActiveGuide] = useState<string | null>(null);
 
   const filteredFaqs = faqs.filter(f =>
@@ -80,7 +80,7 @@ export default function HelpScreen() {
   return (
     <div className="pb-24 min-h-screen">
       <div className="px-4 pt-6 pb-3 flex items-center gap-3">
-        <button onClick={() => goBack()} className="p-1 rounded-full hover:bg-muted/20">
+        <button onClick={() => goBack()} aria-label="Go back" className="p-1 rounded-full hover:bg-muted/20">
           <ArrowLeft size={20} />
         </button>
         <h1 className="text-lg font-bold">{t("help.title")}</h1>
@@ -144,19 +144,19 @@ export default function HelpScreen() {
           {t("help.faqTitle")}
         </h2>
         <div className="space-y-2">
-          {filteredFaqs.map((faq, i) => (
-            <div key={i} className="card-elevated rounded-xl overflow-hidden">
+          {filteredFaqs.map((faq) => (
+            <div key={faq.qKey} className="card-elevated rounded-xl overflow-hidden">
               <button
-                onClick={() => setExpandedIndex(expandedIndex === i ? null : i)}
+                onClick={() => setExpandedKey(expandedKey === faq.qKey ? null : faq.qKey)}
                 className="w-full text-left p-4 flex items-center justify-between"
               >
                 <span className="text-sm font-medium flex-1 pr-2">{faq.q}</span>
                 <ChevronRight
                   size={14}
-                  className={cn("text-muted-foreground transition-transform", expandedIndex === i && "rotate-90")}
+                  className={cn("text-muted-foreground transition-transform", expandedKey === faq.qKey && "rotate-90")}
                 />
               </button>
-              {expandedIndex === i && (
+              {expandedKey === faq.qKey && (
                 <div className="px-4 pb-4 -mt-1">
                   <p className="text-xs text-muted-foreground leading-relaxed">{faq.a}</p>
                 </div>

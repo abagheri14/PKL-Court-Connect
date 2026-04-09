@@ -13,12 +13,14 @@ export default function SettingsScreen() {
   const { theme, toggleTheme: ctxToggleTheme, fontSize, setFontSize } = useTheme();
   const { language, setLanguage, t } = useI18n();
 
+  const utils = trpc.useUtils();
+
   // Load preferences from server
   const prefsQuery = trpc.notifications.getPreferences.useQuery();
   const prefs = prefsQuery.data;
 
   const updatePrefsMutation = trpc.notifications.updatePreferences.useMutation({
-    onSuccess: () => prefsQuery.refetch(),
+    onSuccess: () => utils.notifications.getPreferences.invalidate(),
   });
 
   const [notifications, setNotifications] = useState(true);
@@ -150,7 +152,7 @@ const toggleLanguage = () => {
       <div className="relative overflow-hidden">
         <div className="absolute -top-20 -right-20 w-48 h-48 rounded-full bg-primary/6 blur-3xl" />
         <div className="relative px-5 pt-7 pb-3 flex items-center gap-3">
-          <button onClick={() => goBack()} className="p-2 rounded-xl glass hover:scale-105 transition-transform">
+          <button onClick={() => goBack()} aria-label="Go back" className="p-2 rounded-xl glass hover:scale-105 transition-transform">
             <ArrowLeft size={18} />
           </button>
           <h1 className="text-lg font-bold tracking-tight">{t("settings.title")}</h1>

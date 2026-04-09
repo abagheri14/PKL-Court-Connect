@@ -54,7 +54,7 @@ export default function LeaderboardScreen() {
       <div className="relative overflow-hidden">
         <div className="absolute -top-20 -right-20 w-48 h-48 rounded-full bg-secondary/8 blur-3xl" />
         <div className="relative px-5 pt-7 pb-3 flex items-center gap-3">
-          <button onClick={() => goBack()} className="p-2 rounded-xl glass hover:scale-105 transition-transform">
+          <button onClick={() => goBack()} aria-label="Go back" className="p-2 rounded-xl glass hover:scale-105 transition-transform">
             <ArrowLeft size={18} />
           </button>
           <h1 className="text-xl font-bold flex-1 tracking-tight">{t("Leaderboard")}</h1>
@@ -101,6 +101,10 @@ export default function LeaderboardScreen() {
       {/* Podium */}
       {leaderboardQuery.isError && !sorted.length ? (
         <div className="px-5"><QueryError message={t("Failed to load leaderboard")} onRetry={() => leaderboardQuery.refetch()} /></div>
+      ) : leaderboardQuery.isLoading && !sorted.length ? (
+        <div className="flex justify-center py-16">
+          <Loader2 size={28} className="animate-spin text-muted-foreground/40" />
+        </div>
       ) : (
       <>
       <div className="px-5 mb-6 animate-slide-up delay-200">

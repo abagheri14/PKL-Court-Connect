@@ -758,8 +758,8 @@ export default function GroupsScreen() {
                       </div>
                       {/* Participant avatars */}
                       <div className="flex items-center gap-1 mb-2">
-                        {(game.participants ?? []).filter((p: any) => p.status === "confirmed").slice(0, 6).map((p: any, i: number) => (
-                          <PlayerAvatar key={i} user={{ id: p.userId, name: p.name, profilePhotoUrl: p.profilePhotoUrl, hasProfilePhoto: !!p.profilePhotoUrl }} size="sm" showBadges={false} className="border-2 border-background -ml-1.5 first:ml-0" />
+                        {(game.participants ?? []).filter((p: any) => p.status === "confirmed").slice(0, 6).map((p: any) => (
+                          <PlayerAvatar key={p.userId} user={{ id: p.userId, name: p.name, profilePhotoUrl: p.profilePhotoUrl, hasProfilePhoto: !!p.profilePhotoUrl }} size="sm" showBadges={false} className="border-2 border-background -ml-1.5 first:ml-0" />
                         ))}
                       </div>
                       {/* Action button */}
@@ -1003,7 +1003,7 @@ export default function GroupsScreen() {
   return (
     <div className="pb-24 min-h-screen">
       <div className="px-5 pt-7 pb-3 flex items-center gap-3">
-        <button onClick={() => goBack()} className="p-2 rounded-xl glass hover:scale-105 transition-transform">
+        <button onClick={() => goBack()} aria-label="Go back" className="p-2 rounded-xl glass hover:scale-105 transition-transform">
           <ArrowLeft size={18} />
         </button>
         <div className="flex-1">
