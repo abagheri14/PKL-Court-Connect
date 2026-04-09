@@ -293,7 +293,7 @@ export async function getNearbyUsers(userId: number, lat: number, lng: number, r
       sql`${users.latitude} BETWEEN ${lat - degreeRadius} AND ${lat + degreeRadius}`,
       sql`${users.longitude} BETWEEN ${lng - degreeRadius} AND ${lng + degreeRadius}`,
     )
-  );
+  ).limit(500);
 }
 
 export async function updateUserLocation(userId: number, lat: number, lng: number, city?: string) {
@@ -3040,7 +3040,7 @@ export async function getNearbyUsersWithDistance(userId: number, lat: number, ln
   ];
   if (opts?.minRating != null) conditions.push(sql`${users.averageRating} >= ${opts.minRating}`);
   if (opts?.maxRating != null) conditions.push(sql`${users.averageRating} <= ${opts.maxRating}`);
-  const rows = await db.select().from(users).where(and(...conditions));
+  const rows = await db.select().from(users).where(and(...conditions)).limit(500);
   return rows.map(u => {
     const dLat = (u.latitude! - lat) * Math.PI / 180;
     const dLng = (u.longitude! - lng) * Math.PI / 180;

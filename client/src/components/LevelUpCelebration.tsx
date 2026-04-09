@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { X, TrendingUp, Zap } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface LevelUpCelebrationProps {
   newLevel: number;
@@ -12,7 +13,8 @@ const confettiColors = ["#BFFF00", "#FFD700", "#FF6B6B", "#4ECDC4", "#A78BFA", "
 
 /** Full-screen dopamine-hit level-up celebration */
 export default function LevelUpCelebration({ newLevel, onClose }: LevelUpCelebrationProps) {
-  const [phase, setPhase] = useState(0); // 0=hidden, 1=bg, 2=icon, 3=text, 4=number, 5=button
+  const [phase, setPhase] = useState(0);
+  const { t } = useTranslation(); // 0=hidden, 1=bg, 2=icon, 3=text, 4=number, 5=button
 
   useEffect(() => {
     const timers = [
@@ -91,11 +93,11 @@ export default function LevelUpCelebration({ newLevel, onClose }: LevelUpCelebra
             <div className="flex items-center gap-2 mb-1">
               <Zap size={24} className="text-yellow-400" />
               <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-secondary via-yellow-300 to-orange-400 tracking-tight text-center">
-                LEVEL UP!
+                {t("celebration.levelUp")}
               </h1>
               <Zap size={24} className="text-yellow-400" />
             </div>
-            <p className="text-center text-white/50 text-sm mb-6">You&apos;re getting stronger! 💪</p>
+            <p className="text-center text-white/50 text-sm mb-6">{t("celebration.gettingStronger")} 💪</p>
           </div>
         )}
 
@@ -109,7 +111,7 @@ export default function LevelUpCelebration({ newLevel, onClose }: LevelUpCelebra
                 <span className="text-6xl font-black text-black">{newLevel}</span>
               </div>
             </div>
-            <p className="text-center text-white/40 text-xs mt-3 font-medium tracking-widest uppercase">Level {newLevel - 1} → {newLevel}</p>
+            <p className="text-center text-white/40 text-xs mt-3 font-medium tracking-widest uppercase">{t("celebration.levelTransition", { from: newLevel - 1, to: newLevel })}</p>
           </div>
         )}
 
@@ -118,7 +120,7 @@ export default function LevelUpCelebration({ newLevel, onClose }: LevelUpCelebra
           <button onClick={onClose}
             style={{ animation: "celebScaleIn 0.5s ease-out both" }}
             className="w-full max-w-xs py-3.5 rounded-2xl bg-gradient-to-r from-secondary to-orange-400 text-black font-bold text-sm flex items-center justify-center gap-2 hover:shadow-[0_0_30px_rgba(255,215,0,0.3)] transition-all active:scale-95">
-            🎉 Keep Playing
+            🎉 {t("celebration.keepPlaying")}
           </button>
         )}
       </div>

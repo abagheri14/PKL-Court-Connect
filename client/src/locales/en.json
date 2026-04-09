@@ -1244,6 +1244,66 @@
   },
   "locationPicker": {
     "selectCourt": "Select Court",
-    "customLocation": "Custom Location"
+    "customLocation": "Custom Location",
+    "location": "Location",
+    "change": "Change",
+    "tapToBrowse": "Tap to browse courts on the map",
+    "addressOrName": "Address or Location Name",
+    "dropPin": "Drop a pin on the map (optional)",
+    "tapToPlace": "Tap to place pin · Drag to adjust",
+    "clearLocation": "Clear location"
+  },
+  "celebration": {
+    "champion": "CHAMPION!",
+    "victory": "VICTORY!",
+    "dominatedTournament": "You dominated the tournament! 👑",
+    "greatGame": "Great game! You crushed it! 🏓",
+    "winner": "Winner",
+    "awesome": "Awesome!",
+    "levelUp": "LEVEL UP!",
+    "gettingStronger": "You're getting stronger!",
+    "levelTransition": "Level {{from}} → {{to}}",
+    "keepPlaying": "Keep Playing",
+    "itsARally": "IT'S A RALLY!",
+    "wantToPlay": "You and {{name}} want to play!",
+    "sendMessage": "Send a Message",
+    "keepSwiping": "Keep Swiping"
+  },
+  "errorBoundary": {
+    "unexpectedError": "An unexpected error occurred.",
+    "reloadPage": "Reload Page",
+    "somethingWrong": "Something went wrong"
+  },
+  "invitePicker": {
+    "invitePlayers": "Invite Players",
+    "searchPlayers": "Search players...",
+    "matches": "Matches",
+    "nearby": "Nearby",
+    "noMatchesFound": "No matches found",
+    "noMatchesYet": "No matches yet",
+    "swipeToFind": "Swipe to find players to match with!",
+    "premiumFeature": "Premium Feature",
+    "upgradeDescription": "Upgrade to Premium to invite any nearby player — not just your matches!",
+    "upgradeToPremium": "Upgrade to Premium",
+    "noNearbyFound": "No nearby players found",
+    "noNearby": "No nearby players",
+    "enableLocation": "Enable location to find players near you",
+    "sendInvites": "Send {{count}} Invite(s)"
+  },
+  "tournament": {
+    "finals": "Finals",
+    "semiFinals": "Semi-Finals",
+    "quarterFinals": "Quarter-Finals",
+    "round": "Round {{num}}",
+    "viewLiveGame": "View Live Game",
+    "wins": "wins",
+    "viewGame": "View Game",
+    "waitingForPreviousRound": "Waiting for previous round",
+    "bye": "BYE",
+    "tbd": "TBD",
+    "standings": "Standings",
+    "matches": "Matches",
+    "vs": "vs",
+    "playerWon": "{{name}} won"
   }
 }

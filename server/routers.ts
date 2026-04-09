@@ -465,8 +465,8 @@ export const appRouter = router({
         conversationId: z.number(),
         content: z.string().max(10_000_000).optional(),
         messageType: z.enum(["text", "image", "video", "location_pin", "system"]).default("text"),
-        locationLat: z.number().optional(),
-        locationLng: z.number().optional(),
+        locationLat: z.number().min(-90).max(90).optional(),
+        locationLng: z.number().min(-180).max(180).optional(),
         locationName: z.string().max(255).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
@@ -1878,8 +1878,8 @@ export const appRouter = router({
         bestOf: z.number().min(1).max(7).default(3),
         winBy: z.number().min(1).max(5).default(2),
         courtId: z.number().optional(),
-        locationLat: z.number().optional(),
-        locationLng: z.number().optional(),
+        locationLat: z.number().min(-90).max(90).optional(),
+        locationLng: z.number().min(-180).max(180).optional(),
         locationName: z.string().max(255).optional(),
         skillLevelMin: z.string().optional(),
         skillLevelMax: z.string().optional(),

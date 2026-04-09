@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Play, Trophy, ChevronRight, Loader2, Eye, Crown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useMemo, useRef, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 
 interface BracketProps {
   bracket: {
@@ -29,6 +30,7 @@ export default function TournamentBracket({
 }: BracketProps) {
   const [selectedMatch, setSelectedMatch] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const { t } = useTranslation();
 
   const rounds = bracket.rounds;
   const roundNumbers = Object.keys(rounds).map(Number).sort((a, b) => a - b);
@@ -54,10 +56,10 @@ export default function TournamentBracket({
   const winnersRoundCount = Math.ceil(Math.log2(tournament.maxParticipants));
 
   const getRoundLabel = (roundNum: number) => {
-    if (roundNum === roundNumbers[roundNumbers.length - 1]) return "Finals";
-    if (roundNum === roundNumbers[roundNumbers.length - 2]) return "Semi-Finals";
-    if (roundNum === roundNumbers[roundNumbers.length - 3] && roundNumbers.length > 3) return "Quarter-Finals";
-    return `Round ${roundNum}`;
+    if (roundNum === roundNumbers[roundNumbers.length - 1]) return t("tournament.finals");
+    if (roundNum === roundNumbers[roundNumbers.length - 2]) return t("tournament.semiFinals");
+    if (roundNum === roundNumbers[roundNumbers.length - 3] && roundNumbers.length > 3) return t("tournament.quarterFinals");
+    return t("tournament.round", { num: roundNum });
   };
 
   return (
@@ -145,6 +147,7 @@ function MatchCard({
   reportResultPending: boolean;
   isFinal: boolean;
 }) {
+  const { t } = useTranslation();
   const getSlotStyle = (participantId: number | null, isWinner: boolean) => {
     if (isWinner) return "bg-green-500/10 border-green-500/30 text-green-400";
     if (match.status === "completed" && !isWinner && participantId) return "bg-red-500/5 border-red-500/20 text-red-400/60";
@@ -199,7 +202,7 @@ function MatchCard({
             <div className="space-y-1">
               {match.gameId && (
                 <Button size="sm" variant="outline" onClick={onViewGame} className="w-full h-7 text-xs gap-1">
-                  <Eye className="w-3 h-3" /> View Live Game
+                  <Eye className="w-3 h-3" /> {t("tournament.viewLiveGame")}
                 </Button>
               )}
               {isOrganizer && match.participant1 && match.participant2 && (
@@ -211,7 +214,7 @@ function MatchCard({
                     disabled={reportResultPending}
                     className="flex-1 h-7 text-xs text-green-400 border-green-500/30 hover:bg-green-500/10"
                   >
-                    {match.participant1.name} wins
+                    {match.participant1.name} {t("tournament.wins")}
                   </Button>
                   <Button
                     size="sm"
@@ -220,7 +223,7 @@ function MatchCard({
                     disabled={reportResultPending}
                     className="flex-1 h-7 text-xs text-green-400 border-green-500/30 hover:bg-green-500/10"
                   >
-                    {match.participant2.name} wins
+                    {match.participant2.name} {t("tournament.wins")}
                   </Button>
                 </div>
               )}
@@ -228,11 +231,11 @@ function MatchCard({
           )}
           {match.status === "completed" && match.gameId && (
             <Button size="sm" variant="ghost" onClick={onViewGame} className="w-full h-7 text-xs gap-1 text-muted-foreground">
-              <Eye className="w-3 h-3" /> View Game
+              <Eye className="w-3 h-3" /> {t("tournament.viewGame")}
             </Button>
           )}
           {match.status === "pending" && (
-            <p className="text-[10px] text-center text-muted-foreground">Waiting for previous round</p>
+            <p className="text-[10px] text-center text-muted-foreground">{t("tournament.waitingForPreviousRound")}</p>
           )}
         </div>
       )}
@@ -255,6 +258,7 @@ function ParticipantSlot({
   isBye: boolean;
   isFinalWinner?: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <div className={cn(
       "flex items-center gap-2 px-3 py-2 text-sm transition-colors",
@@ -269,7 +273,7 @@ function ParticipantSlot({
         "truncate flex-1 text-xs",
         participant ? "font-medium" : "text-muted-foreground italic"
       )}>
-        {participant ? participant.name : isBye ? "BYE" : "TBD"}
+        {participant ? participant.name : isBye ? t("tournament.bye") : t("tournament.tbd")}
       </span>
       {isWinner && <Trophy className="w-3.5 h-3.5 text-green-400 flex-shrink-0" />}
     </div>
@@ -287,6 +291,7 @@ function RoundRobinView({
   startMatchPending,
   reportResultPending,
 }: BracketProps) {
+  const { t } = useTranslation();
   const rounds = bracket.rounds;
   const allMatches = Object.values(rounds).flat();
 
@@ -318,7 +323,7 @@ function RoundRobinView({
       {/* Standings */}
       <div className="bg-card border border-border rounded-xl overflow-hidden">
         <div className="px-3 py-2 border-b border-border">
-          <h3 className="text-sm font-semibold">Standings</h3>
+          <h3 className="text-sm font-semibold">{t("tournament.standings")}</h3>
         </div>
         <div className="divide-y divide-border">
           {standings.map((s, idx) => (
@@ -340,7 +345,7 @@ function RoundRobinView({
 
       {/* Matches list */}
       <div className="space-y-3">
-        <h3 className="text-sm font-semibold">Matches</h3>
+        <h3 className="text-sm font-semibold">{t("tournament.matches")}</h3>
         {allMatches.map((match: any) => (
           <div key={match.id} className={cn(
             "bg-card border rounded-xl p-3",
@@ -354,14 +359,14 @@ function RoundRobinView({
                 "flex-1 text-xs font-medium text-right",
                 match.winnerId === match.participant1Id ? "text-green-400" : ""
               )}>
-                {match.participant1?.name || "TBD"}
+                {match.participant1?.name || t("tournament.tbd")}
               </span>
-              <span className="text-xs text-muted-foreground px-2">vs</span>
+              <span className="text-xs text-muted-foreground px-2">{t("tournament.vs")}</span>
               <span className={cn(
                 "flex-1 text-xs font-medium text-left",
                 match.winnerId === match.participant2Id ? "text-green-400" : ""
               )}>
-                {match.participant2?.name || "TBD"}
+                {match.participant2?.name || t("tournament.tbd")}
               </span>
             </div>
 
@@ -376,24 +381,24 @@ function RoundRobinView({
               <div className="flex gap-1 mt-2">
                 <Button size="sm" variant="outline" onClick={() => onReportResult(match.id, match.participant1Id)}
                   disabled={reportResultPending} className="flex-1 h-7 text-xs text-green-400 border-green-500/30">
-                  {match.participant1.name} wins
+                  {match.participant1.name} {t("tournament.wins")}
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => onReportResult(match.id, match.participant2Id)}
                   disabled={reportResultPending} className="flex-1 h-7 text-xs text-green-400 border-green-500/30">
-                  {match.participant2.name} wins
+                  {match.participant2.name} {t("tournament.wins")}
                 </Button>
               </div>
             )}
             {match.status === "in-progress" && match.gameId && (
               <Button size="sm" variant="ghost" onClick={() => onViewGame(match.gameId)}
                 className="w-full h-7 text-xs gap-1 mt-2">
-                <Eye className="w-3 h-3" /> View Live Game
+                <Eye className="w-3 h-3" /> {t("tournament.viewLiveGame")}
               </Button>
             )}
             {match.status === "completed" && (
               <div className="flex items-center justify-center gap-1 mt-1.5">
                 <Trophy className="w-3 h-3 text-green-400" />
-                <span className="text-[10px] text-green-400">{match.winner?.name} won</span>
+                <span className="text-[10px] text-green-400">{t("tournament.playerWon", { name: match.winner?.name })}</span>
               </div>
             )}
           </div>

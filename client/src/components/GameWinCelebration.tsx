@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { X, Trophy, Crown, Swords } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface GameWinCelebrationProps {
   gameType?: "casual" | "competitive" | "tournament";
@@ -14,6 +15,7 @@ const gameEmojis = ["🏓", "🏆", "🎉", "⭐", "🔥", "💪", "✨", "🎊"
 /** Full-screen game/tournament win celebration */
 export default function GameWinCelebration({ gameType = "casual", onClose }: GameWinCelebrationProps) {
   const [phase, setPhase] = useState(0);
+  const { t } = useTranslation();
 
   const isTournament = gameType === "tournament";
   const emojis = isTournament ? tournamentEmojis : gameEmojis;
@@ -109,10 +111,10 @@ export default function GameWinCelebration({ gameType = "casual", onClose }: Gam
                 ? "bg-gradient-to-r from-yellow-400 via-amber-300 to-orange-400"
                 : "bg-gradient-to-r from-green-400 via-emerald-300 to-cyan-400"
             )}>
-              {isTournament ? "CHAMPION!" : "VICTORY!"}
+              {isTournament ? t("celebration.champion") : t("celebration.victory")}
             </h1>
             <p className="text-center text-white/50 text-sm mb-2">
-              {isTournament ? "You dominated the tournament! 👑" : "Great game! You crushed it! 🏓"}
+              {isTournament ? t("celebration.dominatedTournament") : t("celebration.greatGame")}
             </p>
           </div>
         )}
@@ -122,7 +124,7 @@ export default function GameWinCelebration({ gameType = "casual", onClose }: Gam
           <div className="my-6 flex items-center gap-4" style={{ animation: "numberReveal 0.8s ease-out both" }}>
             <div className="flex flex-col items-center">
               <Swords size={20} className="text-white/30 mb-1" />
-              <span className="text-xs text-white/30 font-medium">Winner</span>
+              <span className="text-xs text-white/30 font-medium">{t("celebration.winner")}</span>
             </div>
             <div className="relative">
               <div className={cn("absolute inset-0 rounded-full blur-2xl scale-150",
@@ -149,7 +151,7 @@ export default function GameWinCelebration({ gameType = "casual", onClose }: Gam
                 ? "bg-gradient-to-r from-yellow-400 to-amber-500 text-black hover:shadow-[0_0_30px_rgba(255,215,0,0.3)]"
                 : "bg-gradient-to-r from-green-400 to-emerald-500 text-black hover:shadow-[0_0_30px_rgba(34,197,94,0.3)]"
             )}>
-            🎉 Awesome!
+            🎉 {t("celebration.awesome")}
           </button>
         )}
       </div>

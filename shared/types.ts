@@ -91,7 +91,7 @@ export type MessageWithSender = {
   senderName: string | null;
   senderAvatar: string | null;
   content: string | null;
-  messageType: "text" | "image" | "location_pin" | "system";
+  messageType: "text" | "image" | "video" | "location_pin" | "system";
   locationLat: number | null;
   locationLng: number | null;
   locationName: string | null;

@@ -9,6 +9,7 @@ import {
   X, Search, Users, MapPin, Crown, Check, Loader2, Send, Lock,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 type TargetType = "game" | "tournament" | "group" | "coaching";
 
@@ -28,6 +29,7 @@ export default function InvitePickerModal({
   targetName,
 }: InvitePickerModalProps) {
   const { user, navigate } = useApp();
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<"matches" | "nearby">("matches");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -116,7 +118,7 @@ export default function InvitePickerModal({
         {/* Header */}
         <div className="flex items-center justify-between px-4 pt-4 pb-2">
           <div>
-            <h2 className="text-base font-bold">Invite Players</h2>
+            <h2 className="text-base font-bold">{t("invitePicker.invitePlayers")}</h2>
             <p className="text-xs text-muted-foreground">
               {targetName ? `To: ${targetName}` : `Invite to ${typeLabel}`}
             </p>
@@ -134,7 +136,7 @@ export default function InvitePickerModal({
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Search players..."
+              placeholder={t("invitePicker.searchPlayers")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9 h-9 text-sm"
@@ -154,7 +156,7 @@ export default function InvitePickerModal({
             )}
           >
             <Users className="w-3.5 h-3.5" />
-            Matches ({data?.matches?.length ?? 0})
+            {t("invitePicker.matches")} ({data?.matches?.length ?? 0})
           </button>
           <button
             onClick={() => setActiveTab("nearby")}
@@ -166,7 +168,7 @@ export default function InvitePickerModal({
             )}
           >
             <MapPin className="w-3.5 h-3.5" />
-            Nearby
+            {t("invitePicker.nearby")}
             {!isPremium && <Lock className="w-3 h-3 text-[#FFC107]" />}
           </button>
         </div>
@@ -182,10 +184,10 @@ export default function InvitePickerModal({
               <div className="text-center py-8 text-muted-foreground">
                 <Users className="w-10 h-10 mx-auto mb-2 opacity-30" />
                 <p className="text-sm">
-                  {search ? "No matches found" : "No matches yet"}
+                  {search ? t("invitePicker.noMatchesFound") : t("invitePicker.noMatchesYet")}
                 </p>
                 <p className="text-xs mt-1">
-                  Swipe to find players to match with!
+                  {t("invitePicker.swipeToFind")}
                 </p>
               </div>
             ) : (
@@ -205,10 +207,9 @@ export default function InvitePickerModal({
               <div className="w-14 h-14 rounded-full bg-[#FFC107]/10 flex items-center justify-center mx-auto mb-3">
                 <Crown className="w-7 h-7 text-[#FFC107]" />
               </div>
-              <h3 className="text-sm font-semibold mb-1">Premium Feature</h3>
+              <h3 className="text-sm font-semibold mb-1">{t("invitePicker.premiumFeature")}</h3>
               <p className="text-xs text-muted-foreground mb-4">
-                Upgrade to Premium to invite any nearby player — not just your
-                matches!
+                {t("invitePicker.upgradeDescription")}
               </p>
               <Button
                 size="sm"
@@ -218,17 +219,17 @@ export default function InvitePickerModal({
                   navigate("premium");
                 }}
               >
-                <Crown className="w-4 h-4 mr-1" /> Upgrade to Premium
+                <Crown className="w-4 h-4 mr-1" /> {t("invitePicker.upgradeToPremium")}
               </Button>
             </div>
           ) : nearbyList.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <MapPin className="w-10 h-10 mx-auto mb-2 opacity-30" />
               <p className="text-sm">
-                {search ? "No nearby players found" : "No nearby players"}
+                {search ? t("invitePicker.noNearbyFound") : t("invitePicker.noNearby")}
               </p>
               <p className="text-xs mt-1">
-                Enable location to find players near you
+                {t("invitePicker.enableLocation")}
               </p>
             </div>
           ) : (
@@ -259,7 +260,7 @@ export default function InvitePickerModal({
               ) : (
                 <Send className="w-4 h-4" />
               )}
-              Send {selected.size} Invite{selected.size !== 1 ? "s" : ""}
+              {t("invitePicker.sendInvites", { count: selected.size })}
             </Button>
           </div>
         )}
