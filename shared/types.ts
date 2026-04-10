@@ -34,6 +34,7 @@ export type UserPublic = {
   handedness: "left" | "right" | "ambidextrous" | null;
   goals: string | null;
   courtPreference: "indoor" | "outdoor" | "both" | null;
+  playFrequency: "once-month" | "once-week" | "2-3-week" | "daily" | null;
   availabilityWeekdays: boolean;
   availabilityWeekends: boolean;
   availabilityMornings: boolean;

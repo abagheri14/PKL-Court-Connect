@@ -3616,10 +3616,10 @@ export async function recordGameResult(recordedBy: number, data: {
     winnerTeam,
     team1Score: data.team1Score,
     team2Score: data.team2Score,
-    team1PlayerIds: JSON.stringify(data.team1PlayerIds),
-    team2PlayerIds: JSON.stringify(data.team2PlayerIds),
+    team1PlayerIds: data.team1PlayerIds,
+    team2PlayerIds: data.team2PlayerIds,
     recordedBy,
-    scoreConfirmedBy: JSON.stringify([recordedBy]),
+    scoreConfirmedBy: [recordedBy],
   });
 
   return { winnerTeam, team1Score: data.team1Score, team2Score: data.team2Score };
@@ -3631,11 +3631,11 @@ export async function confirmGameScore(userId: number, gameId: number) {
     // Lock the result row to prevent concurrent confirm race
     const [result] = await tx.select().from(gameResults).where(eq(gameResults.gameId, gameId)).for("update").limit(1);
     if (!result) throw new Error("No game result found");
-    const confirmed: number[] = result.scoreConfirmedBy ? JSON.parse(result.scoreConfirmedBy) : [];
+    const confirmed: number[] = result.scoreConfirmedBy ? (result.scoreConfirmedBy as number[]) : [];
     if (confirmed.includes(userId)) throw new Error("You already confirmed this score");
     confirmed.push(userId);
     await tx.update(gameResults)
-      .set({ scoreConfirmedBy: JSON.stringify(confirmed) })
+      .set({ scoreConfirmedBy: confirmed })
       .where(eq(gameResults.gameId, gameId));
     return { confirmed: true, totalConfirmations: confirmed.length };
   });
@@ -3657,9 +3657,9 @@ export async function getGameResult(gameId: number) {
   if (!result.length) return null;
   return {
     ...result[0],
-    team1PlayerIds: result[0].team1PlayerIds ? JSON.parse(result[0].team1PlayerIds) : [],
-    team2PlayerIds: result[0].team2PlayerIds ? JSON.parse(result[0].team2PlayerIds) : [],
-    scoreConfirmedBy: result[0].scoreConfirmedBy ? JSON.parse(result[0].scoreConfirmedBy) : [],
+    team1PlayerIds: result[0].team1PlayerIds ? (result[0].team1PlayerIds as number[]) : [],
+    team2PlayerIds: result[0].team2PlayerIds ? (result[0].team2PlayerIds as number[]) : [],
+    scoreConfirmedBy: result[0].scoreConfirmedBy ? (result[0].scoreConfirmedBy as number[]) : [],
   };
 }
 
@@ -3698,16 +3698,16 @@ export async function saveTeamAssignments(userId: number, gameId: number, team1P
   const existing = await db.select().from(gameResults).where(eq(gameResults.gameId, gameId)).limit(1);
   if (existing.length > 0) {
     await db.update(gameResults).set({
-      team1PlayerIds: JSON.stringify(team1PlayerIds),
-      team2PlayerIds: JSON.stringify(team2PlayerIds),
+      team1PlayerIds: team1PlayerIds,
+      team2PlayerIds: team2PlayerIds,
     }).where(eq(gameResults.gameId, gameId));
   } else {
     await db.insert(gameResults).values({
       gameId,
       team1Score: 0,
       team2Score: 0,
-      team1PlayerIds: JSON.stringify(team1PlayerIds),
-      team2PlayerIds: JSON.stringify(team2PlayerIds),
+      team1PlayerIds: team1PlayerIds,
+      team2PlayerIds: team2PlayerIds,
       recordedBy: userId,
     });
   }
@@ -3732,16 +3732,16 @@ export async function startGameWithTeams(userId: number, gameId: number, team1Pl
     const existing = await tx.select().from(gameResults).where(eq(gameResults.gameId, gameId)).limit(1);
     if (existing.length > 0) {
       await tx.update(gameResults).set({
-        team1PlayerIds: JSON.stringify(team1PlayerIds),
-        team2PlayerIds: JSON.stringify(team2PlayerIds),
+        team1PlayerIds: team1PlayerIds,
+        team2PlayerIds: team2PlayerIds,
       }).where(eq(gameResults.gameId, gameId));
     } else {
       await tx.insert(gameResults).values({
         gameId,
         team1Score: 0,
         team2Score: 0,
-        team1PlayerIds: JSON.stringify(team1PlayerIds),
-        team2PlayerIds: JSON.stringify(team2PlayerIds),
+        team1PlayerIds: team1PlayerIds,
+        team2PlayerIds: team2PlayerIds,
         recordedBy: userId,
       });
     }
@@ -3871,8 +3871,8 @@ export async function completeGame(userId: number, gameId: number, data: {
         winnerTeam,
         team1Score: finalT1,
         team2Score: finalT2,
-        team1PlayerIds: JSON.stringify(data.team1PlayerIds),
-        team2PlayerIds: JSON.stringify(data.team2PlayerIds),
+        team1PlayerIds: data.team1PlayerIds,
+        team2PlayerIds: data.team2PlayerIds,
         recordedBy: userId,
         scoreConfirmedBy: existing.scoreConfirmedBy, // preserve existing confirmations
       }).where(eq(gameResults.gameId, gameId));
@@ -3882,8 +3882,8 @@ export async function completeGame(userId: number, gameId: number, data: {
         winnerTeam,
         team1Score: finalT1,
         team2Score: finalT2,
-        team1PlayerIds: JSON.stringify(data.team1PlayerIds),
-        team2PlayerIds: JSON.stringify(data.team2PlayerIds),
+        team1PlayerIds: data.team1PlayerIds,
+        team2PlayerIds: data.team2PlayerIds,
         recordedBy: userId,
       });
     }
@@ -3940,8 +3940,8 @@ export async function getGameScoreboard(gameId: number) {
     rounds,
     result: result ? {
       ...result,
-      team1PlayerIds: result.team1PlayerIds ? JSON.parse(result.team1PlayerIds) : [],
-      team2PlayerIds: result.team2PlayerIds ? JSON.parse(result.team2PlayerIds) : [],
+      team1PlayerIds: result.team1PlayerIds ? (result.team1PlayerIds as number[]) : [],
+      team2PlayerIds: result.team2PlayerIds ? (result.team2PlayerIds as number[]) : [],
     } : null,
     participants,
   };
@@ -5241,11 +5241,11 @@ export async function getCourtLeaderboard(courtId: number) {
   const gameMap = new Map<number, number>();
   for (const result of results) {
     const winnerIds: number[] = result.winnerTeam === "team1"
-      ? JSON.parse(result.team1PlayerIds || "[]")
+      ? (result.team1PlayerIds as number[] || [])
       : result.winnerTeam === "team2"
-        ? JSON.parse(result.team2PlayerIds || "[]")
+        ? (result.team2PlayerIds as number[] || [])
         : [];
-    const allIds = [...JSON.parse(result.team1PlayerIds || "[]"), ...JSON.parse(result.team2PlayerIds || "[]")];
+    const allIds = [...(result.team1PlayerIds as number[] || []), ...(result.team2PlayerIds as number[] || [])];
     for (const id of allIds) gameMap.set(id, (gameMap.get(id) ?? 0) + 1);
     for (const id of winnerIds) winMap.set(id, (winMap.get(id) ?? 0) + 1);
   }
