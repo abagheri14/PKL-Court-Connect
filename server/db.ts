@@ -189,16 +189,8 @@ export async function ensureSchema(): Promise<void> {
   await modifyColumnType("feed_posts", "photoUrl", "MEDIUMTEXT DEFAULT NULL");
   await modifyColumnType("feed_posts", "content", "MEDIUMTEXT NOT NULL");
 
-  // Rename reserved-word table `groups` → `pkl_groups` (MySQL 8.0+ treats GROUPS as reserved)
-  try {
-    await db.execute(sql.raw("RENAME TABLE `groups` TO `pkl_groups`"));
-    console.log("[Schema] Renamed `groups` → `pkl_groups` (MySQL reserved word fix)");
-  } catch (e: any) {
-    // 1146 = table doesn't exist (already renamed), 1050 = target already exists
-    if (e?.errno !== 1146 && e?.errno !== 1050) {
-      console.error("[Schema] RENAME TABLE groups failed:", e?.message);
-    }
-  }
+  // Note: `groups` → `pkl_groups` rename is handled by server/pre-migrate.ts
+  // which runs before drizzle-kit push. No need to do it here.
 
   await modifyColumnType("pkl_groups", "photo", "MEDIUMTEXT DEFAULT NULL");
 

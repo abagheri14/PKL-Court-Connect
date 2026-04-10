@@ -52,6 +52,11 @@ export function MapView({
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
 
+    if (!mapboxgl.accessToken) {
+      setError("Map cannot load: VITE_MAPBOX_TOKEN is not configured.");
+      return;
+    }
+
     try {
       map.current = new mapboxgl.Map({
         container: mapContainer.current,

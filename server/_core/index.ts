@@ -78,26 +78,33 @@ async function startServer() {
   }
 
   const preferredPort = parseInt(process.env.PORT || "3000");
-  const port = await findAvailablePort(preferredPort);
+  // In production (e.g. Render), always use the assigned PORT — never scan
+  const port = process.env.NODE_ENV === "production"
+    ? preferredPort
+    : await findAvailablePort(preferredPort);
 
-  if (port !== preferredPort) {
+  if (port !== preferredPort && process.env.NODE_ENV !== "production") {
     console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
   }
 
-  // Ensure DB schema is up-to-date BEFORE accepting any requests
-  try {
-    await ensureSchema();
-    console.log("[Schema] Database schema verified.");
-  } catch (err) {
-    console.error("[Schema] Migration failed (server starting anyway):", err);
-  }
-
-  server.listen(port, () => {
+  // Bind port FIRST so Render/PaaS detects it, then run schema + seeds
+  server.listen(port, async () => {
     console.log(`Server running on http://localhost:${port}/`);
-    // Seed data on startup (idempotent)
+
+    // Ensure DB schema is up-to-date
+    try {
+      await ensureSchema();
+      console.log("[Schema] Database schema verified.");
+    } catch (err) {
+      console.error("[Schema] Migration failed:", err);
+    }
+
+    // Seed data (idempotent)
     seedAchievements().catch(err => console.error("[Achievements] Seed failed:", err));
     seedCourts().catch(err => console.error("[Courts] Seed failed:", err));
-    seedTestAccounts().catch(err => console.error("[TestAccounts] Seed failed:", err));
+    if (process.env.NODE_ENV !== "production") {
+      seedTestAccounts().catch(err => console.error("[TestAccounts] Seed failed:", err));
+    }
   });
 }
 
