@@ -40,7 +40,7 @@ export default function SubmitCourtScreen() {
 
   const submitMutation = trpc.courts.submit.useMutation({
     onSuccess: () => {
-      toast.success(t("Court submitted for review! 🗺️"));
+      toast.success(t("submitCourt.submitted"));
       utils.courts.mySubmissions.invalidate();
       goBack();
     },
@@ -96,7 +96,7 @@ export default function SubmitCourtScreen() {
 
   const handleSubmit = () => {
     if (!pin) return;
-    if (!name.trim()) { toast.error(t("Court name is required")); return; }
+    if (!name.trim()) { toast.error(t("submitCourt.nameRequired")); return; }
     submitMutation.mutate({
       name: name.trim(),
       address: address.trim() || undefined,
@@ -124,9 +124,9 @@ export default function SubmitCourtScreen() {
             <ArrowLeft size={18} />
           </button>
           <div>
-            <h1 className="text-lg font-bold tracking-tight">{t("Submit a Court")}</h1>
+            <h1 className="text-lg font-bold tracking-tight">{t("submitCourt.title")}</h1>
             <p className="text-[10px] text-muted-foreground">
-              {step === "pin" ? t("Tap the map to drop a pin") : t("Fill in court details")}
+              {step === "pin" ? t("submitCourt.tapMapPin") : t("submitCourt.fillDetails")}
             </p>
           </div>
         </div>
@@ -148,7 +148,7 @@ export default function SubmitCourtScreen() {
               <div className="absolute top-4 left-4 right-4 z-10">
                 <div className="card-elevated rounded-xl px-4 py-3 flex items-center gap-2">
                   <MapPin size={16} className="text-secondary flex-shrink-0" />
-                  <span className="text-xs text-muted-foreground">{t("Tap anywhere on the map to place the court pin. You can drag it to adjust.")}</span>
+                  <span className="text-xs text-muted-foreground">{t("submitCourt.tapAnywhere")}</span>
                 </div>
               </div>
             )}
@@ -161,7 +161,7 @@ export default function SubmitCourtScreen() {
               disabled={!pin}
               className="w-full py-5 rounded-2xl bg-secondary text-background font-semibold"
             >
-              <MapPin size={16} className="mr-2" /> {t("Confirm Location")}
+              <MapPin size={16} className="mr-2" /> {t("submitCourt.confirmLocation")}
             </Button>
           </div>
         </>
@@ -175,36 +175,36 @@ export default function SubmitCourtScreen() {
             <span className="text-xs text-muted-foreground">
               {pin?.lat.toFixed(5)}, {pin?.lng.toFixed(5)}
             </span>
-            <button onClick={() => setStep("pin")} className="ml-auto text-xs text-secondary font-medium">{t("Change")}</button>
+            <button onClick={() => setStep("pin")} className="ml-auto text-xs text-secondary font-medium">{t("common.change")}</button>
           </div>
 
           {/* Court Name */}
           <label className="block mb-3">
-            <span className="text-xs font-semibold text-muted-foreground mb-1 block">{t("Court Name")} *</span>
-            <Input value={name} onChange={e => setName(e.target.value)} placeholder={t("e.g. Zilker Park Courts")} className="bg-background/50" />
+            <span className="text-xs font-semibold text-muted-foreground mb-1 block">{t("submitCourt.courtName")} *</span>
+            <Input value={name} onChange={e => setName(e.target.value)} placeholder={t("submitCourt.courtNamePlaceholder")} className="bg-background/50" />
           </label>
 
           {/* Address */}
           <label className="block mb-3">
-            <span className="text-xs font-semibold text-muted-foreground mb-1 block">{t("Address")}</span>
-            <Input value={address} onChange={e => setAddress(e.target.value)} placeholder={t("Street address")} className="bg-background/50" />
+            <span className="text-xs font-semibold text-muted-foreground mb-1 block">{t("submitCourt.address")}</span>
+            <Input value={address} onChange={e => setAddress(e.target.value)} placeholder={t("submitCourt.streetAddress")} className="bg-background/50" />
           </label>
 
           {/* City / State */}
           <div className="grid grid-cols-2 gap-3 mb-3">
             <label className="block">
-              <span className="text-xs font-semibold text-muted-foreground mb-1 block">{t("City")}</span>
-              <Input value={city} onChange={e => setCity(e.target.value)} placeholder={t("City")} className="bg-background/50" />
+              <span className="text-xs font-semibold text-muted-foreground mb-1 block">{t("submitCourt.city")}</span>
+              <Input value={city} onChange={e => setCity(e.target.value)} placeholder={t("submitCourt.city")} className="bg-background/50" />
             </label>
             <label className="block">
-              <span className="text-xs font-semibold text-muted-foreground mb-1 block">{t("State/Province")}</span>
-              <Input value={state} onChange={e => setState(e.target.value)} placeholder={t("State")} className="bg-background/50" />
+              <span className="text-xs font-semibold text-muted-foreground mb-1 block">{t("submitCourt.stateProvince")}</span>
+              <Input value={state} onChange={e => setState(e.target.value)} placeholder={t("submitCourt.state")} className="bg-background/50" />
             </label>
           </div>
 
           {/* Court Type */}
           <div className="mb-3">
-            <span className="text-xs font-semibold text-muted-foreground mb-1.5 block">{t("Court Type")}</span>
+            <span className="text-xs font-semibold text-muted-foreground mb-1.5 block">{t("submitCourt.courtType")}</span>
             <div className="flex gap-2">
               {courtTypes.map(ct => (
                 <button
@@ -223,7 +223,7 @@ export default function SubmitCourtScreen() {
 
           {/* Number of Courts */}
           <div className="mb-3">
-            <span className="text-xs font-semibold text-muted-foreground mb-1.5 block">{t("Number of Courts")}</span>
+            <span className="text-xs font-semibold text-muted-foreground mb-1.5 block">{t("submitCourt.numberOfCourts")}</span>
             <div className="flex items-center gap-3">
               <button onClick={() => setNumCourts(Math.max(1, numCourts - 1))} className="w-8 h-8 rounded-lg bg-muted/20 flex items-center justify-center font-bold text-lg">-</button>
               <span className="text-lg font-bold w-8 text-center">{numCourts}</span>
@@ -233,7 +233,7 @@ export default function SubmitCourtScreen() {
 
           {/* Surface Type */}
           <div className="mb-3">
-            <span className="text-xs font-semibold text-muted-foreground mb-1.5 block">{t("Surface Type")}</span>
+            <span className="text-xs font-semibold text-muted-foreground mb-1.5 block">{t("submitCourt.surfaceType")}</span>
             <div className="flex flex-wrap gap-1.5">
               {surfaceTypes.map(st => (
                 <button
@@ -257,7 +257,7 @@ export default function SubmitCourtScreen() {
             )}
           >
             <Lightbulb size={16} className={lighting ? "text-secondary" : "text-muted-foreground"} />
-            <span className="text-sm">{t("Has Lighting")}</span>
+            <span className="text-sm">{t("submitCourt.hasLighting")}</span>
             <div className={cn("ml-auto w-10 h-5 rounded-full transition-all", lighting ? "bg-secondary" : "bg-muted/30")}>
               <div className={cn("w-4 h-4 rounded-full bg-white mt-0.5 transition-all", lighting ? "ml-5.5" : "ml-0.5")} />
             </div>
@@ -271,7 +271,7 @@ export default function SubmitCourtScreen() {
             )}
           >
             <DollarSign size={16} className={!isFree ? "text-secondary" : "text-muted-foreground"} />
-            <span className="text-sm">{isFree ? t("Free to Play") : t("Paid Court")}</span>
+            <span className="text-sm">{isFree ? t("submitCourt.freeToPlay") : t("submitCourt.paidCourt")}</span>
             <div className={cn("ml-auto w-10 h-5 rounded-full transition-all", !isFree ? "bg-secondary" : "bg-muted/30")}>
               <div className={cn("w-4 h-4 rounded-full bg-white mt-0.5 transition-all", !isFree ? "ml-5.5" : "ml-0.5")} />
             </div>
@@ -279,24 +279,24 @@ export default function SubmitCourtScreen() {
 
           {!isFree && (
             <label className="block mb-3">
-              <span className="text-xs font-semibold text-muted-foreground mb-1 block">{t("Cost Info")}</span>
-              <Input value={costInfo} onChange={e => setCostInfo(e.target.value)} placeholder={t("e.g. $10/hr per court")} className="bg-background/50" />
+              <span className="text-xs font-semibold text-muted-foreground mb-1 block">{t("submitCourt.costInfo")}</span>
+              <Input value={costInfo} onChange={e => setCostInfo(e.target.value)} placeholder={t("submitCourt.costInfoPlaceholder")} className="bg-background/50" />
             </label>
           )}
 
           {/* Amenities */}
           <label className="block mb-3">
-            <span className="text-xs font-semibold text-muted-foreground mb-1 block">{t("Amenities")}</span>
-            <Input value={amenities} onChange={e => setAmenities(e.target.value)} placeholder={t("e.g. Water fountain, Restrooms, Parking")} className="bg-background/50" />
+            <span className="text-xs font-semibold text-muted-foreground mb-1 block">{t("submitCourt.amenities")}</span>
+            <Input value={amenities} onChange={e => setAmenities(e.target.value)} placeholder={t("submitCourt.amenitiesPlaceholder")} className="bg-background/50" />
           </label>
 
           {/* Notes */}
           <label className="block mb-4">
-            <span className="text-xs font-semibold text-muted-foreground mb-1 block">{t("Notes for Admin")}</span>
+            <span className="text-xs font-semibold text-muted-foreground mb-1 block">{t("submitCourt.notesForAdmin")}</span>
             <textarea
               value={notes}
               onChange={e => setNotes(e.target.value)}
-              placeholder={t("Any additional info...")}
+              placeholder={t("submitCourt.notesPlaceholder")}
               className="w-full bg-background/50 rounded-lg p-3 text-sm border border-border min-h-[60px] resize-none focus:outline-none focus:border-secondary"
               maxLength={500}
             />
@@ -313,7 +313,7 @@ export default function SubmitCourtScreen() {
             ) : (
               <Send size={16} className="mr-2" />
             )}
-            {t("Submit for Review")}
+            {t("submitCourt.submitForReview")}
           </Button>
         </div>
       )}

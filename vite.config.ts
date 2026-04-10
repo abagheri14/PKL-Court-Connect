@@ -4,7 +4,8 @@ import react from "@vitejs/plugin-react";
 import path from "node:path";
 import { defineConfig } from "vite";
 
-const plugins = [react(), tailwindcss(), jsxLocPlugin()];
+const isDev = process.env.NODE_ENV !== "production";
+const plugins = [react(), tailwindcss(), ...(isDev ? [jsxLocPlugin()] : [])];
 
 export default defineConfig({
   plugins,

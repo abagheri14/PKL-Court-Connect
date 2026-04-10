@@ -912,7 +912,9 @@
     "revenueMetrics": "Indicateurs de revenus",
     "premiumUsers": "Utilisateurs Premium",
     "conversionRate": "Taux de conversion",
-    "estMrr": "MRR estimé"
+    "estMrr": "MRR estimé",
+    "courtReviewed": "Soumission de terrain examinée",
+    "tabCourts": "Terrains"
   },
   "common": {
     "cancel": "Annuler",
@@ -1106,7 +1108,21 @@
     "challengeDeclined": "Défi refusé",
     "playerApproved": "Joueur approuvé !",
     "playerDeclined": "Joueur refusé",
-    "wantsToJoin": "Veut rejoindre : {{title}}"
+    "wantsToJoin": "Veut rejoindre : {{title}}",
+    "allCaughtUp": "Tout est à jour !",
+    "noRequestsDesc": "Aucune demande en attente. Les défis et les demandes de jeu apparaîtront ici.",
+    "noIncoming": "Aucune demande entrante",
+    "challengesReceived": "Défis reçus",
+    "gameJoinRequests": "Demandes de participation",
+    "coachingRequests": "Demandes de coaching",
+    "noOutgoing": "Aucune demande sortante",
+    "challengesSent": "Défis envoyés",
+    "waiting": "En attente",
+    "gameRequestsAwaiting": "Demandes de jeu en attente",
+    "awaitingApproval": "En attente d'approbation de l'organisateur",
+    "pending": "En attente",
+    "coachingRequestsAwaiting": "Demandes de coaching en attente",
+    "coachingSession": "Session de coaching"
   },
   "court": {
     "reviewSubmitted": "Avis soumis !",
@@ -1154,7 +1170,24 @@
     "cheersMvpPlay": "Jeu de MVP !",
     "cheersPerfectShot": "Tir parfait !",
     "cheersPlayAgain": "On rejoue !",
-    "cheersWhatARally": "Quel échange !"
+    "cheersWhatARally": "Quel échange !",
+    "failedToLoadConversation": "Échec du chargement de la conversation",
+    "noConversationSelected": "Aucune conversation sélectionnée",
+    "encrypted": "Chiffré",
+    "unmatch": "Dissocier",
+    "unmatchConfirm": "Dissocier {{name}} ?",
+    "thisUser": "cet utilisateur",
+    "unmatchWarning": "Cette action est irréversible. Votre conversation sera supprimée.",
+    "startOfConversation": "Début de la conversation",
+    "matchedOn": "Vous êtes matchés le {{date}}",
+    "recently": "récemment",
+    "tapToOpenMap": "Appuyez pour ouvrir la carte",
+    "typing": "en train d'écrire...",
+    "locationNotAvailable": "Localisation non disponible sur cet appareil",
+    "sharedLocation": "\ud83d\udccd Position partagée",
+    "locationShared": "Position partagée !",
+    "locationError": "Impossible d'obtenir la position : {{msg}}",
+    "messagePlaceholder": "Tapez un message..."
   },
   "photoUpload": {
     "success": "Photo téléchargée !",
@@ -1171,7 +1204,13 @@
     "enableFailed": "Échec de l'activation des notifications"
   },
   "courtPickerModal": {
-    "selectThisCourt": "Sélectionner ce terrain"
+    "selectThisCourt": "Sélectionner ce terrain",
+    "selectACourt": "Sélectionner un terrain",
+    "courtsAvailable": "terrains disponibles",
+    "searchCourts": "Rechercher des terrains...",
+    "noCourtsFound": "Aucun terrain trouvé",
+    "map": "Carte",
+    "list": "Liste"
   },
   "courtsScreen": {
     "viewCourtDetails": "Voir les détails du terrain",
@@ -1184,5 +1223,41 @@
     "failedToLoad": "Échec du chargement des terrains",
     "courtsOnMap": "{{count}} terrains sur la carte",
     "courtsNearby": "{{count}} terrains à proximité"
+  },
+  "leaderboard": {
+    "title": "Classement",
+    "allTime": "Tous les temps",
+    "thisWeek": "Cette semaine",
+    "loadError": "Échec du chargement du classement",
+    "you": "Vous"
+  },
+  "submitCourt": {
+    "title": "Soumettre un terrain",
+    "submitted": "Terrain soumis pour examen ! \ud83d\uddfa\ufe0f",
+    "nameRequired": "Le nom du terrain est requis",
+    "tapMapPin": "Appuyez sur la carte pour placer un repère",
+    "fillDetails": "Remplir les détails du terrain",
+    "tapAnywhere": "Appuyez n'importe où sur la carte pour placer le repère du terrain. Faites-le glisser pour ajuster.",
+    "confirmLocation": "Confirmer l'emplacement",
+    "courtName": "Nom du terrain",
+    "courtNamePlaceholder": "ex. Terrains du Parc Zilker",
+    "address": "Adresse",
+    "streetAddress": "Adresse postale",
+    "city": "Ville",
+    "stateProvince": "Province/État",
+    "state": "État",
+    "courtType": "Type de terrain",
+    "numberOfCourts": "Nombre de terrains",
+    "surfaceType": "Type de surface",
+    "hasLighting": "Éclairage disponible",
+    "freeToPlay": "Gratuit",
+    "paidCourt": "Terrain payant",
+    "costInfo": "Informations tarifaires",
+    "costInfoPlaceholder": "ex. 10€/h par terrain",
+    "amenities": "Équipements",
+    "amenitiesPlaceholder": "ex. Fontaine à eau, Toilettes, Parking",
+    "notesForAdmin": "Notes pour l'admin",
+    "notesPlaceholder": "Toute information supplémentaire...",
+    "submitForReview": "Soumettre pour examen"
   }
 }

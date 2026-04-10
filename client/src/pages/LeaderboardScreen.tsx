@@ -57,7 +57,7 @@ export default function LeaderboardScreen() {
           <button onClick={() => goBack()} aria-label="Go back" className="p-2 rounded-xl glass hover:scale-105 transition-transform">
             <ArrowLeft size={18} />
           </button>
-          <h1 className="text-xl font-bold flex-1 tracking-tight">{t("Leaderboard")}</h1>
+          <h1 className="text-xl font-bold flex-1 tracking-tight">{t("leaderboard.title")}</h1>
         </div>
       </div>
 
@@ -71,7 +71,7 @@ export default function LeaderboardScreen() {
                 )}
               >
                 {p === "weekly" && <Calendar size={12} />}
-                {t(p === "all" ? "All Time" : "This Week")}
+                {t(p === "all" ? "leaderboard.allTime" : "leaderboard.thisWeek")}
               </button>
             ))}
           </div>
@@ -100,7 +100,7 @@ export default function LeaderboardScreen() {
 
       {/* Podium */}
       {leaderboardQuery.isError && !sorted.length ? (
-        <div className="px-5"><QueryError message={t("Failed to load leaderboard")} onRetry={() => leaderboardQuery.refetch()} /></div>
+        <div className="px-5"><QueryError message={t("leaderboard.loadError")} onRetry={() => leaderboardQuery.refetch()} /></div>
       ) : leaderboardQuery.isLoading && !sorted.length ? (
         <div className="flex justify-center py-16">
           <Loader2 size={28} className="animate-spin text-muted-foreground/40" />
@@ -170,7 +170,7 @@ export default function LeaderboardScreen() {
                 <div className="flex items-center gap-1.5">
                   <p className="text-sm font-bold truncate">
                     {getDisplayName(player)}
-                    {isMe && <span className="text-xs text-primary ml-1">({t("You")})</span>}
+                    {isMe && <span className="text-xs text-primary ml-1">({t("leaderboard.you")})</span>}
                   </p>
                 </div>
                 <p className="text-[10px] text-muted-foreground">
@@ -192,7 +192,7 @@ export default function LeaderboardScreen() {
             </div>
             <PlayerAvatar user={user} size="sm" showBadges={false} />
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold">{t("You")}</p>
+              <p className="text-sm font-bold">{t("leaderboard.you")}</p>
             </div>
             <span className="text-sm font-bold text-secondary">{getStatValue(user)}</span>
           </div>

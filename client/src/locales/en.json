@@ -950,7 +950,9 @@
     "revenueMetrics": "Revenue Metrics",
     "premiumUsers": "Premium Users",
     "conversionRate": "Conversion Rate",
-    "estMrr": "Est. MRR"
+    "estMrr": "Est. MRR",
+    "courtReviewed": "Court submission reviewed",
+    "tabCourts": "Courts"
   },
   "common": {
     "cancel": "Cancel",
@@ -990,7 +992,9 @@
     "view": "View",
     "viewGame": "View Game",
     "viewMatches": "View Matches",
-    "offlineBanner": "You're offline — some features may be unavailable"
+    "offlineBanner": "You're offline — some features may be unavailable",
+    "someone": "Someone",
+    "change": "Change"
   },
   "quests": {
     "dailyLogin": "Daily Login",
@@ -1151,7 +1155,21 @@
     "challengeCancelled": "Challenge withdrawn",
     "playerApproved": "Player approved!",
     "playerDeclined": "Player declined",
-    "wantsToJoin": "Wants to join: {{title}}"
+    "wantsToJoin": "Wants to join: {{title}}",
+    "allCaughtUp": "All Caught Up!",
+    "noRequestsDesc": "No pending requests right now. Challenges and game requests will appear here.",
+    "noIncoming": "No incoming requests",
+    "challengesReceived": "Challenges Received",
+    "gameJoinRequests": "Game Join Requests",
+    "coachingRequests": "Coaching Requests",
+    "noOutgoing": "No outgoing requests",
+    "challengesSent": "Challenges Sent",
+    "waiting": "Waiting",
+    "gameRequestsAwaiting": "Game Requests Awaiting",
+    "awaitingApproval": "Awaiting organizer approval",
+    "pending": "Pending",
+    "coachingRequestsAwaiting": "Coaching Requests Awaiting",
+    "coachingSession": "Coaching Session"
   },
   "court": {
     "reviewSubmitted": "Review submitted!",
@@ -1199,7 +1217,24 @@
     "cheersMvpPlay": "MVP play!",
     "cheersPerfectShot": "Perfect shot!",
     "cheersPlayAgain": "Let's play again!",
-    "cheersWhatARally": "What a rally!"
+    "cheersWhatARally": "What a rally!",
+    "failedToLoadConversation": "Failed to load conversation",
+    "noConversationSelected": "No conversation selected",
+    "encrypted": "Encrypted",
+    "unmatch": "Unmatch",
+    "unmatchConfirm": "Unmatch {{name}}?",
+    "thisUser": "this user",
+    "unmatchWarning": "This cannot be undone. Your conversation will be deleted.",
+    "startOfConversation": "Start of conversation",
+    "matchedOn": "You matched on {{date}}",
+    "recently": "recently",
+    "tapToOpenMap": "Tap to open map",
+    "typing": "typing...",
+    "locationNotAvailable": "Location not available on this device",
+    "sharedLocation": "\ud83d\udccd Shared location",
+    "locationShared": "Location shared!",
+    "locationError": "Could not get location: {{msg}}",
+    "messagePlaceholder": "Type a message..."
   },
   "photoUpload": {
     "success": "Photo uploaded!",
@@ -1240,7 +1275,11 @@
   "courtPickerModal": {
     "map": "Map",
     "list": "List",
-    "selectThisCourt": "Select This Court"
+    "selectThisCourt": "Select This Court",
+    "selectACourt": "Select a Court",
+    "courtsAvailable": "courts available",
+    "searchCourts": "Search courts...",
+    "noCourtsFound": "No courts found"
   },
   "locationPicker": {
     "selectCourt": "Select Court",
@@ -1305,5 +1344,41 @@
     "matches": "Matches",
     "vs": "vs",
     "playerWon": "{{name}} won"
+  },
+  "leaderboard": {
+    "title": "Leaderboard",
+    "allTime": "All Time",
+    "thisWeek": "This Week",
+    "loadError": "Failed to load leaderboard",
+    "you": "You"
+  },
+  "submitCourt": {
+    "title": "Submit a Court",
+    "submitted": "Court submitted for review! \ud83d\uddfa\ufe0f",
+    "nameRequired": "Court name is required",
+    "tapMapPin": "Tap the map to drop a pin",
+    "fillDetails": "Fill in court details",
+    "tapAnywhere": "Tap anywhere on the map to place the court pin. You can drag it to adjust.",
+    "confirmLocation": "Confirm Location",
+    "courtName": "Court Name",
+    "courtNamePlaceholder": "e.g. Zilker Park Courts",
+    "address": "Address",
+    "streetAddress": "Street address",
+    "city": "City",
+    "stateProvince": "State/Province",
+    "state": "State",
+    "courtType": "Court Type",
+    "numberOfCourts": "Number of Courts",
+    "surfaceType": "Surface Type",
+    "hasLighting": "Has Lighting",
+    "freeToPlay": "Free to Play",
+    "paidCourt": "Paid Court",
+    "costInfo": "Cost Info",
+    "costInfoPlaceholder": "e.g. $10/hr per court",
+    "amenities": "Amenities",
+    "amenitiesPlaceholder": "e.g. Water fountain, Restrooms, Parking",
+    "notesForAdmin": "Notes for Admin",
+    "notesPlaceholder": "Any additional info...",
+    "submitForReview": "Submit for Review"
   }
 }

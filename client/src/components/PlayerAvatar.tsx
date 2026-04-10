@@ -54,7 +54,7 @@ export default function PlayerAvatar({ user, size = "md", showBadges = true, cla
               onError={(e) => {
                 // Fallback to initials on load error
                 (e.target as HTMLImageElement).style.display = "none";
-                (e.target as HTMLImageElement).parentElement!.querySelector(".avatar-fallback")?.classList.remove("hidden");
+                (e.target as HTMLImageElement).parentElement?.querySelector(".avatar-fallback")?.classList.remove("hidden");
               }}
             />
             <span className="avatar-fallback hidden font-bold absolute inset-0 flex items-center justify-center">{initials}</span>

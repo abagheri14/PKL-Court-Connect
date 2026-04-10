@@ -24,7 +24,7 @@ export default function AdminDashboard() {
   });
   const courtSubsQuery = trpc.courts.pendingSubmissions.useQuery(undefined, { enabled: user?.role === "admin" || user?.role === "superadmin", refetchInterval: 30000 });
   const reviewCourtMutation = trpc.courts.reviewSubmission.useMutation({
-    onSuccess: () => { courtSubsQuery.refetch(); toast.success(t("Court submission reviewed")); },
+    onSuccess: () => { courtSubsQuery.refetch(); toast.success(t("admin.courtReviewed")); },
   });
   const suspendUserMutation = trpc.admin.suspendUser.useMutation({
     onSuccess: () => { usersQuery.refetch(); toast(t("admin.userSuspended")); },
@@ -123,7 +123,7 @@ export default function AdminDashboard() {
                 : "bg-muted/10 text-muted-foreground hover:bg-muted/20"
             )}
           >
-            {tab === "Courts" ? t("Courts") : t(`admin.tab${tab}`)}
+            {tab === "Courts" ? t("admin.tabCourts") : t(`admin.tab${tab}`)}
             {tab === "Reports" && pendingReportCount > 0 && (
               <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[8px] font-bold flex items-center justify-center">{pendingReportCount}</span>
             )}

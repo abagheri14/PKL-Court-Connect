@@ -26,7 +26,7 @@ export default function ChallengeReceived({ challenge, onAccept, onDecline }: Ch
   const [show, setShow] = useState(false);
   const [showContent, setShowContent] = useState(false);
 
-  const displayName = challenge.challengerNickname || challenge.challengerName || challenge.challengerUsername || "Someone";
+  const displayName = challenge.challengerNickname || challenge.challengerName || challenge.challengerUsername || t("common.someone");
   const challengerUser = {
     id: challenge.challengerId,
     profilePhotoUrl: challenge.challengerPhoto,
@@ -37,8 +37,8 @@ export default function ChallengeReceived({ challenge, onAccept, onDecline }: Ch
 
   useEffect(() => {
     requestAnimationFrame(() => setShow(true));
-    const t = setTimeout(() => setShowContent(true), 400);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setShowContent(true), 400);
+    return () => clearTimeout(timer);
   }, []);
 
   return (

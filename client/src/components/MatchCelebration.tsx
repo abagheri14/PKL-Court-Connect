@@ -23,8 +23,8 @@ export default function MatchCelebration({ player, onClose, onMessage }: MatchCe
   useEffect(() => {
     // Stagger entrance
     requestAnimationFrame(() => setShow(true));
-    const t = setTimeout(() => setShowContent(true), 300);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setShowContent(true), 300);
+    return () => clearTimeout(timer);
   }, []);
 
   return (
