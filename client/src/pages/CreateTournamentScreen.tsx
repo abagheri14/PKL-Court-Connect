@@ -53,7 +53,7 @@ export default function CreateTournamentScreen() {
   const utils = trpc.useUtils();
   const createMutation = trpc.tournaments.create.useMutation({
     onSuccess: (data) => {
-      toast.success("Tournament created!");
+      toast.success(t("tournament.created"));
       utils.tournaments.list.invalidate();
       utils.tournaments.myTournaments.invalidate();
       navigate("tournaments");
@@ -62,14 +62,14 @@ export default function CreateTournamentScreen() {
   });
 
   const handleSubmit = () => {
-    if (!name.trim()) return toast.error("Tournament name is required");
-    if (!startDate) return toast.error("Start date is required");
-    if (endDate && new Date(endDate) <= new Date(startDate)) return toast.error("End date must be after start date");
-    if (registrationDeadline && new Date(registrationDeadline) >= new Date(startDate)) return toast.error("Registration deadline must be before start date");
-    if (skillLevelMin && skillLevelMax && parseFloat(skillLevelMin) > parseFloat(skillLevelMax)) return toast.error("Min skill level cannot exceed max");
-    if (bestOf % 2 === 0) return toast.error("Best of must be an odd number");
-    if (format === "round-robin" && maxParticipants > 16) return toast.error("Round-robin supports max 16 participants");
-    if (entryFee && parseFloat(entryFee) < 0) return toast.error("Entry fee cannot be negative");
+    if (!name.trim()) return toast.error(t("tournament.error.nameRequired"));
+    if (!startDate) return toast.error(t("tournament.error.startDateRequired"));
+    if (endDate && new Date(endDate) <= new Date(startDate)) return toast.error(t("tournament.error.endDateAfterStart"));
+    if (registrationDeadline && new Date(registrationDeadline) >= new Date(startDate)) return toast.error(t("tournament.error.regDeadlineBeforeStart"));
+    if (skillLevelMin && skillLevelMax && parseFloat(skillLevelMin) > parseFloat(skillLevelMax)) return toast.error(t("tournament.error.minExceedsMax"));
+    if (bestOf % 2 === 0) return toast.error(t("tournament.error.bestOfOdd"));
+    if (format === "round-robin" && maxParticipants > 16) return toast.error(t("tournament.error.roundRobinMax"));
+    if (entryFee && parseFloat(entryFee) < 0) return toast.error(t("tournament.error.negativeFee"));
 
     createMutation.mutate({
       name: name.trim(),
@@ -104,10 +104,10 @@ export default function CreateTournamentScreen() {
       {/* Header */}
       <div className="sticky top-0 z-30 bg-background/95 backdrop-blur border-b border-border px-4 py-3">
         <div className="flex items-center gap-3">
-          <button onClick={goBack} aria-label="Go back" className="p-1 rounded-lg hover:bg-muted"><ArrowLeft className="w-5 h-5" /></button>
+          <button onClick={goBack} className="p-1 rounded-lg hover:bg-muted"><ArrowLeft className="w-5 h-5" /></button>
           <div className="flex items-center gap-2">
             <Trophy className="w-5 h-5 text-[#FFC107]" />
-            <h1 className="text-lg font-bold">Create Tournament</h1>
+            <h1 className="text-lg font-bold">{t("tournament.createTitle")}</h1>
           </div>
         </div>
         {/* Progress */}
@@ -123,28 +123,28 @@ export default function CreateTournamentScreen() {
         {step === 1 && (
           <div className="space-y-5 animate-in fade-in">
             <div>
-              <h2 className="text-lg font-semibold mb-1">Basic Info</h2>
-              <p className="text-sm text-muted-foreground">Set up the essentials for your tournament</p>
+              <h2 className="text-lg font-semibold mb-1">{t("tournament.basicInfo")}</h2>
+              <p className="text-sm text-muted-foreground">{t("tournament.basicInfoDesc")}</p>
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Tournament Name *</label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Weekend Shootout" maxLength={100} />
+              <label className="text-sm font-medium">{t("tournament.nameLabel")}</label>
+              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("tournament.namePlaceholder")} maxLength={100} />
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Description</label>
+              <label className="text-sm font-medium">{t("tournament.descriptionLabel")}</label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Tell players what this tournament is about..."
+                placeholder={t("tournament.descriptionPlaceholder")}
                 className="w-full min-h-[80px] rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 maxLength={2000}
               />
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Tournament Format *</label>
+              <label className="text-sm font-medium">{t("tournament.formatLabel")}</label>
               <div className="space-y-2">
                 {FORMATS.map(f => (
                   <button
@@ -166,7 +166,7 @@ export default function CreateTournamentScreen() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Game Format *</label>
+              <label className="text-sm font-medium">{t("tournament.gameFormatLabel")}</label>
               <div className="grid grid-cols-2 gap-2">
                 {GAME_FORMATS.map(gf => (
                   <button
@@ -184,7 +184,7 @@ export default function CreateTournamentScreen() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Max Participants</label>
+              <label className="text-sm font-medium">{t("tournament.maxParticipants")}</label>
               <div className="flex gap-2">
                 {[4, 8, 16, 32, 64].map(n => (
                   <button
@@ -202,7 +202,7 @@ export default function CreateTournamentScreen() {
             </div>
 
             <Button onClick={() => setStep(2)} className="w-full" disabled={!name.trim()}>
-              Next: Schedule & Location
+              {t("tournament.nextSchedule")}
             </Button>
           </div>
         )}
@@ -211,22 +211,22 @@ export default function CreateTournamentScreen() {
         {step === 2 && (
           <div className="space-y-5 animate-in fade-in">
             <div>
-              <h2 className="text-lg font-semibold mb-1">Schedule & Location</h2>
-              <p className="text-sm text-muted-foreground">Set when and where the tournament happens</p>
+              <h2 className="text-lg font-semibold mb-1">{t("tournament.scheduleLocation")}</h2>
+              <p className="text-sm text-muted-foreground">{t("tournament.scheduleLocationDesc")}</p>
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Start Date & Time *</label>
+              <label className="text-sm font-medium">{t("tournament.startDateLabel")}</label>
               <Input type="datetime-local" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">End Date & Time</label>
+              <label className="text-sm font-medium">{t("tournament.endDateLabel")}</label>
               <Input type="datetime-local" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Registration Deadline</label>
+              <label className="text-sm font-medium">{t("tournament.regDeadlineLabel")}</label>
               <Input type="datetime-local" value={registrationDeadline} onChange={(e) => setRegistrationDeadline(e.target.value)} />
             </div>
 
@@ -239,18 +239,18 @@ export default function CreateTournamentScreen() {
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Entry Fee ($)</label>
+                <label className="text-sm font-medium">{t("tournament.entryFeeLabel")}</label>
                 <Input type="number" value={entryFee} onChange={(e) => setEntryFee(e.target.value)} placeholder="0" min="0" step="0.01" />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Prize</label>
-                <Input value={prizeDescription} onChange={(e) => setPrizeDescription(e.target.value)} placeholder="Trophy + $100" maxLength={500} />
+                <label className="text-sm font-medium">{t("tournament.prizeLabel")}</label>
+                <Input value={prizeDescription} onChange={(e) => setPrizeDescription(e.target.value)} placeholder={t("tournament.prizePlaceholder")} maxLength={500} />
               </div>
             </div>
 
             <div className="flex gap-3">
-              <Button variant="outline" onClick={() => setStep(1)} className="flex-1">Back</Button>
-              <Button onClick={() => setStep(3)} className="flex-1" disabled={!startDate}>Next: Rules & Settings</Button>
+              <Button variant="outline" onClick={() => setStep(1)} className="flex-1">{t("common.back")}</Button>
+              <Button onClick={() => setStep(3)} className="flex-1" disabled={!startDate}>{t("tournament.nextRules")}</Button>
             </div>
           </div>
         )}
@@ -259,56 +259,56 @@ export default function CreateTournamentScreen() {
         {step === 3 && (
           <div className="space-y-5 animate-in fade-in">
             <div>
-              <h2 className="text-lg font-semibold mb-1">Rules & Settings</h2>
-              <p className="text-sm text-muted-foreground">Fine-tune the game rules</p>
+              <h2 className="text-lg font-semibold mb-1">{t("tournament.rulesSettings")}</h2>
+              <p className="text-sm text-muted-foreground">{t("tournament.rulesSettingsDesc")}</p>
             </div>
 
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Points to Win</label>
+                <label className="text-sm font-medium">{t("tournament.pointsToWin")}</label>
                 <Input type="number" value={pointsToWin} onChange={(e) => setPointsToWin(Number(e.target.value))} min={1} max={21} />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Best Of</label>
+                <label className="text-sm font-medium">{t("tournament.bestOf")}</label>
                 <Input type="number" value={bestOf} onChange={(e) => setBestOf(Number(e.target.value))} min={1} max={7} step={2} />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Win By</label>
+                <label className="text-sm font-medium">{t("tournament.winBy")}</label>
                 <Input type="number" value={winBy} onChange={(e) => setWinBy(Number(e.target.value))} min={1} max={5} />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Min Skill Level</label>
+                <label className="text-sm font-medium">{t("tournament.minSkillLevel")}</label>
                 <select
                   value={skillLevelMin}
                   onChange={(e) => setSkillLevelMin(e.target.value)}
                   className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
                 >
-                  <option value="">Any</option>
+                  <option value="">{t("common.any")}</option>
                   {SKILL_LEVELS.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Max Skill Level</label>
+                <label className="text-sm font-medium">{t("tournament.maxSkillLevel")}</label>
                 <select
                   value={skillLevelMax}
                   onChange={(e) => setSkillLevelMax(e.target.value)}
                   className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
                 >
-                  <option value="">Any</option>
+                  <option value="">{t("common.any")}</option>
                   {SKILL_LEVELS.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Tournament Rules</label>
+              <label className="text-sm font-medium">{t("tournament.rulesLabel")}</label>
               <textarea
                 value={rules}
                 onChange={(e) => setRules(e.target.value)}
-                placeholder="Enter any special rules or notes for participants..."
+                placeholder={t("tournament.rulesPlaceholder")}
                 className="w-full min-h-[80px] rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 maxLength={5000}
               />
@@ -316,7 +316,7 @@ export default function CreateTournamentScreen() {
 
             <div className="space-y-3">
               <label className="flex items-center justify-between">
-                <span className="text-sm font-medium">Public Tournament</span>
+                <span className="text-sm font-medium">{t("tournament.publicToggle")}</span>
                 <button
                   role="switch"
                   aria-checked={isPublic}
@@ -327,7 +327,7 @@ export default function CreateTournamentScreen() {
                 </button>
               </label>
               <label className="flex items-center justify-between">
-                <span className="text-sm font-medium">Require Approval to Join</span>
+                <span className="text-sm font-medium">{t("tournament.requireApproval")}</span>
                 <button
                   role="switch"
                   aria-checked={requiresApproval}
@@ -341,9 +341,9 @@ export default function CreateTournamentScreen() {
 
             {/* Summary */}
             <div className="bg-card border border-border rounded-xl p-4 space-y-2">
-              <h3 className="font-semibold text-sm">Tournament Summary</h3>
+              <h3 className="font-semibold text-sm">{t("tournament.summary")}</h3>
               <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-                <span>📝 {name || "Untitled"}</span>
+                <span>📝 {name || t("tournament.untitled")}</span>
                 <span>{FORMATS.find(f => f.value === format)?.icon} {FORMATS.find(f => f.value === format)?.label}</span>
                 <span>🏓 {GAME_FORMATS.find(gf => gf.value === gameFormat)?.label}</span>
                 <span>👥 Up to {maxParticipants} players</span>
@@ -355,10 +355,10 @@ export default function CreateTournamentScreen() {
             </div>
 
             <div className="flex gap-3">
-              <Button variant="outline" onClick={() => setStep(2)} className="flex-1">Back</Button>
+              <Button variant="outline" onClick={() => setStep(2)} className="flex-1">{t("common.back")}</Button>
               <Button onClick={handleSubmit} className="flex-1 gap-2 bg-[#FFC107] text-[#1a1d2e] hover:bg-[#e0a800]" disabled={createMutation.isPending}>
                 {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trophy className="w-4 h-4" />}
-                Create Tournament
+                {t("tournament.createButton")}
               </Button>
             </div>
           </div>

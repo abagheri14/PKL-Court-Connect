@@ -133,7 +133,7 @@ export function setupStripeWebhook(app: Express) {
         res.status(200).json({ received: true });
       } catch (err: any) {
         console.error("[Stripe] Webhook error:", err.message);
-        res.status(400).send(`Webhook Error: ${err.message}`);
+        res.status(400).send("Webhook processing error");
       }
     }
   );

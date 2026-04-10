@@ -84,7 +84,6 @@ export function getTierColor(tier: LevelInfo["tier"]): string {
     case "Advanced": return "#A855F7";
     case "Expert": return "#FFD700";
     case "Legend": return "#FF5722";
-    default: return "#9CA3AF";
   }
 }
 

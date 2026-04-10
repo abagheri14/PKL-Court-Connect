@@ -80,12 +80,12 @@ export default function CourtDetail() {
       bookingsQuery.refetch();
       setShowBookingForm(false);
       setBookingDate(""); setBookingStartTime(""); setBookingEndTime(""); setBookingCourtNum(""); setBookingNotes("");
-      toast.success(t("court.courtBooked"));
+      toast.success("Court booked!");
     },
     onError: (err) => toast.error(err.message),
   });
   const cancelBookingMutation = trpc.courts.cancelBooking.useMutation({
-    onSuccess: () => { bookingsQuery.refetch(); toast.success(t("court.bookingCancelled")); },
+    onSuccess: () => { bookingsQuery.refetch(); toast.success("Booking cancelled"); },
     onError: (err) => toast.error(err.message),
   });
   const courtPhotos: any[] = photosQuery.data ?? [];
@@ -250,14 +250,14 @@ export default function CourtDetail() {
         {courtPhotos.length > 0 && (
         <div className="card-elevated rounded-xl p-4 mb-4">
           <h2 className="text-sm font-semibold mb-3 flex items-center gap-2">
-            <Camera size={14} className="text-secondary" /> {t("court.photosCount", { count: courtPhotos.length })}
+            <Camera size={14} className="text-secondary" /> Photos ({courtPhotos.length})
           </h2>
           <div className="relative">
             <div className="w-full h-40 rounded-lg overflow-hidden bg-muted/20">
               {courtPhotos[photoIndex] && (
                 <img
                   src={courtPhotos[photoIndex].photoUrl}
-                  alt={courtPhotos[photoIndex].caption || t("court.photoAlt")}
+                  alt={courtPhotos[photoIndex].caption || "Court photo"}
                   className="w-full h-full object-cover"
                 />
               )}
@@ -413,8 +413,8 @@ export default function CourtDetail() {
               <div key={review.id} className="p-3 rounded-xl bg-background/20">
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-2">
-                    <PlayerAvatar user={{ id: review.userId ?? 0, name: review.userName ?? review.username ?? t("court.userFallback"), profilePhotoUrl: review.profilePhotoUrl, hasProfilePhoto: !!review.profilePhotoUrl }} size="sm" showBadges={false} />
-                    <span className="text-xs font-medium">{review.userName ?? review.username ?? t("court.userFallback")}</span>
+                    <PlayerAvatar user={{ id: review.userId ?? 0, name: review.userName ?? review.username ?? "User", profilePhotoUrl: review.profilePhotoUrl, hasProfilePhoto: !!review.profilePhotoUrl }} size="sm" showBadges={false} />
+                    <span className="text-xs font-medium">{review.userName ?? review.username ?? "User"}</span>
                   </div>
                   <div className="flex items-center gap-0.5">
                     {Array.from({ length: 5 }).map((_, i) => (
@@ -433,7 +433,7 @@ export default function CourtDetail() {
         {leaderboard.length > 0 && (
         <div className="card-elevated rounded-xl p-4 mb-4">
           <h2 className="text-sm font-semibold mb-3 flex items-center gap-2">
-            <Trophy size={14} className="text-[#FFC107]" /> {t("court.kingOfTheCourt")}
+            <Trophy size={14} className="text-[#FFC107]" /> King of the Court
           </h2>
           <div className="space-y-2">
             {leaderboard.slice(0, 5).map((entry: any, i: number) => (
@@ -445,8 +445,8 @@ export default function CourtDetail() {
                   {i + 1}
                 </span>
                 <PlayerAvatar user={{ id: entry.userId, name: entry.name, profilePhotoUrl: entry.profilePhotoUrl, hasProfilePhoto: !!entry.profilePhotoUrl }} size="sm" showBadges={false} />
-                <span className="flex-1 text-sm font-medium truncate">{entry.name || t("court.playerFallback")}</span>
-                <span className="text-xs text-[#BFFF00] font-bold">{t("court.winsShort", { count: entry.wins })}</span>
+                <span className="flex-1 text-sm font-medium truncate">{entry.name || "Player"}</span>
+                <span className="text-xs text-[#BFFF00] font-bold">{entry.wins}W</span>
               </div>
             ))}
           </div>
@@ -457,7 +457,7 @@ export default function CourtDetail() {
         <div className="card-elevated rounded-xl p-4 mb-4">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold flex items-center gap-2">
-              <Calendar size={14} className="text-secondary" /> {t("court.courtBookings")}
+              <Calendar size={14} className="text-secondary" /> Court Bookings
             </h2>
             <Button
               size="sm"
@@ -465,7 +465,7 @@ export default function CourtDetail() {
               onClick={() => setShowBookingForm(!showBookingForm)}
               className="h-7 text-xs"
             >
-              {showBookingForm ? t("common.cancel") : t("court.bookCourt")}
+              {showBookingForm ? "Cancel" : "Book Court"}
             </Button>
           </div>
 
@@ -474,7 +474,7 @@ export default function CourtDetail() {
             <div className="space-y-3 mb-4 p-3 rounded-lg bg-muted/20 border border-border/30">
               <div className="grid grid-cols-1 gap-2">
                 <div>
-                  <label className="text-[10px] text-muted-foreground font-medium">{t("court.dateLabel")}</label>
+                  <label className="text-[10px] text-muted-foreground font-medium">Date</label>
                   <input
                     type="date"
                     value={bookingDate}
@@ -485,7 +485,7 @@ export default function CourtDetail() {
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="text-[10px] text-muted-foreground font-medium">{t("court.startTimeLabel")}</label>
+                    <label className="text-[10px] text-muted-foreground font-medium">Start Time</label>
                     <input
                       type="time"
                       value={bookingStartTime}
@@ -494,7 +494,7 @@ export default function CourtDetail() {
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] text-muted-foreground font-medium">{t("court.endTimeLabel")}</label>
+                    <label className="text-[10px] text-muted-foreground font-medium">End Time</label>
                     <input
                       type="time"
                       value={bookingEndTime}
@@ -504,25 +504,25 @@ export default function CourtDetail() {
                   </div>
                 </div>
                 <div>
-                  <label className="text-[10px] text-muted-foreground font-medium">{t("court.courtNumberLabel")}</label>
+                  <label className="text-[10px] text-muted-foreground font-medium">Court # (optional)</label>
                   <input
                     type="number"
                     value={bookingCourtNum}
                     onChange={(e) => setBookingCourtNum(e.target.value)}
                     min="1"
                     max="50"
-                    placeholder={t("court.courtNumberPlaceholder")}
+                    placeholder="e.g. 1"
                     className="w-full mt-0.5 px-2 py-1.5 text-xs bg-background rounded-lg border border-border/40 outline-none focus:border-[#BFFF00]/50"
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] text-muted-foreground font-medium">{t("court.notesLabel")}</label>
+                  <label className="text-[10px] text-muted-foreground font-medium">Notes (optional)</label>
                   <input
                     type="text"
                     value={bookingNotes}
                     onChange={(e) => setBookingNotes(e.target.value)}
                     maxLength={500}
-                    placeholder={t("court.notesPlaceholder")}
+                    placeholder="e.g. Doubles match"
                     className="w-full mt-0.5 px-2 py-1.5 text-xs bg-background rounded-lg border border-border/40 outline-none focus:border-[#BFFF00]/50"
                   />
                 </div>
@@ -531,13 +531,13 @@ export default function CourtDetail() {
                 size="sm"
                 onClick={() => {
                   if (!bookingDate || !bookingStartTime || !bookingEndTime) {
-                    toast.error(t("court.bookingFieldsRequired"));
+                    toast.error("Please fill in date, start time, and end time");
                     return;
                   }
                   const startTime = new Date(`${bookingDate}T${bookingStartTime}`);
                   const endTime = new Date(`${bookingDate}T${bookingEndTime}`);
                   if (endTime <= startTime) {
-                    toast.error(t("court.endTimeAfterStart"));
+                    toast.error("End time must be after start time");
                     return;
                   }
                   createBookingMutation.mutate({
@@ -551,7 +551,7 @@ export default function CourtDetail() {
                 disabled={createBookingMutation.isPending}
                 className="w-full h-8 text-xs bg-[#BFFF00] text-black hover:bg-[#BFFF00]/80 font-semibold"
               >
-                {createBookingMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : t("court.confirmBooking")}
+                {createBookingMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : "Confirm Booking"}
               </Button>
             </div>
           )}
@@ -568,17 +568,17 @@ export default function CourtDetail() {
                     </p>
                     <p className="text-[10px] text-muted-foreground">
                       {new Date(b.startTime).toLocaleDateString(i18n.language, { month: "short", day: "numeric" })}
-                      {b.courtNumber ? ` · ${t("court.courtNumberInline", { num: b.courtNumber })}` : ""}
+                      {b.courtNumber ? ` · Court ${b.courtNumber}` : ""}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">{b.userName || t("court.reservedFallback")}</span>
+                    <span className="text-xs text-muted-foreground">{b.userName || "Reserved"}</span>
                     {b.isOwn && (
                       <button
                         onClick={() => cancelBookingMutation.mutate({ bookingId: b.id })}
                         className="text-[10px] text-red-400 hover:text-red-300"
                       >
-                        {t("common.cancel")}
+                        Cancel
                       </button>
                     )}
                   </div>
@@ -586,7 +586,7 @@ export default function CourtDetail() {
               ))}
             </div>
           ) : !showBookingForm && (
-            <p className="text-xs text-muted-foreground text-center py-2">{t("court.noUpcomingBookings")}</p>
+            <p className="text-xs text-muted-foreground text-center py-2">No upcoming bookings</p>
           )}
         </div>
       </div>

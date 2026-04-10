@@ -9,10 +9,11 @@ import {
   HelpCircle, Lightbulb, Megaphone, Filter, Bookmark, Share2, RefreshCw,
   Sparkles, Zap, MapPin, Camera,
 } from "lucide-react";
-import { useState, useRef, useCallback, useEffect, type TouchEvent as ReactTouchEvent } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useGeolocation } from "@/hooks/useGeolocation";
+import { useTranslation } from "react-i18next";
 
 // ── Icons & Maps ──────────────────────────────────────────────────────────
 const activityIcons: Record<string, any> = {
@@ -31,10 +32,11 @@ const activityColors: Record<string, string> = {
 const postTypeIcons: Record<string, any> = {
   general: Newspaper, highlight: Star, question: HelpCircle, tip: Lightbulb, looking_for_players: Megaphone,
 };
-const postTypeLabels: Record<string, string> = {
+type PostType = "general" | "highlight" | "question" | "tip" | "looking_for_players";
+const postTypeLabels: Record<PostType, string> = {
   general: "Post", highlight: "Highlight", question: "Question", tip: "Tip", looking_for_players: "LFP",
 };
-const postTypeEmoji: Record<string, string> = {
+const postTypeEmoji: Record<PostType, string> = {
   general: "📝", highlight: "🔥", question: "💭", tip: "💡", looking_for_players: "🎯",
 };
 
@@ -58,6 +60,7 @@ const filterOptions = [
 
 // ── Nearby Players Strip (Boo Discovery) ──────────────────────────────────
 function NearbyStrip() {
+  const { t } = useTranslation();
   const { selectPlayer, navigate, user } = useApp();
   const { lat, lng } = useGeolocation({ fallbackLat: user?.latitude, fallbackLng: user?.longitude });
   const candidatesQuery = trpc.swipes.candidates.useQuery(
@@ -72,10 +75,10 @@ function NearbyStrip() {
     <div className="px-4 pt-3 pb-1">
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-xs font-bold flex items-center gap-1.5">
-          <Sparkles size={12} className="text-[#BFFF00]" /> Nearby Players
+          <Sparkles size={12} className="text-[#BFFF00]" /> {t("feed.nearbyPlayers")}
         </h3>
         <button onClick={() => navigate("swipe")} className="text-[10px] text-[#BFFF00] font-medium">
-          See All →
+          {t("feed.seeAll")}
         </button>
       </div>
       <div className="flex gap-3 overflow-x-auto scrollbar-none pb-2">
@@ -100,7 +103,7 @@ function NearbyStrip() {
               )}
             </div>
             <span className="text-[9px] text-muted-foreground font-medium truncate w-full text-center mt-0.5">
-              {p.nickname || p.name?.split(" ")[0] || "Player"}
+              {p.nickname || p.name?.split(" ")[0] || t("common.player")}
             </span>
           </button>
         ))}
@@ -111,9 +114,10 @@ function NearbyStrip() {
 
 // ── Post Composer (Boo-style with photo upload) ───────────────────────────
 function PostComposer({ onSuccess }: { onSuccess: () => void }) {
+  const { t } = useTranslation();
   const { user } = useApp();
   const [content, setContent] = useState("");
-  const [postType, setPostType] = useState<string>("general");
+  const [postType, setPostType] = useState<PostType>("general");
   const [photoUrl, setPhotoUrl] = useState<string>("");
   const [showTypeSelector, setShowTypeSelector] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -125,7 +129,7 @@ function PostComposer({ onSuccess }: { onSuccess: () => void }) {
       setContent("");
       setPostType("general");
       setPhotoUrl("");
-      toast.success("Post shared! 🎉");
+      toast.success(t("feed.postShared"));
       onSuccess();
     },
     onError: (err) => toast.error(err.message),
@@ -134,7 +138,7 @@ function PostComposer({ onSuccess }: { onSuccess: () => void }) {
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 10 * 1024 * 1024) { toast.error("Max 10MB"); return; }
+    if (file.size > 10 * 1024 * 1024) { toast.error(t("feed.maxFileSize")); return; }
     setUploading(true);
     const formData = new FormData();
     formData.append("file", file);
@@ -144,7 +148,7 @@ function PostComposer({ onSuccess }: { onSuccess: () => void }) {
       if (!res.ok) throw new Error();
       const data = await res.json();
       setPhotoUrl(data.url);
-    } catch { toast.error("Upload failed"); }
+    } catch { toast.error(t("feed.uploadFailed")); }
     setUploading(false);
   };
 
@@ -153,7 +157,7 @@ function PostComposer({ onSuccess }: { onSuccess: () => void }) {
     if (!trimmed && !photoUrl) return;
     createPostMutation.mutate({
       content: trimmed || (photoUrl ? "📸" : ""),
-      postType: postType as any,
+      postType: postType,
       photoUrl: photoUrl || undefined,
     });
   };
@@ -172,7 +176,7 @@ function PostComposer({ onSuccess }: { onSuccess: () => void }) {
             ref={textareaRef}
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            placeholder="What's on your court today? 🏓"
+            placeholder={t("feed.composerPlaceholder")}
             className="w-full bg-transparent text-sm resize-none outline-none placeholder:text-muted-foreground/40 min-h-[50px] max-h-[120px]"
             maxLength={2000}
             rows={2}
@@ -212,7 +216,7 @@ function PostComposer({ onSuccess }: { onSuccess: () => void }) {
                 </button>
                 {showTypeSelector && (
                   <div className="absolute top-full left-0 mt-1 bg-background border border-border/50 rounded-xl shadow-xl z-30 py-1 min-w-[160px]">
-                    {Object.entries(postTypeLabels).map(([key, label]) => (
+                    {(Object.entries(postTypeLabels) as [PostType, string][]).map(([key, label]) => (
                       <button
                         key={key}
                         onClick={() => { setPostType(key); setShowTypeSelector(false); }}
@@ -238,7 +242,7 @@ function PostComposer({ onSuccess }: { onSuccess: () => void }) {
               className="h-7 px-4 text-xs bg-[#BFFF00] text-black hover:bg-[#BFFF00]/80 font-bold rounded-full"
             >
               {createPostMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
-              <span className="ml-1">Post</span>
+              <span className="ml-1">{t("feed.post")}</span>
             </Button>
           </div>
         </div>
@@ -249,6 +253,7 @@ function PostComposer({ onSuccess }: { onSuccess: () => void }) {
 
 // ── Comment Section ───────────────────────────────────────────────────────
 function CommentSection({ postId }: { postId: number }) {
+  const { t } = useTranslation();
   const { user } = useApp();
   const [newComment, setNewComment] = useState("");
   const commentsQuery = trpc.feed.getComments.useQuery({ postId, limit: 50 });
@@ -276,7 +281,7 @@ function CommentSection({ postId }: { postId: number }) {
               <PlayerAvatar user={{ id: c.userId, name: c.userName, profilePhotoUrl: c.userPhoto, hasProfilePhoto: !!c.userPhoto }} size="xs" showBadges={false} />
               <div className="flex-1 min-w-0 bg-muted/15 rounded-xl px-3 py-2">
                 <div className="flex items-baseline gap-1.5">
-                  <span className="text-[11px] font-bold text-[#BFFF00]">{c.userNickname || c.userName || "Player"}</span>
+                  <span className="text-[11px] font-bold text-[#BFFF00]">{c.userNickname || c.userName || t("common.player")}</span>
                   <span className="text-[9px] text-muted-foreground">{formatTimeAgo(c.createdAt)}</span>
                 </div>
                 <p className="text-xs text-foreground/80 mt-0.5">{c.content}</p>
@@ -292,7 +297,7 @@ function CommentSection({ postId }: { postId: number }) {
           <input
             type="text" value={newComment} onChange={(e) => setNewComment(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-            placeholder="Reply..." className="flex-1 bg-transparent text-xs outline-none placeholder:text-muted-foreground/40" maxLength={1000}
+            placeholder={t("feed.replyPlaceholder")} className="flex-1 bg-transparent text-xs outline-none placeholder:text-muted-foreground/40" maxLength={1000}
           />
           <button onClick={handleSubmit} disabled={!newComment.trim() || addCommentMutation.isPending} className="text-[#BFFF00] disabled:opacity-30">
             <Send className="w-3.5 h-3.5" />
@@ -303,37 +308,11 @@ function CommentSection({ postId }: { postId: number }) {
   );
 }
 
-// ── Skeleton Loading Card ─────────────────────────────────────────────────
-function FeedSkeleton() {
-  return (
-    <div className="card-elevated mx-4 rounded-2xl overflow-hidden animate-pulse">
-      <div className="p-4">
-        <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-full bg-muted/30" />
-          <div className="flex-1 space-y-2">
-            <div className="h-3 w-24 rounded-full bg-muted/30" />
-            <div className="h-2 w-16 rounded-full bg-muted/20" />
-          </div>
-        </div>
-        <div className="mt-3 space-y-2">
-          <div className="h-3 w-full rounded-full bg-muted/20" />
-          <div className="h-3 w-3/4 rounded-full bg-muted/20" />
-        </div>
-        <div className="mt-3 h-48 rounded-2xl bg-muted/15" />
-        <div className="flex items-center gap-2 mt-3 pt-2.5 border-t border-border/10">
-          <div className="h-7 w-16 rounded-full bg-muted/20" />
-          <div className="h-7 w-16 rounded-full bg-muted/20" />
-          <div className="h-7 w-8 rounded-full bg-muted/20" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ── Feed Post Card (Boo-style) ────────────────────────────────────────────
 function FeedPostCard({ post, onLikeToggle, onDelete, onRefresh }: {
   post: any; onLikeToggle: (postId: number) => void; onDelete?: (postId: number) => void; onRefresh?: () => void;
 }) {
+  const { t } = useTranslation();
   const { user, navigate, selectPlayer } = useApp();
   const [showComments, setShowComments] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
@@ -341,13 +320,11 @@ function FeedPostCard({ post, onLikeToggle, onDelete, onRefresh }: {
   const [showMenu, setShowMenu] = useState(false);
   const [showReportDialog, setShowReportDialog] = useState(false);
   const [reportReason, setReportReason] = useState("");
-  const [showHeartAnim, setShowHeartAnim] = useState(false);
-  const lastTapRef = useRef(0);
   const isOwn = post.userId === user?.id;
 
   const toggleBookmarkMutation = trpc.feed.toggleBookmark.useMutation({
     onSuccess: (data) => {
-      toast(data.bookmarked ? "Saved! 🔖" : "Removed from saved");
+      toast(data.bookmarked ? t("feed.saved") : t("feed.removedFromSaved"));
       onRefresh?.();
     },
     onError: (err) => toast.error(err.message),
@@ -359,7 +336,7 @@ function FeedPostCard({ post, onLikeToggle, onDelete, onRefresh }: {
   });
 
   const reportPostMutation = trpc.feed.reportPost.useMutation({
-    onSuccess: () => { toast.success("Post reported. We'll review it."); setShowReportDialog(false); setReportReason(""); },
+    onSuccess: () => { toast.success(t("feed.postReported")); setShowReportDialog(false); setReportReason(""); },
     onError: (err) => toast.error(err.message),
   });
 
@@ -367,29 +344,19 @@ function FeedPostCard({ post, onLikeToggle, onDelete, onRefresh }: {
     if (post.userId !== user?.id) { selectPlayer(post.userId); navigate("playerProfile"); }
   };
 
-  const handleDoubleTap = () => {
-    const now = Date.now();
-    if (now - lastTapRef.current < 300) {
-      if (!post.isLiked) onLikeToggle(post.id);
-      setShowHeartAnim(true);
-      setTimeout(() => setShowHeartAnim(false), 800);
-    }
-    lastTapRef.current = now;
-  };
-
   const handleShare = async () => {
     const shareText = `${post.userNickname || post.userName || "A player"}: ${post.content.slice(0, 140)}`;
     if (navigator.share) {
       try { await navigator.share({ title: "PKL Court Connect", text: shareText }); } catch { /* cancelled */ }
     } else {
-      try { await navigator.clipboard.writeText(shareText); toast.success("Copied to clipboard!"); } catch { toast.error("Share not available"); }
+      try { await navigator.clipboard.writeText(shareText); toast.success(t("feed.copiedToClipboard")); } catch { toast.error(t("feed.shareNotAvailable")); }
     }
   };
 
-  const vibeTag = post.postType === "highlight" ? "🔥 Hot Take"
-    : post.postType === "question" ? "💭 Curious"
-    : post.postType === "tip" ? "💡 Pro Tip"
-    : post.postType === "looking_for_players" ? "🎯 Rally Up"
+  const vibeTag = post.postType === "highlight" ? t("feed.vibe.hotTake")
+    : post.postType === "question" ? t("feed.vibe.curious")
+    : post.postType === "tip" ? t("feed.vibe.proTip")
+    : post.postType === "looking_for_players" ? t("feed.vibe.rallyUp")
     : null;
 
   const userVibe = post.userSkillLevel;
@@ -427,7 +394,7 @@ function FeedPostCard({ post, onLikeToggle, onDelete, onRefresh }: {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5 flex-wrap">
                 <button onClick={handleProfileTap} className="text-sm font-bold hover:text-[#BFFF00] transition-colors truncate">
-                  {post.userNickname || post.userName || "Player"}
+                  {post.userNickname || post.userName || t("common.player")}
                 </button>
                 {userVibe && (
                   <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-muted/30 text-muted-foreground font-medium capitalize">
@@ -455,16 +422,16 @@ function FeedPostCard({ post, onLikeToggle, onDelete, onRefresh }: {
               {showMenu && (
                 <div className="absolute top-full right-0 mt-1 bg-background border border-border/50 rounded-xl shadow-xl z-30 py-1 min-w-[140px]">
                   <button onClick={() => { handleShare(); setShowMenu(false); }} className="flex items-center gap-2 w-full px-3 py-2 text-xs text-left hover:bg-muted/30 transition-colors">
-                    <Share2 className="w-3.5 h-3.5" /> Share
+                    <Share2 className="w-3.5 h-3.5" /> {t("feed.share")}
                   </button>
                   {isOwn && onDelete && (
                     <button onClick={() => { onDelete(post.id); setShowMenu(false); }} className="flex items-center gap-2 w-full px-3 py-2 text-xs text-left text-red-400 hover:bg-red-500/10 transition-colors">
-                      <Trash2 className="w-3.5 h-3.5" /> Delete
+                      <Trash2 className="w-3.5 h-3.5" /> {t("feed.delete")}
                     </button>
                   )}
                   {!isOwn && (
                     <button onClick={() => { setShowReportDialog(true); setShowMenu(false); }} className="flex items-center gap-2 w-full px-3 py-2 text-xs text-left text-orange-400 hover:bg-orange-500/10 transition-colors">
-                      <Filter className="w-3.5 h-3.5" /> Report
+                      <Filter className="w-3.5 h-3.5" /> {t("feed.report")}
                     </button>
                   )}
                 </div>
@@ -480,16 +447,11 @@ function FeedPostCard({ post, onLikeToggle, onDelete, onRefresh }: {
             "text-sm text-foreground/90"
           )}>{post.content}</p>
 
-          {/* Photo (tap to expand, double-tap to like) */}
+          {/* Photo (tap to expand) */}
           {post.photoUrl && (
-            <div className="relative mt-3 rounded-2xl overflow-hidden" onClick={handleDoubleTap}>
-              <img src={post.photoUrl} alt="" className="w-full max-h-[320px] object-cover rounded-2xl cursor-pointer" />
-              {showHeartAnim && (
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <Heart className="w-20 h-20 text-pink-500 fill-pink-500 animate-[heartPop_0.8s_ease-out_forwards] drop-shadow-lg" />
-                </div>
-              )}
-            </div>
+            <button onClick={() => setImageExpanded(true)} className="mt-3 rounded-2xl overflow-hidden w-full text-left">
+              <img src={post.photoUrl} alt="" className="w-full max-h-[320px] object-cover rounded-2xl" />
+            </button>
           )}
 
           {/* Reaction summary */}
@@ -584,9 +546,9 @@ function FeedPostCard({ post, onLikeToggle, onDelete, onRefresh }: {
       {showReportDialog && (
         <div className="fixed inset-0 z-[100] bg-black/60 flex items-center justify-center p-4" onClick={() => setShowReportDialog(false)}>
           <div className="bg-background rounded-2xl p-5 w-full max-w-sm border border-border/50" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-sm font-bold mb-3">Report Post</h3>
+            <h3 className="text-sm font-bold mb-3">{t("feed.reportPost")}</h3>
             <div className="space-y-2 mb-3">
-              {["Spam or misleading", "Harassment or bullying", "Inappropriate content", "Other"].map((r) => (
+              {[t("feed.reportReasons.spam"), t("feed.reportReasons.harassment"), t("feed.reportReasons.inappropriate"), t("feed.reportReasons.other")].map((r) => (
                 <button
                   key={r}
                   onClick={() => setReportReason(r)}
@@ -600,14 +562,14 @@ function FeedPostCard({ post, onLikeToggle, onDelete, onRefresh }: {
               ))}
             </div>
             <div className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={() => setShowReportDialog(false)} className="flex-1 text-xs">Cancel</Button>
+              <Button size="sm" variant="outline" onClick={() => setShowReportDialog(false)} className="flex-1 text-xs">{t("common.cancel")}</Button>
               <Button
                 size="sm"
                 onClick={() => reportPostMutation.mutate({ postId: post.id, reason: reportReason })}
                 disabled={!reportReason || reportPostMutation.isPending}
                 className="flex-1 text-xs bg-red-500 hover:bg-red-600 text-white"
               >
-                {reportPostMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : "Report"}
+                {reportPostMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : t("feed.report")}
               </Button>
             </div>
           </div>
@@ -640,6 +602,7 @@ function ActivityItemCard({ item }: { item: any }) {
 
 // ── Main Feed Screen (Boo-style) ──────────────────────────────────────────
 export default function ActivityFeedScreen() {
+  const { t } = useTranslation();
   const { user } = useApp();
   const [tab, setTab] = useState<"posts" | "trending" | "saved" | "activity" | "my">("posts");
   const [filter, setFilter] = useState("all");
@@ -648,9 +611,6 @@ export default function ActivityFeedScreen() {
   const [allPosts, setAllPosts] = useState<any[]>([]);
   const [hasMore, setHasMore] = useState(true);
   const loadMoreRef = useRef<HTMLDivElement>(null);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const pullStartY = useRef<number | null>(null);
-  const [pullDistance, setPullDistance] = useState(0);
   const PAGE_SIZE = 30;
 
   const postsQuery = trpc.feed.posts.useQuery(
@@ -661,7 +621,7 @@ export default function ActivityFeedScreen() {
   // Accumulate posts for infinite scroll
   useEffect(() => {
     if (postsQuery.data) {
-      const data = postsQuery.data as any[];
+      const data = postsQuery.data;
       if (offset === 0) { setAllPosts(data); } else { setAllPosts(prev => [...prev, ...data]); }
       setHasMore(data.length >= PAGE_SIZE);
     }
@@ -675,7 +635,7 @@ export default function ActivityFeedScreen() {
     onError: (err) => toast.error(err.message),
   });
   const deletePostMutation = trpc.feed.deletePost.useMutation({
-    onSuccess: () => { postsQuery.refetch(); toast.success("Post deleted"); },
+    onSuccess: () => { postsQuery.refetch(); toast.success(t("feed.postDeleted")); },
     onError: (err) => toast.error(err.message),
   });
 
@@ -686,42 +646,13 @@ export default function ActivityFeedScreen() {
     setOffset(0);
     await Promise.all([postsQuery.refetch(), savedQuery.refetch(), communityQuery.refetch(), myQuery.refetch()]);
     setRefreshing(false);
-    toast.success("Feed refreshed!");
+    toast.success(t("feed.refreshed"));
   };
   const handleRefetchPosts = useCallback(() => { postsQuery.refetch(); savedQuery.refetch(); }, []);
 
   const loadMore = useCallback(() => {
     if (hasMore && !postsQuery.isFetching) { setOffset(prev => prev + PAGE_SIZE); }
   }, [hasMore, postsQuery.isFetching]);
-
-  // IntersectionObserver for true infinite scroll
-  useEffect(() => {
-    const el = loadMoreRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting && hasMore && !postsQuery.isFetching) { loadMore(); } },
-      { rootMargin: "200px" }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [hasMore, postsQuery.isFetching, loadMore]);
-
-  // Pull-to-refresh handlers
-  const handlePullStart = useCallback((e: ReactTouchEvent) => {
-    if (scrollContainerRef.current && scrollContainerRef.current.scrollTop <= 0) {
-      pullStartY.current = e.touches[0].clientY;
-    }
-  }, []);
-  const handlePullMove = useCallback((e: ReactTouchEvent) => {
-    if (pullStartY.current === null) return;
-    const dy = e.touches[0].clientY - pullStartY.current;
-    if (dy > 0 && dy < 150) setPullDistance(dy);
-  }, []);
-  const handlePullEnd = useCallback(() => {
-    if (pullDistance > 60) handleRefresh();
-    setPullDistance(0);
-    pullStartY.current = null;
-  }, [pullDistance, handleRefresh]);
 
   // Reset offset when filter or tab changes
   const handleFilterChange = (v: string) => { setFilter(v); setOffset(0); setAllPosts([]); };
@@ -736,22 +667,15 @@ export default function ActivityFeedScreen() {
     : tab === "activity" ? communityQuery.isLoading : myQuery.isLoading;
 
   const tabs = [
-    { key: "posts" as const, label: "Feed", icon: "✨" },
-    { key: "trending" as const, label: "Hot", icon: "🔥" },
-    { key: "saved" as const, label: "Saved", icon: "🔖" },
-    { key: "activity" as const, label: "Activity", icon: "⚡" },
-    { key: "my" as const, label: "Mine", icon: "👤" },
+    { key: "posts" as const, label: t("feed.tabs.feed"), icon: "✨" },
+    { key: "trending" as const, label: t("feed.tabs.hot"), icon: "🔥" },
+    { key: "saved" as const, label: t("feed.tabs.saved"), icon: "🔖" },
+    { key: "activity" as const, label: t("feed.tabs.activity"), icon: "⚡" },
+    { key: "my" as const, label: t("feed.tabs.mine"), icon: "👤" },
   ];
 
   return (
-    <div ref={scrollContainerRef} className="min-h-screen bg-background pb-24 overflow-y-auto" onTouchStart={handlePullStart} onTouchMove={handlePullMove} onTouchEnd={handlePullEnd}>
-      {/* Pull-to-refresh indicator */}
-      {pullDistance > 0 && (
-        <div className="flex justify-center transition-all" style={{ height: pullDistance * 0.5, opacity: Math.min(pullDistance / 60, 1) }}>
-          <RefreshCw className={cn("w-5 h-5 text-[#BFFF00] transition-transform", pullDistance > 60 && "animate-spin")} style={{ transform: `rotate(${pullDistance * 3}deg)` }} />
-        </div>
-      )}
-
+    <div className="min-h-screen bg-background pb-24">
       {/* Header */}
       <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md border-b border-border/20">
         <div className="px-4 py-3">
@@ -761,7 +685,7 @@ export default function ActivityFeedScreen() {
                 <Zap size={16} className="text-[#BFFF00]" />
               </div>
               <div>
-                <h1 className="text-lg font-black tracking-tight">Feed</h1>
+                <h1 className="text-lg font-black tracking-tight">{t("feed.title")}</h1>
               </div>
             </div>
             <button
@@ -822,10 +746,9 @@ export default function ActivityFeedScreen() {
       {/* Content */}
       <div className="py-3 space-y-3">
         {isLoading ? (
-          <div className="space-y-3">
-            <FeedSkeleton />
-            <FeedSkeleton />
-            <FeedSkeleton />
+          <div className="flex flex-col items-center justify-center py-16 gap-3">
+            <Loader2 className="w-6 h-6 animate-spin text-[#BFFF00]" />
+            <span className="text-xs text-muted-foreground">Loading feed...</span>
           </div>
         ) : (tab === "posts" || tab === "trending") ? (
           posts.length === 0 ? (
@@ -833,8 +756,8 @@ export default function ActivityFeedScreen() {
               <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-[#BFFF00]/10 to-green-500/5 flex items-center justify-center mx-auto mb-4">
                 <Newspaper className="w-8 h-8 text-[#BFFF00]/40" />
               </div>
-              <p className="text-sm font-semibold">No posts yet</p>
-              <p className="text-xs text-muted-foreground mt-1">Be the first to share something! 🏓</p>
+              <p className="text-sm font-semibold">{t("feed.noPostsYet")}</p>
+              <p className="text-xs text-muted-foreground mt-1">{t("feed.beTheFirst")}</p>
             </div>
           ) : (
             <>
@@ -842,20 +765,24 @@ export default function ActivityFeedScreen() {
                 <div className="mx-4 p-3 rounded-2xl bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-500/20">
                   <div className="flex items-center gap-2">
                     <Flame className="w-4 h-4 text-orange-400" />
-                    <span className="text-xs font-bold text-orange-400">Trending in your community</span>
+                    <span className="text-xs font-bold text-orange-400">{t("feed.trendingTitle")}</span>
                   </div>
-                  <p className="text-[10px] text-muted-foreground mt-1">Posts sorted by engagement</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">{t("feed.trendingDesc")}</p>
                 </div>
               )}
-              {posts.map((post: any, i: number) => (
-                <div key={post.id} className="animate-feed-card-in" style={{ animationDelay: `${Math.min(i * 50, 300)}ms` }}>
-                  <FeedPostCard post={post} onLikeToggle={handleLikeToggle} onDelete={handleDeletePost} onRefresh={handleRefetchPosts} />
-                </div>
+              {posts.map((post: any) => (
+                <FeedPostCard key={post.id} post={post} onLikeToggle={handleLikeToggle} onDelete={handleDeletePost} onRefresh={handleRefetchPosts} />
               ))}
-              {/* Infinite scroll sentinel */}
+              {/* Load more / infinite scroll trigger */}
               {hasMore && tab === "posts" && (
                 <div ref={loadMoreRef} className="flex justify-center py-4">
-                  {postsQuery.isFetching && <Loader2 className="w-5 h-5 animate-spin text-[#BFFF00]" />}
+                  <button
+                    onClick={loadMore}
+                    disabled={postsQuery.isFetching}
+                    className="px-4 py-2 rounded-xl text-xs font-medium bg-muted/20 hover:bg-muted/40 text-muted-foreground transition-colors"
+                  >
+                    {postsQuery.isFetching ? <Loader2 className="w-4 h-4 animate-spin" /> : "Load more"}
+                  </button>
                 </div>
               )}
             </>
@@ -866,8 +793,8 @@ export default function ActivityFeedScreen() {
               <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-[#BFFF00]/10 to-green-500/5 flex items-center justify-center mx-auto mb-4">
                 <Bookmark className="w-8 h-8 text-[#BFFF00]/40" />
               </div>
-              <p className="text-sm font-semibold">No saved posts</p>
-              <p className="text-xs text-muted-foreground mt-1">Bookmark posts to see them here</p>
+              <p className="text-sm font-semibold">{t("feed.noSavedPosts")}</p>
+              <p className="text-xs text-muted-foreground mt-1">{t("feed.bookmarkHint")}</p>
             </div>
           ) : (
             savedPosts.map((post: any) => (
@@ -880,8 +807,8 @@ export default function ActivityFeedScreen() {
               <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center mx-auto mb-4">
                 <Activity className="w-8 h-8 text-primary/40" />
               </div>
-              <p className="text-sm font-semibold">No activity yet</p>
-              <p className="text-xs text-muted-foreground mt-1">Get playing to see activity here!</p>
+              <p className="text-sm font-semibold">{t("feed.noActivityYet")}</p>
+              <p className="text-xs text-muted-foreground mt-1">{t("feed.getPlayingHint")}</p>
             </div>
           ) : (
             activityItems.map((item: any) => <ActivityItemCard key={item.id} item={item} />)

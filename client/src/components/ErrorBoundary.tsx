@@ -1,7 +1,6 @@
 import { cn } from "@/lib/utils";
 import { AlertTriangle, RotateCcw } from "lucide-react";
 import { Component, ReactNode } from "react";
-import i18next from "i18next";
 
 interface Props {
   children: ReactNode;
@@ -32,13 +31,13 @@ class ErrorBoundary extends Component<Props, State> {
               className="text-destructive mb-6 flex-shrink-0"
             />
 
-            <h2 className="text-xl mb-4">{i18next.t("errorBoundary.unexpectedError")}</h2>
+            <h2 className="text-xl mb-4">An unexpected error occurred.</h2>
 
             <div className="p-4 w-full rounded bg-muted overflow-auto mb-6">
               <pre className="text-sm text-muted-foreground whitespace-break-spaces">
                 {import.meta.env.DEV
                   ? this.state.error?.stack
-                  : this.state.error?.message || i18next.t("errorBoundary.somethingWrong")}
+                  : this.state.error?.message || "Something went wrong"}
               </pre>
             </div>
 
@@ -51,7 +50,7 @@ class ErrorBoundary extends Component<Props, State> {
               )}
             >
               <RotateCcw size={16} />
-              {i18next.t("errorBoundary.reloadPage")}
+              Reload Page
             </button>
           </div>
         </div>

@@ -171,9 +171,9 @@ export default function CourtPickerModal({ open, onClose, onSelect, title }: Cou
           <X size={18} />
         </button>
         <div className="flex-1">
-          <h2 className="text-lg font-bold tracking-tight">{title || t("courtPickerModal.selectACourt")}</h2>
+          <h2 className="text-lg font-bold tracking-tight">{title || t("Select a Court")}</h2>
           <p className="text-[10px] text-muted-foreground">
-            {courtsQuery.isLoading ? t("common.loading") : `${courts.length} ${t("courtPickerModal.courtsAvailable")}`}
+            {courtsQuery.isLoading ? t("Loading...") : `${courts.length} ${t("courts available")}`}
           </p>
         </div>
         <div className="flex gap-1">
@@ -193,7 +193,7 @@ export default function CourtPickerModal({ open, onClose, onSelect, title }: Cou
         <div className="relative">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder={t("courtPickerModal.searchCourts")}
+            placeholder={t("Search courts...")}
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="pl-9 bg-background/50 rounded-xl"
@@ -218,7 +218,7 @@ export default function CourtPickerModal({ open, onClose, onSelect, title }: Cou
             {filtered.length === 0 ? (
               <div className="text-center py-12">
                 <MapPin size={32} className="mx-auto text-muted-foreground/30 mb-2" />
-                <p className="text-sm text-muted-foreground">{t("courtPickerModal.noCourtsFound")}</p>
+                <p className="text-sm text-muted-foreground">{t("No courts found")}</p>
               </div>
             ) : filtered.map(court => (
               <button

@@ -65,7 +65,7 @@ export default function GroupsScreen() {
   // Invite state
   const [showGroupInvite, setShowGroupInvite] = useState(false);
 
-  const typeFilter = activeType === "All" ? undefined : activeType.toLowerCase() as any;
+  const typeFilter = activeType === "All" ? undefined : activeType.toLowerCase() as "social" | "league" | "tournament" | "coaching";
   const groupsQuery = trpc.groups.list.useQuery({ type: typeFilter }, { enabled: groupView === "all", refetchInterval: 30000 });
   const myGroupsQuery = trpc.groups.myGroups.useQuery(undefined, { enabled: groupView === "mine", refetchInterval: 30000 });
   const groups: any[] = groupView === "mine" ? (myGroupsQuery.data ?? []) : (groupsQuery.data ?? []);
@@ -308,7 +308,7 @@ export default function GroupsScreen() {
     const currentChallenge = weekChallenges[weekNum % weekChallenges.length];
 
     // Build tabs based on role — only Chat + Games + Leaderboard (+ Manage for admins)
-    const tabs: { key: string; label: string; icon: any }[] = [
+    const tabs: { key: "chat" | "games" | "leaderboard" | "manage"; label: string; icon: any }[] = [
       { key: "chat", label: t("groups.tabChat"), icon: MessageCircle },
       { key: "games", label: t("groups.tabGames"), icon: CalendarPlus },
       { key: "leaderboard", label: t("groups.tabLeaderboard"), icon: Trophy },
@@ -390,7 +390,7 @@ export default function GroupsScreen() {
                 {tabs.map(tab => (
                   <button
                     key={tab.key}
-                    onClick={() => setActiveTab(tab.key as any)}
+                    onClick={() => setActiveTab(tab.key)}
                     className={cn(
                       "flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all whitespace-nowrap",
                       activeTab === tab.key
@@ -758,8 +758,8 @@ export default function GroupsScreen() {
                       </div>
                       {/* Participant avatars */}
                       <div className="flex items-center gap-1 mb-2">
-                        {(game.participants ?? []).filter((p: any) => p.status === "confirmed").slice(0, 6).map((p: any) => (
-                          <PlayerAvatar key={p.userId} user={{ id: p.userId, name: p.name, profilePhotoUrl: p.profilePhotoUrl, hasProfilePhoto: !!p.profilePhotoUrl }} size="sm" showBadges={false} className="border-2 border-background -ml-1.5 first:ml-0" />
+                        {(game.participants ?? []).filter((p: any) => p.status === "confirmed").slice(0, 6).map((p: any, i: number) => (
+                          <PlayerAvatar key={i} user={{ id: p.userId, name: p.name, profilePhotoUrl: p.profilePhotoUrl, hasProfilePhoto: !!p.profilePhotoUrl }} size="sm" showBadges={false} className="border-2 border-background -ml-1.5 first:ml-0" />
                         ))}
                       </div>
                       {/* Action button */}
@@ -1003,7 +1003,7 @@ export default function GroupsScreen() {
   return (
     <div className="pb-24 min-h-screen">
       <div className="px-5 pt-7 pb-3 flex items-center gap-3">
-        <button onClick={() => goBack()} aria-label="Go back" className="p-2 rounded-xl glass hover:scale-105 transition-transform">
+        <button onClick={() => goBack()} className="p-2 rounded-xl glass hover:scale-105 transition-transform">
           <ArrowLeft size={18} />
         </button>
         <div className="flex-1">

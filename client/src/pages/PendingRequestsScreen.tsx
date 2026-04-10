@@ -88,7 +88,7 @@ export default function PendingRequestsScreen() {
       {/* Header */}
       <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border">
         <div className="px-4 py-3 flex items-center gap-3">
-          <button onClick={goBack} aria-label="Go back" className="p-2 -ml-2 rounded-xl hover:bg-muted/50 transition-colors">
+          <button onClick={goBack} className="p-2 -ml-2 rounded-xl hover:bg-muted/50 transition-colors">
             <ArrowLeft size={20} />
           </button>
           <div className="flex-1">
@@ -151,8 +151,8 @@ export default function PendingRequestsScreen() {
           <div className="w-20 h-20 rounded-2xl bg-muted/20 flex items-center justify-center mb-4">
             <Inbox size={36} className="text-muted-foreground/50" />
           </div>
-          <h3 className="font-bold text-lg mb-1">{t("pending.allCaughtUp")}</h3>
-          <p className="text-sm text-muted-foreground max-w-[240px]">{t("pending.noRequestsDesc")}</p>
+          <h3 className="font-bold text-lg mb-1">{t("All Caught Up!")}</h3>
+          <p className="text-sm text-muted-foreground max-w-[240px]">{t("No pending requests right now. Challenges and game requests will appear here.")}</p>
         </div>
       )}
 
@@ -164,14 +164,14 @@ export default function PendingRequestsScreen() {
             {incomingCount === 0 && totalCount > 0 && (
               <div className="text-center py-12">
                 <Inbox size={28} className="mx-auto text-muted-foreground/40 mb-2" />
-                <p className="text-sm text-muted-foreground">{t("pending.noIncoming")}</p>
+                <p className="text-sm text-muted-foreground">{t("No incoming requests")}</p>
               </div>
             )}
 
             {/* Challenges Received */}
             {challenges.length > 0 && (
               <section>
-                <SectionHeader icon={Swords} label={t("pending.challengesReceived")} count={challenges.length} color="text-secondary" bg="bg-secondary/15" />
+                <SectionHeader icon={Swords} label={t("Challenges Received")} count={challenges.length} color="text-secondary" bg="bg-secondary/15" />
                 <div className="space-y-2.5">
                   {challenges.map((c: any) => (
                     <div key={c.id} className="card p-4 rounded-2xl border border-border/50 hover:border-secondary/30 transition-all">
@@ -210,14 +210,14 @@ export default function PendingRequestsScreen() {
                           disabled={respondChallengeMutation.isPending}
                           className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-muted/20 border border-border text-muted-foreground text-xs font-semibold hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-all"
                         >
-                          <X size={14} /> {t("common.decline")}
+                          <X size={14} /> {t("Decline")}
                         </button>
                         <button
                           onClick={() => respondChallengeMutation.mutate({ challengeId: c.id, accept: true })}
                           disabled={respondChallengeMutation.isPending}
                           className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-secondary/20 text-secondary text-xs font-bold hover:bg-secondary/30 transition-all"
                         >
-                          <Check size={14} /> {t("common.accept")}
+                          <Check size={14} /> {t("Accept")}
                         </button>
                       </div>
                     </div>
@@ -229,7 +229,7 @@ export default function PendingRequestsScreen() {
             {/* Game Join Requests */}
             {gameRequests.length > 0 && (
               <section>
-                <SectionHeader icon={Gamepad2} label={t("pending.gameJoinRequests")} count={gameRequests.length} color="text-primary" bg="bg-primary/15" />
+                <SectionHeader icon={Gamepad2} label={t("Game Join Requests")} count={gameRequests.length} color="text-primary" bg="bg-primary/15" />
                 <div className="space-y-2.5">
                   {gameRequests.map((r: any, i: number) => (
                     <div key={`game-${r.gameId}-${r.userId}-${i}`} className="card p-4 rounded-2xl border border-border/50 hover:border-primary/30 transition-all">
@@ -264,14 +264,14 @@ export default function PendingRequestsScreen() {
                           disabled={declineGameMutation.isPending}
                           className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-muted/20 border border-border text-muted-foreground text-xs font-semibold hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-all"
                         >
-                          <X size={14} /> {t("common.decline")}
+                          <X size={14} /> {t("Decline")}
                         </button>
                         <button
                           onClick={() => approveGameMutation.mutate({ gameId: r.gameId, userId: r.userId })}
                           disabled={approveGameMutation.isPending}
                           className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-primary/20 text-primary text-xs font-bold hover:bg-primary/30 transition-all"
                         >
-                          <Check size={14} /> {t("common.approve")}
+                          <Check size={14} /> {t("Approve")}
                         </button>
                       </div>
                     </div>
@@ -283,7 +283,7 @@ export default function PendingRequestsScreen() {
             {/* Coaching Join Requests */}
             {coachingRequests.length > 0 && (
               <section>
-                <SectionHeader icon={GraduationCap} label={t("pending.coachingRequests")} count={coachingRequests.length} color="text-primary" bg="bg-primary/15" />
+                <SectionHeader icon={GraduationCap} label={t("Coaching Requests")} count={coachingRequests.length} color="text-primary" bg="bg-primary/15" />
                 <div className="space-y-2.5">
                   {coachingRequests.map((r: any, i: number) => (
                     <div key={`coach-${r.coachingId}-${r.userId}-${i}`} className="card p-4 rounded-2xl border border-border/50 hover:border-primary/30 transition-all">
@@ -312,14 +312,14 @@ export default function PendingRequestsScreen() {
                           disabled={declineCoachingMutation.isPending}
                           className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-muted/20 border border-border text-muted-foreground text-xs font-semibold hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-all"
                         >
-                          <X size={14} /> {t("common.decline")}
+                          <X size={14} /> {t("Decline")}
                         </button>
                         <button
                           onClick={() => approveCoachingMutation.mutate({ coachingId: r.coachingId, userId: r.userId })}
                           disabled={approveCoachingMutation.isPending}
                           className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-primary/20 text-primary text-xs font-bold hover:bg-primary/30 transition-all"
                         >
-                          <Check size={14} /> {t("common.approve")}
+                          <Check size={14} /> {t("Approve")}
                         </button>
                       </div>
                     </div>
@@ -336,14 +336,14 @@ export default function PendingRequestsScreen() {
             {outgoingCount === 0 && totalCount > 0 && (
               <div className="text-center py-12">
                 <Send size={28} className="mx-auto text-muted-foreground/40 mb-2" />
-                <p className="text-sm text-muted-foreground">{t("pending.noOutgoing")}</p>
+                <p className="text-sm text-muted-foreground">{t("No outgoing requests")}</p>
               </div>
             )}
 
             {/* Challenges Sent */}
             {sentChallenges.length > 0 && (
               <section>
-                <SectionHeader icon={Swords} label={t("pending.challengesSent")} count={sentChallenges.length} color="text-muted-foreground" bg="bg-muted/20" />
+                <SectionHeader icon={Swords} label={t("Challenges Sent")} count={sentChallenges.length} color="text-muted-foreground" bg="bg-muted/20" />
                 <div className="space-y-2.5">
                   {sentChallenges.map((c: any) => (
                     <div key={c.id} className="card p-4 rounded-2xl border border-border/50">
@@ -371,7 +371,7 @@ export default function PendingRequestsScreen() {
                           </div>
                         </div>
                         <span className="text-[10px] font-bold text-amber-500 bg-amber-500/10 px-2.5 py-1 rounded-full flex items-center gap-1 shrink-0">
-                          <Clock size={10} /> {t("pending.waiting")}
+                          <Clock size={10} /> {t("Waiting")}
                         </span>
                       </div>
                     </div>
@@ -383,7 +383,7 @@ export default function PendingRequestsScreen() {
             {/* My Game Join Requests */}
             {myGameRequests.length > 0 && (
               <section>
-                <SectionHeader icon={Gamepad2} label={t("pending.gameRequestsAwaiting")} count={myGameRequests.length} color="text-muted-foreground" bg="bg-muted/20" />
+                <SectionHeader icon={Gamepad2} label={t("Game Requests Awaiting")} count={myGameRequests.length} color="text-muted-foreground" bg="bg-muted/20" />
                 <div className="space-y-2.5">
                   {myGameRequests.map((r: any, i: number) => (
                     <div key={`my-game-${r.gameId}-${i}`} className="card p-4 rounded-2xl border border-border/50">
@@ -393,7 +393,7 @@ export default function PendingRequestsScreen() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-semibold text-sm truncate">{r.gameName || "Game"}</p>
-                          <p className="text-xs text-muted-foreground">{t("pending.awaitingApproval")}</p>
+                          <p className="text-xs text-muted-foreground">{t("Awaiting organizer approval")}</p>
                           {r.scheduledAt && (
                             <div className="flex items-center gap-1 mt-1 text-[10px] text-muted-foreground/60">
                               <Calendar size={10} />
@@ -402,7 +402,7 @@ export default function PendingRequestsScreen() {
                           )}
                         </div>
                         <span className="text-[10px] font-bold text-amber-500 bg-amber-500/10 px-2.5 py-1 rounded-full flex items-center gap-1 shrink-0">
-                          <Clock size={10} /> {t("pending.pending")}
+                          <Clock size={10} /> {t("Pending")}
                         </span>
                       </div>
                     </div>
@@ -414,7 +414,7 @@ export default function PendingRequestsScreen() {
             {/* My Coaching Requests */}
             {myCoachingRequests.length > 0 && (
               <section>
-                <SectionHeader icon={GraduationCap} label={t("pending.coachingRequestsAwaiting")} count={myCoachingRequests.length} color="text-muted-foreground" bg="bg-muted/20" />
+                <SectionHeader icon={GraduationCap} label={t("Coaching Requests Awaiting")} count={myCoachingRequests.length} color="text-muted-foreground" bg="bg-muted/20" />
                 <div className="space-y-2.5">
                   {myCoachingRequests.map((r: any, i: number) => (
                     <div key={`my-coach-${r.coachingId}-${i}`} className="card p-4 rounded-2xl border border-border/50">
@@ -423,11 +423,11 @@ export default function PendingRequestsScreen() {
                           <GraduationCap size={22} className="text-primary" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-sm truncate">{r.sessionTitle || t("pending.coachingSession")}</p>
-                          <p className="text-xs text-muted-foreground">{t("pending.awaitingApproval")}</p>
+                          <p className="font-semibold text-sm truncate">{r.sessionTitle || t("Coaching Session")}</p>
+                          <p className="text-xs text-muted-foreground">{t("Awaiting organizer approval")}</p>
                         </div>
                         <span className="text-[10px] font-bold text-amber-500 bg-amber-500/10 px-2.5 py-1 rounded-full flex items-center gap-1 shrink-0">
-                          <Clock size={10} /> {t("pending.pending")}
+                          <Clock size={10} /> {t("Pending")}
                         </span>
                       </div>
                     </div>

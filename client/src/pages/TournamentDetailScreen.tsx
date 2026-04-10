@@ -42,20 +42,20 @@ export default function TournamentDetailScreen() {
   };
 
   const joinMutation = trpc.tournaments.join.useMutation({
-    onSuccess: () => { toast.success("Joined tournament!"); refetchAll(); },
+    onSuccess: () => { toast.success(t("tournament.joined")); refetchAll(); },
     onError: (err) => toast.error(err.message),
   });
   const leaveMutation = trpc.tournaments.leave.useMutation({
-    onSuccess: () => { toast.success("Left tournament"); refetchAll(); },
+    onSuccess: () => { toast.success(t("tournament.left")); refetchAll(); },
     onError: (err) => toast.error(err.message),
   });
   const seedBracketMutation = trpc.tournaments.seedBracket.useMutation({
-    onSuccess: () => { toast.success("Bracket generated!"); refetchAll(); },
+    onSuccess: () => { toast.success(t("tournament.bracketGenerated")); refetchAll(); },
     onError: (err) => toast.error(err.message),
   });
   const startMatchMutation = trpc.tournaments.startMatch.useMutation({
     onSuccess: (data) => {
-      toast.success("Match started!");
+      toast.success(t("tournament.matchStarted"));
       refetchAll();
       // Navigate to the live game
       selectGame(data.gameId);
@@ -64,21 +64,21 @@ export default function TournamentDetailScreen() {
   });
   const reportResultMutation = trpc.tournaments.reportResult.useMutation({
     onSuccess: (data) => {
-      toast.success(data.tournamentComplete ? "Tournament complete! 🏆" : "Result recorded!");
+      toast.success(data.tournamentComplete ? t("tournament.complete") : t("tournament.resultRecorded"));
       refetchAll();
     },
     onError: (err) => toast.error(err.message),
   });
   const approveParticipantMutation = trpc.tournaments.approveParticipant.useMutation({
-    onSuccess: () => { toast.success("Participant approved!"); refetchAll(); },
+    onSuccess: () => { toast.success(t("tournament.participantApproved")); refetchAll(); },
     onError: (err) => toast.error(err.message),
   });
   const removeParticipantMutation = trpc.tournaments.removeParticipant.useMutation({
-    onSuccess: () => { toast.success("Participant removed"); refetchAll(); },
+    onSuccess: () => { toast.success(t("tournament.participantRemoved")); refetchAll(); },
     onError: (err) => toast.error(err.message),
   });
   const cancelMutation = trpc.tournaments.cancel.useMutation({
-    onSuccess: () => { toast.success("Tournament cancelled"); goBack(); },
+    onSuccess: () => { toast.success(t("tournament.cancelled")); goBack(); },
     onError: (err) => toast.error(err.message),
   });
 
@@ -98,8 +98,8 @@ export default function TournamentDetailScreen() {
   if (detailQuery.isError || !tournament) {
     return (
       <div className="min-h-screen bg-background p-4">
-        <button onClick={goBack} aria-label="Go back" className="p-1 rounded-lg hover:bg-muted"><ArrowLeft className="w-5 h-5" /></button>
-        <QueryError message="Failed to load tournament" onRetry={refetchAll} />
+        <button onClick={goBack} className="p-1 rounded-lg hover:bg-muted"><ArrowLeft className="w-5 h-5" /></button>
+        <QueryError message={t("tournament.loadFailed")} onRetry={refetchAll} />
       </div>
     );
   }
@@ -116,7 +116,7 @@ export default function TournamentDetailScreen() {
   const canSeedBracket = isOrganizerOrAdmin && (tournament.status === "registration" || tournament.status === "seeding") && confirmedParticipants.length >= 2;
 
   const formatDate = (d: string | Date | null) => {
-    if (!d) return "TBD";
+    if (!d) return t("common.tbd");
     return new Date(d).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
   };
 
@@ -136,11 +136,11 @@ export default function TournamentDetailScreen() {
       <div className="sticky top-0 z-30 bg-background/95 backdrop-blur border-b border-border">
         <div className="px-4 py-3">
           <div className="flex items-center gap-3">
-            <button onClick={goBack} aria-label="Go back" className="p-1 rounded-lg hover:bg-muted"><ArrowLeft className="w-5 h-5" /></button>
+            <button onClick={goBack} className="p-1 rounded-lg hover:bg-muted"><ArrowLeft className="w-5 h-5" /></button>
             <div className="flex-1 min-w-0">
               <h1 className="text-lg font-bold truncate">{tournament.name}</h1>
               <p className={cn("text-xs font-medium", getStatusColor(tournament.status))}>
-                {tournament.status === "in-progress" ? "In Progress" : tournament.status.charAt(0).toUpperCase() + tournament.status.slice(1)}
+                {tournament.status === "in-progress" ? t("tournament.status.inProgress") : tournament.status.charAt(0).toUpperCase() + tournament.status.slice(1)}
                 {tournament.currentRound > 0 && ` • Round ${tournament.currentRound}/${tournament.totalRounds}`}
               </p>
             </div>
@@ -163,7 +163,7 @@ export default function TournamentDetailScreen() {
               <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border">
                 <PlayerAvatar user={tournament.organizer} size="xs" />
                 <span className="text-xs text-muted-foreground">
-                  Organized by <strong>{tournament.organizer.nickname || tournament.organizer.name}</strong>
+                  {t("tournament.organizedBy")} <strong>{tournament.organizer.nickname || tournament.organizer.name}</strong>
                 </span>
               </div>
             )}
@@ -173,8 +173,8 @@ export default function TournamentDetailScreen() {
               <div className="mt-2 pt-2 border-t border-border flex items-center gap-2 text-[#FFC107]">
                 <Trophy className="w-4 h-4" />
                 <span className="text-sm font-semibold">
-                  Winner: {tournament.participants?.find((p: any) => p.userId === tournament.winnerId)?.userNickname ||
-                    tournament.participants?.find((p: any) => p.userId === tournament.winnerId)?.userName || "Unknown"}
+                  {t("tournament.winner")}: {tournament.participants?.find((p: any) => p.userId === tournament.winnerId)?.userNickname ||
+                    tournament.participants?.find((p: any) => p.userId === tournament.winnerId)?.userName || t("common.unknown")}
                 </span>
               </div>
             )}
@@ -189,7 +189,7 @@ export default function TournamentDetailScreen() {
                 className="flex-1 gap-2"
               >
                 {joinMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
-                Join Tournament
+                {t("tournament.joinButton")}
               </Button>
             )}
             {isParticipant && !isOrganizer && tournament.status === "registration" && (
@@ -199,7 +199,7 @@ export default function TournamentDetailScreen() {
                 disabled={leaveMutation.isPending}
                 className="flex-1 gap-2 text-red-400 border-red-500/30 hover:bg-red-500/10"
               >
-                Leave
+                {t("tournament.leaveButton")}
               </Button>
             )}
             {canSeedBracket && (
@@ -209,7 +209,7 @@ export default function TournamentDetailScreen() {
                 className="flex-1 gap-2"
               >
                 {seedBracketMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
-                Generate Bracket & Start
+                {t("tournament.generateBracket")}
               </Button>
             )}
             {isOrganizerOrAdmin && isRegistrationOpen && (
@@ -218,7 +218,7 @@ export default function TournamentDetailScreen() {
                 onClick={() => setShowInvite(true)}
                 className="gap-2 border-[#FFC107]/30 text-[#FFC107] hover:bg-[#FFC107]/10"
               >
-                <Send className="w-4 h-4" /> Invite Players
+                <Send className="w-4 h-4" /> {t("tournament.invitePlayers")}
               </Button>
             )}
           </div>
@@ -235,7 +235,7 @@ export default function TournamentDetailScreen() {
                 activeTab === tab ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
               )}
             >
-              {tab === "bracket" ? "Bracket" : tab === "participants" ? "Players" : tab === "info" ? "Info" : "Manage"}
+              {tab === "bracket" ? t("tournament.tab.bracket") : tab === "participants" ? t("tournament.tab.participants") : tab === "info" ? t("tournament.tab.info") : t("tournament.tab.manage")}
             </button>
           ))}
         </div>
@@ -249,8 +249,8 @@ export default function TournamentDetailScreen() {
             {tournament.status === "registration" || tournament.status === "draft" ? (
               <div className="text-center py-12 space-y-3">
                 <BarChart3 className="w-12 h-12 mx-auto text-muted-foreground/30" />
-                <p className="text-sm text-muted-foreground">Bracket will be generated when registration closes</p>
-                <p className="text-xs text-muted-foreground/70">{confirmedParticipants.length} confirmed players</p>
+                <p className="text-sm text-muted-foreground">{t("tournament.bracketPending")}</p>
+                <p className="text-xs text-muted-foreground/70">{t("tournament.confirmedPlayers", { count: confirmedParticipants.length })}</p>
               </div>
             ) : bracket ? (
               <TournamentBracket
@@ -277,7 +277,7 @@ export default function TournamentDetailScreen() {
             {pendingParticipants.length > 0 && isOrganizerOrAdmin && (
               <div className="space-y-2 mb-4">
                 <h3 className="text-sm font-semibold text-[#FFC107] flex items-center gap-2">
-                  <Clock className="w-4 h-4" /> Pending Approval ({pendingParticipants.length})
+                  <Clock className="w-4 h-4" /> {t("tournament.pendingApproval", { count: pendingParticipants.length })}
                 </h3>
                 {pendingParticipants.map((p: any) => (
                     <div key={p.id} className="flex items-center justify-between bg-card border border-[#FFC107]/20 rounded-lg p-3">
@@ -285,7 +285,7 @@ export default function TournamentDetailScreen() {
                       <PlayerAvatar user={{ id: p.userId, profilePhotoUrl: p.userPhoto, name: p.userName, nickname: p.userNickname }} size="sm" />
                       <div>
                         <p className="text-sm font-medium">{p.userNickname || p.userName}</p>
-                        {p.userSkillLevel && <p className="text-xs text-muted-foreground">Skill: {p.userSkillLevel}</p>}
+                        {p.userSkillLevel && <p className="text-xs text-muted-foreground">{t("tournament.skill", { level: p.userSkillLevel })}</p>}
                       </div>
                     </div>
                     <div className="flex gap-1">
@@ -304,7 +304,7 @@ export default function TournamentDetailScreen() {
             )}
 
             <h3 className="text-sm font-semibold flex items-center gap-2">
-              <Users className="w-4 h-4" /> Confirmed ({confirmedParticipants.length})
+              <Users className="w-4 h-4" /> {t("tournament.confirmed", { count: confirmedParticipants.length })}
             </h3>
             {confirmedParticipants.map((p: any, idx: number) => (
               <button
@@ -326,7 +326,7 @@ export default function TournamentDetailScreen() {
                   <Crown className="w-4 h-4 text-[#FFC107]" />
                 )}
                 {p.status === "eliminated" && (
-                  <span className="text-xs text-red-400">Eliminated</span>
+                  <span className="text-xs text-red-400">{t("tournament.eliminated")}</span>
                 )}
               </button>
             ))}
@@ -334,7 +334,7 @@ export default function TournamentDetailScreen() {
             {confirmedParticipants.length === 0 && (
               <div className="text-center py-8 text-muted-foreground">
                 <Users className="w-10 h-10 mx-auto mb-2 opacity-30" />
-                <p className="text-sm">No confirmed participants yet</p>
+                <p className="text-sm">{t("tournament.noParticipants")}</p>
               </div>
             )}
           </div>
@@ -345,38 +345,38 @@ export default function TournamentDetailScreen() {
           <div className="space-y-4">
             {tournament.description && (
               <div className="bg-card border border-border rounded-xl p-4">
-                <h3 className="text-sm font-semibold mb-2">Description</h3>
+                <h3 className="text-sm font-semibold mb-2">{t("tournament.descriptionHeading")}</h3>
                 <p className="text-sm text-muted-foreground whitespace-pre-wrap">{tournament.description}</p>
               </div>
             )}
 
             <div className="bg-card border border-border rounded-xl p-4 space-y-3">
-              <h3 className="text-sm font-semibold">Game Rules</h3>
+              <h3 className="text-sm font-semibold">{t("tournament.gameRules")}</h3>
               <div className="grid grid-cols-2 gap-2 text-sm">
-                <div className="text-muted-foreground">Points to Win</div>
+                <div className="text-muted-foreground">{t("tournament.pointsToWin")}</div>
                 <div className="font-medium">{tournament.pointsToWin}</div>
-                <div className="text-muted-foreground">Best Of</div>
-                <div className="font-medium">{tournament.bestOf} games</div>
-                <div className="text-muted-foreground">Win By</div>
-                <div className="font-medium">{tournament.winBy} points</div>
-                <div className="text-muted-foreground">Format</div>
+                <div className="text-muted-foreground">{t("tournament.bestOf")}</div>
+                <div className="font-medium">{t("tournament.bestOfGames", { count: tournament.bestOf })}</div>
+                <div className="text-muted-foreground">{t("tournament.winBy")}</div>
+                <div className="font-medium">{t("tournament.winByPoints", { count: tournament.winBy })}</div>
+                <div className="text-muted-foreground">{t("tournament.formatHeading")}</div>
                 <div className="font-medium capitalize">{tournament.format?.replace(/-/g, " ")}</div>
-                <div className="text-muted-foreground">Game Type</div>
+                <div className="text-muted-foreground">{t("tournament.gameType")}</div>
                 <div className="font-medium capitalize">{tournament.gameFormat?.replace(/-/g, " ")}</div>
               </div>
             </div>
 
             <div className="bg-card border border-border rounded-xl p-4 space-y-3">
-              <h3 className="text-sm font-semibold">Schedule</h3>
+              <h3 className="text-sm font-semibold">{t("tournament.schedule")}</h3>
               <div className="grid grid-cols-2 gap-2 text-sm">
-                <div className="text-muted-foreground">Start</div>
+                <div className="text-muted-foreground">{t("tournament.start")}</div>
                 <div className="font-medium">{formatDate(tournament.startDate)}</div>
                 {tournament.endDate && <>
-                  <div className="text-muted-foreground">End</div>
+                  <div className="text-muted-foreground">{t("tournament.end")}</div>
                   <div className="font-medium">{formatDate(tournament.endDate)}</div>
                 </>}
                 {tournament.registrationDeadline && <>
-                  <div className="text-muted-foreground">Reg. Deadline</div>
+                  <div className="text-muted-foreground">{t("tournament.regDeadline")}</div>
                   <div className="font-medium">{formatDate(tournament.registrationDeadline)}</div>
                 </>}
               </div>
@@ -384,14 +384,14 @@ export default function TournamentDetailScreen() {
 
             {(tournament.skillLevelMin || tournament.skillLevelMax) && (
               <div className="bg-card border border-border rounded-xl p-4 space-y-3">
-                <h3 className="text-sm font-semibold">Skill Requirements</h3>
+                <h3 className="text-sm font-semibold">{t("tournament.skillRequirements")}</h3>
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   {tournament.skillLevelMin && <>
-                    <div className="text-muted-foreground">Minimum</div>
+                    <div className="text-muted-foreground">{t("common.minimum")}</div>
                     <div className="font-medium">{tournament.skillLevelMin}</div>
                   </>}
                   {tournament.skillLevelMax && <>
-                    <div className="text-muted-foreground">Maximum</div>
+                    <div className="text-muted-foreground">{t("common.maximum")}</div>
                     <div className="font-medium">{tournament.skillLevelMax}</div>
                   </>}
                 </div>
@@ -401,7 +401,7 @@ export default function TournamentDetailScreen() {
             {tournament.prizeDescription && (
               <div className="bg-card border border-border rounded-xl p-4">
                 <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
-                  <Trophy className="w-4 h-4 text-[#FFC107]" /> Prize
+                  <Trophy className="w-4 h-4 text-[#FFC107]" /> {t("tournament.prize")}
                 </h3>
                 <p className="text-sm text-muted-foreground">{tournament.prizeDescription}</p>
               </div>
@@ -409,7 +409,7 @@ export default function TournamentDetailScreen() {
 
             {tournament.rules && (
               <div className="bg-card border border-border rounded-xl p-4">
-                <h3 className="text-sm font-semibold mb-2">Tournament Rules</h3>
+                <h3 className="text-sm font-semibold mb-2">{t("tournament.rulesHeading")}</h3>
                 <p className="text-sm text-muted-foreground whitespace-pre-wrap">{tournament.rules}</p>
               </div>
             )}
@@ -420,7 +420,7 @@ export default function TournamentDetailScreen() {
         {activeTab === "manage" && isOrganizerOrAdmin && (
           <div className="space-y-4">
             <div className="bg-card border border-border rounded-xl p-4 space-y-3">
-              <h3 className="text-sm font-semibold">Tournament Status</h3>
+              <h3 className="text-sm font-semibold">{t("tournament.statusHeading")}</h3>
               <p className={cn("text-sm font-medium", getStatusColor(tournament.status))}>
                 {tournament.status.charAt(0).toUpperCase() + tournament.status.slice(1)}
               </p>
@@ -432,10 +432,10 @@ export default function TournamentDetailScreen() {
                     className="w-full gap-2"
                   >
                     {seedBracketMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
-                    Close Registration & Generate Bracket
+                    {t("tournament.closeRegistration")}
                   </Button>
                   <p className="text-xs text-muted-foreground mt-1.5">
-                    This will lock registrations and create the tournament bracket with {confirmedParticipants.length} players.
+                    {t("tournament.closeRegistrationDesc", { count: confirmedParticipants.length })}
                   </p>
                 </div>
               )}
@@ -443,13 +443,13 @@ export default function TournamentDetailScreen() {
 
             {tournament.status !== "completed" && tournament.status !== "cancelled" && (
               <div className="bg-card border border-red-500/20 rounded-xl p-4">
-                <h3 className="text-sm font-semibold text-red-400 mb-2">Danger Zone</h3>
+                <h3 className="text-sm font-semibold text-red-400 mb-2">{t("tournament.dangerZone")}</h3>
                 <Button
                   variant="outline"
                   onClick={() => setConfirmAction({ type: "cancel", id: tournamentId, name: tournament.name })}
                   className="w-full text-red-400 border-red-500/30 hover:bg-red-500/10"
                 >
-                  Cancel Tournament
+                  {t("tournament.cancelButton")}
                 </Button>
               </div>
             )}
@@ -458,13 +458,13 @@ export default function TournamentDetailScreen() {
             {confirmAction && (
               <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
                 <div className="bg-card border border-border rounded-xl p-6 max-w-sm w-full space-y-4">
-                  <h3 className="font-semibold">Cancel Tournament?</h3>
+                  <h3 className="font-semibold">{t("tournament.cancelConfirmTitle")}</h3>
                   <p className="text-sm text-muted-foreground">
-                    This will cancel "{confirmAction.name}" and notify all participants. This cannot be undone.
+                    {t("tournament.cancelConfirmDesc", { name: confirmAction.name })}
                   </p>
                   <div className="flex gap-3">
                     <Button variant="outline" onClick={() => setConfirmAction(null)} className="flex-1">
-                      Keep
+                      {t("tournament.keep")}
                     </Button>
                     <Button
                       onClick={() => {
@@ -473,7 +473,7 @@ export default function TournamentDetailScreen() {
                       }}
                       className="flex-1 bg-red-600 hover:bg-red-700"
                     >
-                      Cancel It
+                      {t("tournament.cancelIt")}
                     </Button>
                   </div>
                 </div>

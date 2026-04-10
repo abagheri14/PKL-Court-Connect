@@ -76,8 +76,7 @@ export function usePushNotifications(isAuthenticated: boolean) {
       toast.success(t("pushNotifications.realtimeEnabled"));
       setIsSubscribed(true);
       return true;
-    } catch (err: any) {
-      console.warn("Push notification setup failed:", err);
+    } catch {
       toast.error(t("pushNotifications.enableFailed"));
       return false;
     }

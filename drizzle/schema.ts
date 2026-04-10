@@ -6,7 +6,7 @@ import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, boolean, float, j
 export const users = mysqlTable("users", {
   id: int("id").autoincrement().primaryKey(),
   openId: varchar("openId", { length: 64 }).notNull().unique(),
-  username: varchar("username", { length: 50 }).unique(),
+  username: varchar("username", { length: 50 }),
   name: text("name"),
   nickname: varchar("nickname", { length: 50 }),
   showFullName: boolean("showFullName").default(false).notNull(),
@@ -197,8 +197,6 @@ export const messages = mysqlTable("messages", {
   sentAt: timestamp("sentAt").defaultNow().notNull(),
   readAt: timestamp("readAt"),
   isDeleted: boolean("isDeleted").default(false).notNull(),
-  isEdited: boolean("isEdited").default(false).notNull(),
-  editedAt: timestamp("editedAt"),
 }, (table) => ({
   convIdx: index("idx_messages_conv").on(table.conversationId, table.sentAt),
   senderIdx: index("idx_messages_sender").on(table.senderId),
@@ -321,7 +319,7 @@ export const challenges = mysqlTable("challenges", {
   courtId: int("courtId"),
   locationName: varchar("locationName", { length: 255 }),
   scheduledAt: timestamp("scheduledAt"),
-  durationMinutes: int("durationMinutes").default(90).notNull(),
+  durationMinutes: int("durationMinutes").default(90),
   skillLevelMin: varchar("skillLevelMin", { length: 10 }),
   skillLevelMax: varchar("skillLevelMax", { length: 10 }),
   maxPlayers: int("maxPlayers").default(2),
@@ -416,7 +414,7 @@ export const reports = mysqlTable("reports", {
 // =============================================================================
 // GROUPS
 // =============================================================================
-export const groups = mysqlTable("pkl_groups", {
+export const groups = mysqlTable("groups", {
   id: int("id").autoincrement().primaryKey(),
   name: varchar("name", { length: 100 }).notNull(),
   description: text("description"),
@@ -572,11 +570,11 @@ export const gameResults = mysqlTable("game_results", {
   winnerTeam: mysqlEnum("winnerTeam", ["team1", "team2", "draw"]),
   team1Score: int("team1Score").notNull(),
   team2Score: int("team2Score").notNull(),
-  team1PlayerIds: json("team1PlayerIds"),   // JSON array of user IDs
-  team2PlayerIds: json("team2PlayerIds"),   // JSON array of user IDs
+  team1PlayerIds: text("team1PlayerIds"),   // JSON array of user IDs
+  team2PlayerIds: text("team2PlayerIds"),   // JSON array of user IDs
   recordedBy: int("recordedBy").notNull(),
   recordedAt: timestamp("recordedAt").defaultNow().notNull(),
-  scoreConfirmedBy: json("scoreConfirmedBy"),  // JSON array of user IDs who confirmed
+  scoreConfirmedBy: text("scoreConfirmedBy"),  // JSON array of user IDs who confirmed
   scoreDisputed: boolean("scoreDisputed").default(false),
 }, (table) => ({
   gameIdx: uniqueIndex("idx_game_results_game").on(table.gameId),

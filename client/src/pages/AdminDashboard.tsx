@@ -24,7 +24,7 @@ export default function AdminDashboard() {
   });
   const courtSubsQuery = trpc.courts.pendingSubmissions.useQuery(undefined, { enabled: user?.role === "admin" || user?.role === "superadmin", refetchInterval: 30000 });
   const reviewCourtMutation = trpc.courts.reviewSubmission.useMutation({
-    onSuccess: () => { courtSubsQuery.refetch(); toast.success(t("admin.courtReviewed")); },
+    onSuccess: () => { courtSubsQuery.refetch(); toast.success(t("Court submission reviewed")); },
   });
   const suspendUserMutation = trpc.admin.suspendUser.useMutation({
     onSuccess: () => { usersQuery.refetch(); toast(t("admin.userSuspended")); },
@@ -102,7 +102,7 @@ export default function AdminDashboard() {
       <div className="relative overflow-hidden">
         <div className="absolute -top-20 -right-20 w-48 h-48 rounded-full bg-red-500/8 blur-3xl" />
         <div className="relative px-5 pt-7 pb-3 flex items-center gap-3">
-          <button onClick={() => goBack()} aria-label="Go back" className="p-2 rounded-xl glass hover:scale-105 transition-transform">
+          <button onClick={() => goBack()} className="p-2 rounded-xl glass hover:scale-105 transition-transform">
             <ArrowLeft size={18} />
           </button>
           <h1 className="text-lg font-bold tracking-tight">{t("admin.title")}</h1>
@@ -123,7 +123,7 @@ export default function AdminDashboard() {
                 : "bg-muted/10 text-muted-foreground hover:bg-muted/20"
             )}
           >
-            {tab === "Courts" ? t("admin.tabCourts") : t(`admin.tab${tab}`)}
+            {tab === "Courts" ? t("Courts") : t(`admin.tab${tab}`)}
             {tab === "Reports" && pendingReportCount > 0 && (
               <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[8px] font-bold flex items-center justify-center">{pendingReportCount}</span>
             )}

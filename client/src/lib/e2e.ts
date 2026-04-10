@@ -148,23 +148,18 @@ export async function decryptMessage(
 ): Promise<string> {
   if (!encrypted.startsWith("e2e:")) return encrypted; // not encrypted, return as-is
 
-  try {
-    const { privateKey } = await getOrCreateKeyPair();
-    const peerPub = await importPeerPublicKey(peerPublicKeyBase64);
-    const sharedKey = await deriveSharedKey(privateKey, peerPub);
+  const { privateKey } = await getOrCreateKeyPair();
+  const peerPub = await importPeerPublicKey(peerPublicKeyBase64);
+  const sharedKey = await deriveSharedKey(privateKey, peerPub);
 
-    const payload: EncryptedPayload = JSON.parse(atob(encrypted.slice(4)));
+  const payload: EncryptedPayload = JSON.parse(atob(encrypted.slice(4)));
 
-    const iv = Uint8Array.from(atob(payload.iv), c => c.charCodeAt(0));
-    const ct = Uint8Array.from(atob(payload.ct), c => c.charCodeAt(0));
+  const iv = Uint8Array.from(atob(payload.iv), c => c.charCodeAt(0));
+  const ct = Uint8Array.from(atob(payload.ct), c => c.charCodeAt(0));
 
-    const decrypted = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, sharedKey, ct);
+  const decrypted = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, sharedKey, ct);
 
-    return new TextDecoder().decode(decrypted);
-  } catch {
-    console.warn("[E2E] Failed to decrypt message");
-    return "[Encrypted message]";
-  }
+  return new TextDecoder().decode(decrypted);
 }
 
 /** Check if a message string is E2E encrypted */

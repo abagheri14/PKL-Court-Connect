@@ -61,15 +61,6 @@ export async function ensureSchema(): Promise<void> {
     }
   }
 
-  // Helper: safely change column type (for TEXT → MEDIUMTEXT upgrades)
-  async function modifyColumnType(table: string, column: string, newType: string) {
-    try {
-      await db.execute(sql.raw(`ALTER TABLE \`${table}\` MODIFY COLUMN \`${column}\` ${newType}`));
-    } catch (e: any) {
-      console.error(`[Schema] Failed to modify ${table}.${column}:`, e?.message);
-    }
-  }
-
   console.log("[Schema] Ensuring all columns and tables exist...");
 
   // --- Users table columns that may be missing ---
@@ -180,20 +171,6 @@ export async function ensureSchema(): Promise<void> {
     )
   `);
 
-  // --- Upgrade TEXT → MEDIUMTEXT for columns that may store base64 data URLs ---
-  await modifyColumnType("users", "profilePhotoUrl", "MEDIUMTEXT DEFAULT NULL");
-  await modifyColumnType("messages", "content", "MEDIUMTEXT DEFAULT NULL");
-  await modifyColumnType("user_photos", "photoUrl", "MEDIUMTEXT NOT NULL");
-  await modifyColumnType("courts", "photoUrl", "MEDIUMTEXT DEFAULT NULL");
-  await modifyColumnType("court_photos", "photoUrl", "MEDIUMTEXT NOT NULL");
-  await modifyColumnType("feed_posts", "photoUrl", "MEDIUMTEXT DEFAULT NULL");
-  await modifyColumnType("feed_posts", "content", "MEDIUMTEXT NOT NULL");
-
-  // Note: `groups` → `pkl_groups` rename is handled by server/pre-migrate.ts
-  // which runs before drizzle-kit push. No need to do it here.
-
-  await modifyColumnType("pkl_groups", "photo", "MEDIUMTEXT DEFAULT NULL");
-
   console.log("[Schema] Schema check complete.");
 }
 
@@ -285,7 +262,7 @@ export async function getNearbyUsers(userId: number, lat: number, lng: number, r
       sql`${users.latitude} BETWEEN ${lat - degreeRadius} AND ${lat + degreeRadius}`,
       sql`${users.longitude} BETWEEN ${lng - degreeRadius} AND ${lng + degreeRadius}`,
     )
-  ).limit(500);
+  );
 }
 
 export async function updateUserLocation(userId: number, lat: number, lng: number, city?: string) {
@@ -461,19 +438,6 @@ export async function getWhoLikedYou(userId: number) {
       eq(swipes.direction, "rally"),
       sql`${swipes.swiperId} NOT IN (${alreadySwipedSubquery})`,
     ));
-}
-
-/** Get count of users who liked you (available to all users) */
-export async function getWhoLikedYouCount(userId: number): Promise<number> {
-  const db = await getDb();
-  const alreadySwipedSubquery = db.select({ swipedId: swipes.swipedId }).from(swipes).where(eq(swipes.swiperId, userId));
-  const result = await db.select({ count: sql<number>`COUNT(*)` }).from(swipes)
-    .where(and(
-      eq(swipes.swipedId, userId),
-      eq(swipes.direction, "rally"),
-      sql`${swipes.swiperId} NOT IN (${alreadySwipedSubquery})`,
-    ));
-  return Number(result[0]?.count ?? 0);
 }
 
 /** Activate profile boost (premium feature) */
@@ -1217,8 +1181,10 @@ export async function seedCourts() {
 
 /** Seed test accounts (admin + premium) — idempotent */
 export async function seedTestAccounts() {
+  if (process.env.NODE_ENV === "production") return;
   const db = await getDb();
   const { randomBytes, scryptSync } = await import("crypto");
+  const seedPassword = process.env.SEED_TEST_PASSWORD ?? "TestPass123!";
 
   const testAccounts = [
     { email: "admin@pkl.test", username: "pkladmin", name: "PKL Admin", role: "admin" as const, isPremium: false },
@@ -1234,7 +1200,7 @@ export async function seedTestAccounts() {
       continue;
     }
     const salt = randomBytes(32).toString("hex");
-    const derivedKey = scryptSync("TestPass123!", salt, 64).toString("hex");
+    const derivedKey = scryptSync(seedPassword, salt, 64).toString("hex");
     const hashedPassword = `${salt}:${derivedKey}`;
     const openId = `email-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     await db.insert(users).values({
@@ -2193,7 +2159,7 @@ export async function joinGroup(userId: number, groupId: number) {
   const db = await getDb();
   return await db.transaction(async (tx) => {
     // Lock the group row to protect memberCount
-    const lockResult = await tx.execute(sql`SELECT id, isPrivate, conversationId, name FROM \`pkl_groups\` WHERE id = ${groupId} FOR UPDATE`);
+    const lockResult = await tx.execute(sql`SELECT id, isPrivate, conversationId, name FROM \`groups\` WHERE id = ${groupId} FOR UPDATE`);
     const group = (lockResult as any)[0]?.[0];
     if (!group) throw new Error("Group not found");
     const isPublic = !group.isPrivate;
@@ -3032,7 +2998,7 @@ export async function getNearbyUsersWithDistance(userId: number, lat: number, ln
   ];
   if (opts?.minRating != null) conditions.push(sql`${users.averageRating} >= ${opts.minRating}`);
   if (opts?.maxRating != null) conditions.push(sql`${users.averageRating} <= ${opts.maxRating}`);
-  const rows = await db.select().from(users).where(and(...conditions)).limit(500);
+  const rows = await db.select().from(users).where(and(...conditions));
   return rows.map(u => {
     const dLat = (u.latitude! - lat) * Math.PI / 180;
     const dLng = (u.longitude! - lng) * Math.PI / 180;
@@ -3086,7 +3052,7 @@ export async function getUserMatchesEnriched(userId: number) {
 
   // Batch fetch last message for each conversation using a subquery approach
   const convIds = Array.from(new Set(otherIdToConvId.values()));
-  let lastMsgByConv = new Map<number, { content: string | null; sentAt: Date; messageType: string }>();
+  let lastMsgByConv = new Map<number, { content: string | null; sentAt: Date }>();
   let unreadByConv = new Map<number, number>();
 
   if (convIds.length > 0) {
@@ -3095,7 +3061,6 @@ export async function getUserMatchesEnriched(userId: number) {
       conversationId: messages.conversationId,
       content: messages.content,
       sentAt: messages.sentAt,
-      messageType: messages.messageType,
     }).from(messages)
       .where(and(
         sql`${messages.conversationId} IN (${sql.join(convIds.map(id => sql`${id}`), sql`, `)})`,
@@ -3106,7 +3071,7 @@ export async function getUserMatchesEnriched(userId: number) {
     // Keep only the first (newest) per conversation
     for (const row of lastMsgRows) {
       if (!lastMsgByConv.has(row.conversationId)) {
-        lastMsgByConv.set(row.conversationId, { content: row.content, sentAt: row.sentAt, messageType: row.messageType });
+        lastMsgByConv.set(row.conversationId, { content: row.content, sentAt: row.sentAt });
       }
     }
 
@@ -3147,7 +3112,6 @@ export async function getUserMatchesEnriched(userId: number) {
       user: sanitizeUser(otherUser),
       conversationId: convId,
       lastMessage: lastMsg?.content ?? null,
-      lastMessageType: lastMsg?.messageType ?? null,
       lastMessageAt: lastMsg?.sentAt ?? m.matchedAt,
       unreadCount: convId ? (unreadByConv.get(convId) ?? 0) : 0,
     });
@@ -3616,10 +3580,10 @@ export async function recordGameResult(recordedBy: number, data: {
     winnerTeam,
     team1Score: data.team1Score,
     team2Score: data.team2Score,
-    team1PlayerIds: data.team1PlayerIds,
-    team2PlayerIds: data.team2PlayerIds,
+    team1PlayerIds: JSON.stringify(data.team1PlayerIds),
+    team2PlayerIds: JSON.stringify(data.team2PlayerIds),
     recordedBy,
-    scoreConfirmedBy: [recordedBy],
+    scoreConfirmedBy: JSON.stringify([recordedBy]),
   });
 
   return { winnerTeam, team1Score: data.team1Score, team2Score: data.team2Score };
@@ -3631,11 +3595,11 @@ export async function confirmGameScore(userId: number, gameId: number) {
     // Lock the result row to prevent concurrent confirm race
     const [result] = await tx.select().from(gameResults).where(eq(gameResults.gameId, gameId)).for("update").limit(1);
     if (!result) throw new Error("No game result found");
-    const confirmed: number[] = result.scoreConfirmedBy ? (result.scoreConfirmedBy as number[]) : [];
+    const confirmed: number[] = result.scoreConfirmedBy ? JSON.parse(result.scoreConfirmedBy) : [];
     if (confirmed.includes(userId)) throw new Error("You already confirmed this score");
     confirmed.push(userId);
     await tx.update(gameResults)
-      .set({ scoreConfirmedBy: confirmed })
+      .set({ scoreConfirmedBy: JSON.stringify(confirmed) })
       .where(eq(gameResults.gameId, gameId));
     return { confirmed: true, totalConfirmations: confirmed.length };
   });
@@ -3657,9 +3621,9 @@ export async function getGameResult(gameId: number) {
   if (!result.length) return null;
   return {
     ...result[0],
-    team1PlayerIds: result[0].team1PlayerIds ? (result[0].team1PlayerIds as number[]) : [],
-    team2PlayerIds: result[0].team2PlayerIds ? (result[0].team2PlayerIds as number[]) : [],
-    scoreConfirmedBy: result[0].scoreConfirmedBy ? (result[0].scoreConfirmedBy as number[]) : [],
+    team1PlayerIds: result[0].team1PlayerIds ? JSON.parse(result[0].team1PlayerIds) : [],
+    team2PlayerIds: result[0].team2PlayerIds ? JSON.parse(result[0].team2PlayerIds) : [],
+    scoreConfirmedBy: result[0].scoreConfirmedBy ? JSON.parse(result[0].scoreConfirmedBy) : [],
   };
 }
 
@@ -3698,16 +3662,16 @@ export async function saveTeamAssignments(userId: number, gameId: number, team1P
   const existing = await db.select().from(gameResults).where(eq(gameResults.gameId, gameId)).limit(1);
   if (existing.length > 0) {
     await db.update(gameResults).set({
-      team1PlayerIds: team1PlayerIds,
-      team2PlayerIds: team2PlayerIds,
+      team1PlayerIds: JSON.stringify(team1PlayerIds),
+      team2PlayerIds: JSON.stringify(team2PlayerIds),
     }).where(eq(gameResults.gameId, gameId));
   } else {
     await db.insert(gameResults).values({
       gameId,
       team1Score: 0,
       team2Score: 0,
-      team1PlayerIds: team1PlayerIds,
-      team2PlayerIds: team2PlayerIds,
+      team1PlayerIds: JSON.stringify(team1PlayerIds),
+      team2PlayerIds: JSON.stringify(team2PlayerIds),
       recordedBy: userId,
     });
   }
@@ -3732,16 +3696,16 @@ export async function startGameWithTeams(userId: number, gameId: number, team1Pl
     const existing = await tx.select().from(gameResults).where(eq(gameResults.gameId, gameId)).limit(1);
     if (existing.length > 0) {
       await tx.update(gameResults).set({
-        team1PlayerIds: team1PlayerIds,
-        team2PlayerIds: team2PlayerIds,
+        team1PlayerIds: JSON.stringify(team1PlayerIds),
+        team2PlayerIds: JSON.stringify(team2PlayerIds),
       }).where(eq(gameResults.gameId, gameId));
     } else {
       await tx.insert(gameResults).values({
         gameId,
         team1Score: 0,
         team2Score: 0,
-        team1PlayerIds: team1PlayerIds,
-        team2PlayerIds: team2PlayerIds,
+        team1PlayerIds: JSON.stringify(team1PlayerIds),
+        team2PlayerIds: JSON.stringify(team2PlayerIds),
         recordedBy: userId,
       });
     }
@@ -3871,8 +3835,8 @@ export async function completeGame(userId: number, gameId: number, data: {
         winnerTeam,
         team1Score: finalT1,
         team2Score: finalT2,
-        team1PlayerIds: data.team1PlayerIds,
-        team2PlayerIds: data.team2PlayerIds,
+        team1PlayerIds: JSON.stringify(data.team1PlayerIds),
+        team2PlayerIds: JSON.stringify(data.team2PlayerIds),
         recordedBy: userId,
         scoreConfirmedBy: existing.scoreConfirmedBy, // preserve existing confirmations
       }).where(eq(gameResults.gameId, gameId));
@@ -3882,8 +3846,8 @@ export async function completeGame(userId: number, gameId: number, data: {
         winnerTeam,
         team1Score: finalT1,
         team2Score: finalT2,
-        team1PlayerIds: data.team1PlayerIds,
-        team2PlayerIds: data.team2PlayerIds,
+        team1PlayerIds: JSON.stringify(data.team1PlayerIds),
+        team2PlayerIds: JSON.stringify(data.team2PlayerIds),
         recordedBy: userId,
       });
     }
@@ -3940,8 +3904,8 @@ export async function getGameScoreboard(gameId: number) {
     rounds,
     result: result ? {
       ...result,
-      team1PlayerIds: result.team1PlayerIds ? (result.team1PlayerIds as number[]) : [],
-      team2PlayerIds: result.team2PlayerIds ? (result.team2PlayerIds as number[]) : [],
+      team1PlayerIds: result.team1PlayerIds ? JSON.parse(result.team1PlayerIds) : [],
+      team2PlayerIds: result.team2PlayerIds ? JSON.parse(result.team2PlayerIds) : [],
     } : null,
     participants,
   };
@@ -5241,11 +5205,11 @@ export async function getCourtLeaderboard(courtId: number) {
   const gameMap = new Map<number, number>();
   for (const result of results) {
     const winnerIds: number[] = result.winnerTeam === "team1"
-      ? (result.team1PlayerIds as number[] || [])
+      ? JSON.parse(result.team1PlayerIds || "[]")
       : result.winnerTeam === "team2"
-        ? (result.team2PlayerIds as number[] || [])
+        ? JSON.parse(result.team2PlayerIds || "[]")
         : [];
-    const allIds = [...(result.team1PlayerIds as number[] || []), ...(result.team2PlayerIds as number[] || [])];
+    const allIds = [...JSON.parse(result.team1PlayerIds || "[]"), ...JSON.parse(result.team2PlayerIds || "[]")];
     for (const id of allIds) gameMap.set(id, (gameMap.get(id) ?? 0) + 1);
     for (const id of winnerIds) winMap.set(id, (winMap.get(id) ?? 0) + 1);
   }

@@ -41,7 +41,7 @@ export default function SwipeDeck() {
   const unmatchedQuery = trpc.matches.getUnmatched.useQuery(undefined, { enabled: !!user?.isPremium });
   const unmatchedUsers: any[] = unmatchedQuery.data ?? [];
   const rematchMutation = trpc.matches.rematch.useMutation({
-    onSuccess: () => { toast.success("Re-matched! Check your matches."); unmatchedQuery.refetch(); },
+    onSuccess: () => { toast.success(t("swipe.rematched")); unmatchedQuery.refetch(); },
     onError: (err) => toast.error(err.message),
   });
   const swipeMutation = trpc.swipes.create.useMutation({
@@ -71,9 +71,9 @@ export default function SwipeDeck() {
         setSwipeIndex(i => Math.max(0, i - 1));
         remainingQuery.refetch();
         candidatesQuery.refetch();
-        toast.success("Swipe undone!");
+        toast.success(t("swipe.swipeUndone"));
       } else {
-        toast.info("No recent swipe to undo");
+        toast.info(t("swipe.noSwipeToUndo"));
       }
     },
     onError: (err) => toast.error(err.message),
@@ -81,7 +81,7 @@ export default function SwipeDeck() {
 
   const boostMutation = trpc.swipes.boost.useMutation({
     onSuccess: (result: any) => {
-      toast.success(`Profile boosted! ${result.boostsRemaining ?? 0} boosts remaining`);
+      toast.success(t("swipe.profileBoosted", { remaining: result.boostsRemaining ?? 0 }));
     },
     onError: (err) => toast.error(err.message),
   });
@@ -449,9 +449,9 @@ export default function SwipeDeck() {
           >
             {boostMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <Rocket size={16} />}
             {!user?.isPremium ? (
-              <span className="text-[6px] font-bold uppercase tracking-wider flex items-center gap-0.5"><Crown size={7} />PRO</span>
+              <span className="text-[6px] font-bold uppercase tracking-wider flex items-center gap-0.5"><Crown size={7} />{t("swipe.pro")}</span>
             ) : (
-              <span className="text-[6px] font-bold uppercase tracking-wider">Boost</span>
+              <span className="text-[6px] font-bold uppercase tracking-wider">{t("swipe.boost")}</span>
             )}
           </button>
         </div>
@@ -570,8 +570,8 @@ function PlayerCard({ player }: { player: any }) {
         </div>
 
         <div className="flex items-center gap-1.5 mb-2 flex-wrap">
-          <span className="px-2 py-0.5 rounded-full bg-primary/30 text-white text-[10px] font-medium backdrop-blur-sm capitalize">{player.skillLevel || "Beginner"}</span>
-          <span className="px-2 py-0.5 rounded-full bg-cyan-500/30 text-white text-[10px] font-medium backdrop-blur-sm capitalize">{player.vibe || "social"}</span>
+          <span className="px-2 py-0.5 rounded-full bg-primary/30 text-white text-[10px] font-medium backdrop-blur-sm capitalize">{player.skillLevel || t("swipe.beginner")}</span>
+          <span className="px-2 py-0.5 rounded-full bg-cyan-500/30 text-white text-[10px] font-medium backdrop-blur-sm capitalize">{player.vibe || t("swipe.social")}</span>
           {player.handedness && <span className="px-2 py-0.5 rounded-full bg-white/15 text-white text-[10px] font-medium backdrop-blur-sm capitalize">&#9995; {player.handedness}</span>}
         </div>
 
@@ -582,15 +582,15 @@ function PlayerCard({ player }: { player: any }) {
         <div className="flex gap-2">
           <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/10 backdrop-blur-sm">
             <Trophy size={11} className="text-secondary" />
-            <span className="text-[10px] text-white/90 font-medium">{player.totalWins || 0}W / {player.totalGames || 0}G</span>
+            <span className="text-[10px] text-white/90 font-medium">{t("swipe.winGameStat", { wins: player.totalWins || 0, games: player.totalGames || 0 })}</span>
           </div>
           <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/10 backdrop-blur-sm">
             <Flame size={11} className="text-secondary" />
-            <span className="text-[10px] text-white/90 font-medium">{player.currentStreak || 0}d streak</span>
+            <span className="text-[10px] text-white/90 font-medium">{t("swipe.streakStat", { days: player.currentStreak || 0 })}</span>
           </div>
           <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/10 backdrop-blur-sm">
             <Target size={11} className="text-secondary" />
-            <span className="text-[10px] text-white/90 font-medium">Lvl {player.level || 1}</span>
+            <span className="text-[10px] text-white/90 font-medium">{t("swipe.levelStat", { level: player.level || 1 })}</span>
           </div>
         </div>
 

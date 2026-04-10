@@ -4,13 +4,15 @@ import PlayerAvatar from "@/components/PlayerAvatar";
 import { getDisplayName } from "@/lib/avatarUtils";
 import { ArrowLeft, Heart, Loader2, MapPin } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 export default function FavoritePlayersScreen() {
   const { goBack, selectPlayer } = useApp();
+  const { t } = useTranslation();
   const utils = trpc.useUtils();
   const favQuery = trpc.favorites.list.useQuery();
   const removeMutation = trpc.favorites.remove.useMutation({
-    onSuccess: () => { utils.favorites.list.invalidate(); toast.success("Removed from favorites"); },
+    onSuccess: () => { utils.favorites.list.invalidate(); toast.success(t("favorites.removed")); },
   });
 
   const players: any[] = favQuery.data ?? [];
@@ -19,11 +21,11 @@ export default function FavoritePlayersScreen() {
     <div className="min-h-screen bg-background pb-24">
       <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm border-b border-border/30 px-4 py-3">
         <div className="flex items-center gap-3">
-          <button onClick={goBack} aria-label="Go back" className="p-1.5 rounded-full hover:bg-muted/50">
+          <button onClick={goBack} className="p-1.5 rounded-full hover:bg-muted/50">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <Heart className="w-5 h-5 text-pink-400" />
-          <h1 className="text-lg font-bold">Favorite Players</h1>
+          <h1 className="text-lg font-bold">{t("favorites.title")}</h1>
         </div>
       </div>
 
@@ -35,8 +37,8 @@ export default function FavoritePlayersScreen() {
         ) : players.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
             <Heart className="w-10 h-10 mx-auto mb-2 opacity-40" />
-            <p>No favorite players yet</p>
-            <p className="text-xs mt-1">Tap the heart icon on player profiles to save them</p>
+            <p>{t("favorites.empty")}</p>
+            <p className="text-xs mt-1">{t("favorites.emptyHint")}</p>
           </div>
         ) : (
           players.map((p: any) => (

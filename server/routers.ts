@@ -204,7 +204,7 @@ export const appRouter = router({
         handedness: z.enum(["left", "right", "ambidextrous"]).optional(),
         goals: z.string().optional(),
         courtPreference: z.enum(["indoor", "outdoor", "both"]).optional(),
-        profilePhotoUrl: z.string().max(10_000_000).nullable().optional(),
+        profilePhotoUrl: z.string().nullable().optional(),
         hasProfilePhoto: z.boolean().optional(),
         e2ePublicKey: z.string().optional(),
       }))
@@ -368,8 +368,8 @@ export const appRouter = router({
         lng: z.number().min(-180).max(180),
         radiusMiles: z.number().min(1).max(500).default(25),
         skillLevel: z.string().optional(),
-        ageMin: z.number().min(18).max(99).optional(),
-        ageMax: z.number().min(18).max(99).optional(),
+        ageMin: z.number().int().min(18).max(99).optional(),
+        ageMax: z.number().int().min(18).max(99).optional(),
         vibe: z.string().optional(),
       }))
       .query(async ({ ctx, input }) => {
@@ -391,11 +391,6 @@ export const appRouter = router({
         const user = await db.getUserById(ctx.user.id);
         if (!user?.isPremium) throw new TRPCError({ code: "FORBIDDEN", message: "Premium feature: See Who Liked You" });
         return db.getWhoLikedYou(ctx.user.id);
-      }),
-    whoLikedYouCount: protectedProcedure
-      .query(async ({ ctx }) => {
-        const count = await db.getWhoLikedYouCount(ctx.user.id);
-        return { count };
       }),
     boost: protectedProcedure
       .mutation(({ ctx }) => db.activateProfileBoost(ctx.user.id)),
@@ -463,10 +458,10 @@ export const appRouter = router({
     sendMessage: protectedProcedure
       .input(z.object({
         conversationId: z.number(),
-        content: z.string().max(10_000_000).optional(),
+        content: z.string().max(5000).optional(),
         messageType: z.enum(["text", "image", "video", "location_pin", "system"]).default("text"),
-        locationLat: z.number().min(-90).max(90).optional(),
-        locationLng: z.number().min(-180).max(180).optional(),
+        locationLat: z.number().optional(),
+        locationLng: z.number().optional(),
         locationName: z.string().max(255).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
@@ -544,7 +539,7 @@ export const appRouter = router({
       .input(z.object({ courtId: z.number() }))
       .query(({ input }) => db.getCourtReviews(input.courtId)),
     addReview: protectedProcedure
-      .input(z.object({ courtId: z.number(), rating: z.number().min(1).max(5), comment: z.string().optional() }))
+      .input(z.object({ courtId: z.number(), rating: z.number().int().min(1).max(5), comment: z.string().optional() }))
       .mutation(async ({ ctx, input }) => {
         const sanitized = { ...input };
         if (sanitized.comment) sanitized.comment = sanitizeString(sanitized.comment);
@@ -562,13 +557,13 @@ export const appRouter = router({
         city: z.string().max(100).optional(),
         state: z.string().max(100).optional(),
         courtType: z.enum(["indoor", "outdoor", "both"]).default("outdoor"),
-        numCourts: z.number().min(1).max(50).default(1),
+        numCourts: z.number().int().min(1).max(50).default(1),
         surfaceType: z.string().max(50).optional(),
         lighting: z.boolean().default(false),
         isFree: z.boolean().default(true),
         costInfo: z.string().max(200).optional(),
         amenities: z.string().max(500).optional(),
-        photoUrl: z.string().max(10_000_000).optional(),
+        photoUrl: z.string().max(1000).optional(),
         notes: z.string().max(500).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
@@ -607,7 +602,7 @@ export const appRouter = router({
         city: z.string().max(100).optional(),
         state: z.string().max(100).optional(),
         courtType: z.enum(["indoor", "outdoor", "both"]).optional(),
-        numCourts: z.number().min(1).max(50).optional(),
+        numCourts: z.number().int().min(1).max(50).optional(),
         surfaceType: z.string().max(50).optional(),
         lighting: z.boolean().optional(),
         isFree: z.boolean().optional(),
@@ -634,7 +629,7 @@ export const appRouter = router({
       .input(z.object({ courtId: z.number() }))
       .query(({ input }) => db.getCourtPhotos(input.courtId)),
     addPhoto: protectedProcedure
-      .input(z.object({ courtId: z.number(), photoUrl: z.string().max(10_000_000), caption: z.string().max(255).optional() }))
+      .input(z.object({ courtId: z.number(), photoUrl: z.string().max(1000), caption: z.string().max(255).optional() }))
       .mutation(async ({ ctx, input }) => {
         const sanitized = { ...input };
         if (sanitized.caption) sanitized.caption = sanitizeString(sanitized.caption);
@@ -659,15 +654,12 @@ export const appRouter = router({
         courtId: z.number(),
         startTime: z.string(),
         endTime: z.string(),
-        courtNumber: z.number().min(1).max(50).optional(),
+        courtNumber: z.number().int().min(1).max(50).optional(),
         gameId: z.number().optional(),
         notes: z.string().max(500).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const sanitized = { ...input, startTime: new Date(input.startTime), endTime: new Date(input.endTime) };
-        if (sanitized.endTime <= sanitized.startTime) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: "End time must be after start time" });
-        }
         if (input.notes) sanitized.notes = sanitizeString(input.notes);
         return db.createCourtBooking(ctx.user.id, sanitized);
       }),
@@ -702,10 +694,10 @@ export const appRouter = router({
         locationLng: z.number().min(-180).max(180).optional(),
         locationName: z.string().max(255).optional(),
         scheduledAt: z.string(),
-        durationMinutes: z.number().min(15).max(480).default(90),
+        durationMinutes: z.number().int().min(15).max(480).default(90),
         gameType: z.enum(["casual", "competitive", "tournament", "practice"]).default("casual"),
         format: z.enum(["singles", "mens-doubles", "womens-doubles", "mixed-doubles"]).default("mixed-doubles"),
-        maxPlayers: z.number().min(2).max(32).default(4),
+        maxPlayers: z.number().int().min(2).max(32).default(4),
         skillLevelMin: z.string().optional(),
         skillLevelMax: z.string().optional(),
         notes: z.string().max(500).optional(),
@@ -781,7 +773,7 @@ export const appRouter = router({
         gameId: z.number(),
         status: z.enum(["scheduled", "in-progress", "completed", "cancelled"]).optional(),
         notes: z.string().max(2000).optional(),
-        maxPlayers: z.number().min(2).max(32).optional(),
+        maxPlayers: z.number().int().min(2).max(32).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         // Validate state transitions if status is being changed
@@ -808,7 +800,7 @@ export const appRouter = router({
       .input(z.object({
         gameId: z.number(),
         reviewedId: z.number(),
-        rating: z.number().min(1).max(5),
+        rating: z.number().int().min(1).max(5),
         skillAccurate: z.boolean().default(true),
         goodSport: z.boolean().default(true),
         onTime: z.boolean().default(true),
@@ -834,8 +826,8 @@ export const appRouter = router({
     recordResult: protectedProcedure
       .input(z.object({
         gameId: z.number(),
-        team1Score: z.number().min(0).max(99),
-        team2Score: z.number().min(0).max(99),
+        team1Score: z.number().int().min(0).max(99),
+        team2Score: z.number().int().min(0).max(99),
         team1PlayerIds: z.array(z.number()).min(1).max(16),
         team2PlayerIds: z.array(z.number()).min(1).max(16),
       }))
@@ -847,12 +839,6 @@ export const appRouter = router({
         }
         if (!await db.isGameParticipant(ctx.user.id, input.gameId)) {
           throw new TRPCError({ code: "FORBIDDEN", message: "Only game participants can record results" });
-        }
-        // Validate no player is on both teams
-        const team1Set = new Set(input.team1PlayerIds);
-        const overlap = input.team2PlayerIds.filter(id => team1Set.has(id));
-        if (overlap.length > 0) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: "Players cannot be on both teams" });
         }
         // Validate all referenced players are actual game participants
         const allPlayerIds = Array.from(new Set([...input.team1PlayerIds, ...input.team2PlayerIds]));
@@ -891,9 +877,9 @@ export const appRouter = router({
     start: protectedProcedure
       .input(z.object({
         gameId: z.number(),
-        pointsToWin: z.number().min(1).max(21).optional(),
-        bestOf: z.number().min(1).max(5).optional(),
-        winBy: z.number().min(1).max(5).optional(),
+        pointsToWin: z.number().int().min(1).max(21).optional(),
+        bestOf: z.number().int().min(1).max(5).optional(),
+        winBy: z.number().int().min(1).max(5).optional(),
       }))
       .mutation(({ ctx, input }) => db.startGame(ctx.user.id, input.gameId, {
         pointsToWin: input.pointsToWin,
@@ -905,16 +891,11 @@ export const appRouter = router({
         gameId: z.number(),
         team1PlayerIds: z.array(z.number()).min(1).max(16),
         team2PlayerIds: z.array(z.number()).min(1).max(16),
-        pointsToWin: z.number().min(1).max(21).optional(),
-        bestOf: z.number().min(1).max(5).optional(),
-        winBy: z.number().min(1).max(5).optional(),
+        pointsToWin: z.number().int().min(1).max(21).optional(),
+        bestOf: z.number().int().min(1).max(5).optional(),
+        winBy: z.number().int().min(1).max(5).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        // Validate no player is on both teams
-        const t1Set = new Set(input.team1PlayerIds);
-        if (input.team2PlayerIds.some(id => t1Set.has(id))) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: "Players cannot be on both teams" });
-        }
         const result = await db.startGameWithTeams(ctx.user.id, input.gameId, input.team1PlayerIds, input.team2PlayerIds, {
           pointsToWin: input.pointsToWin,
           bestOf: input.bestOf,
@@ -950,9 +931,9 @@ export const appRouter = router({
     saveRound: protectedProcedure
       .input(z.object({
         gameId: z.number(),
-        roundNumber: z.number().min(1).max(5),
-        team1Score: z.number().min(0).max(99),
-        team2Score: z.number().min(0).max(99),
+        roundNumber: z.number().int().min(1).max(5),
+        team1Score: z.number().int().min(0).max(99),
+        team2Score: z.number().int().min(0).max(99),
         winnerTeam: z.enum(["team1", "team2"]).optional(),
         completed: z.boolean().default(false),
       }))
@@ -960,17 +941,13 @@ export const appRouter = router({
         const result = await db.saveGameRound(ctx.user.id, input.gameId, input);
         // Broadcast round update to all players in the game room
         if (input.completed && input.winnerTeam) {
-          try {
-            broadcastToGameRoom(input.gameId, "game:roundComplete", {
-              gameId: input.gameId,
-              roundNumber: input.roundNumber,
-              team1Score: input.team1Score,
-              team2Score: input.team2Score,
-              winnerTeam: input.winnerTeam,
-            });
-          } catch (e) {
-            console.error("[Game] Round broadcast failed:", e);
-          }
+          broadcastToGameRoom(input.gameId, "game:roundComplete", {
+            gameId: input.gameId,
+            roundNumber: input.roundNumber,
+            team1Score: input.team1Score,
+            team2Score: input.team2Score,
+            winnerTeam: input.winnerTeam,
+          });
         }
         return result;
       }),
@@ -980,28 +957,19 @@ export const appRouter = router({
     complete: protectedProcedure
       .input(z.object({
         gameId: z.number(),
-        team1Score: z.number().min(0).max(99),
-        team2Score: z.number().min(0).max(99),
+        team1Score: z.number().int().min(0).max(99),
+        team2Score: z.number().int().min(0).max(99),
         team1PlayerIds: z.array(z.number()).min(1),
         team2PlayerIds: z.array(z.number()).min(1),
       }))
       .mutation(async ({ ctx, input }) => {
-        // Validate no player is on both teams
-        const t1Check = new Set(input.team1PlayerIds);
-        if (input.team2PlayerIds.some(id => t1Check.has(id))) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: "Players cannot be on both teams" });
-        }
         const result = await db.completeGame(ctx.user.id, input.gameId, input);
         // Broadcast game completion to all players in the game room for instant UI update
-        try {
-          broadcastToGameRoom(input.gameId, "game:completed", {
-            gameId: input.gameId,
-            team1Score: input.team1Score,
-            team2Score: input.team2Score,
-          });
-        } catch (e) {
-          console.error("[Game] Broadcast failed:", e);
-        }
+        broadcastToGameRoom(input.gameId, "game:completed", {
+          gameId: input.gameId,
+          team1Score: input.team1Score,
+          team2Score: input.team2Score,
+        });
         // Notify all participants that the game is complete
         const allPlayerIds = Array.from(new Set([...input.team1PlayerIds, ...input.team2PlayerIds]));
         const winnerTeam = input.team1Score > input.team2Score ? "team1" : "team2";
@@ -1066,7 +1034,7 @@ export const appRouter = router({
         return { xpAwarded: result.xpAwarded };
       }),
     claimQuest: protectedProcedure
-      .input(z.object({ questId: z.string(), xp: z.number().min(1).max(500) }))
+      .input(z.object({ questId: z.string(), xp: z.number().int().min(1).max(500) }))
       .mutation(async ({ ctx, input }) => {
         // Server-side quest XP validation — prevent clients from sending arbitrary XP
         const VALID_QUESTS: Record<string, number> = {
@@ -1189,10 +1157,10 @@ export const appRouter = router({
         courtId: z.number().optional(),
         locationName: z.string().max(255).optional(),
         scheduledAt: z.string().optional(),
-        durationMinutes: z.number().min(30).max(480).optional(),
+        durationMinutes: z.number().int().min(30).max(480).optional(),
         skillLevelMin: z.string().optional(),
         skillLevelMax: z.string().optional(),
-        maxPlayers: z.number().min(2).max(32).optional(),
+        maxPlayers: z.number().int().min(2).max(32).optional(),
         notes: z.string().max(500).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
@@ -1272,7 +1240,7 @@ export const appRouter = router({
         groupType: z.enum(["social", "league", "tournament", "coaching"]).default("social"),
         isPrivate: z.boolean().default(false),
         locationCity: z.string().optional(),
-        photo: z.string().max(10_000_000).optional(),
+        photo: z.string().max(2000).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const sanitized = { ...input };
@@ -1425,7 +1393,7 @@ export const appRouter = router({
       .input(z.object({ coachingId: z.number() }))
       .query(({ input }) => db.getCoachingParticipants(input.coachingId)),
     addReview: protectedProcedure
-      .input(z.object({ coachingId: z.number(), rating: z.number().min(1).max(5), comment: z.string().optional() }))
+      .input(z.object({ coachingId: z.number(), rating: z.number().int().min(1).max(5), comment: z.string().optional() }))
       .mutation(({ ctx, input }) => {
         const sanitized = { rating: input.rating, comment: input.comment ? sanitizeString(input.comment) : undefined };
         return db.addCoachingReview(ctx.user.id, input.coachingId, sanitized);
@@ -1450,8 +1418,8 @@ export const appRouter = router({
         locationLng: z.number().min(-180).max(180).nullable().optional(),
         locationName: z.string().max(255).nullable().optional(),
         scheduledAt: z.string().optional(),
-        durationMinutes: z.number().min(15).max(480).optional(),
-        maxParticipants: z.number().min(1).max(100).optional(),
+        durationMinutes: z.number().int().min(15).max(480).optional(),
+        maxParticipants: z.number().int().min(1).max(100).optional(),
         costPerPerson: z.number().min(0).max(10000).optional(),
         skillLevel: z.string().optional(),
         agenda: z.string().max(5000).optional(),
@@ -1506,7 +1474,7 @@ export const appRouter = router({
       .input(z.object({ coachingId: z.number() }))
       .query(({ input }) => db.getCoachingAnnouncements(input.coachingId)),
     postAnnouncement: protectedProcedure
-      .input(z.object({ coachingId: z.number(), content: z.string().min(1).max(5000) }))
+      .input(z.object({ coachingId: z.number(), content: z.string().min(1).max(2000) }))
       .mutation(async ({ ctx, input }) => {
         try {
           return await db.createCoachingAnnouncement(ctx.user.id, input.coachingId, sanitizeString(input.content));
@@ -1568,7 +1536,7 @@ export const appRouter = router({
       .input(z.object({ userId: z.number().optional() }).optional())
       .query(({ ctx, input }) => db.getUserPhotos(input?.userId ?? ctx.user.id)),
     add: protectedProcedure
-      .input(z.object({ photoUrl: z.string().max(10_000_000) }))
+      .input(z.object({ photoUrl: z.string().max(2048) }))
       .mutation(({ ctx, input }) => db.addUserPhoto(ctx.user.id, input.photoUrl)),
     remove: protectedProcedure
       .input(z.object({ photoId: z.number() }))
@@ -1773,18 +1741,6 @@ export const appRouter = router({
         ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
         return { success: true, message: "Account has been deleted." };
       }),
-    confirmDeleteAccount: protectedProcedure
-      .input(z.object({ token: z.string() }))
-      .mutation(async ({ ctx, input }) => {
-        const userId = await db.verifyAccountDeletionToken(input.token);
-        if (!userId || userId !== ctx.user.id) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid or expired deletion token" });
-        }
-        await db.softDeleteUser(userId);
-        const cookieOptions = getSessionCookieOptions(ctx.req);
-        ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
-        return { success: true };
-      }),
     exportData: protectedProcedure
       .mutation(async ({ ctx }) => {
         const data = await db.exportUserData(ctx.user.id);
@@ -1871,15 +1827,15 @@ export const appRouter = router({
         description: z.string().max(2000).optional(),
         format: z.enum(["single-elimination", "double-elimination", "round-robin"]),
         gameFormat: z.enum(["singles", "mens-doubles", "womens-doubles", "mixed-doubles"]),
-        maxParticipants: z.number().min(2).max(128).default(16),
+        maxParticipants: z.number().int().min(2).max(128).default(16),
         entryFee: z.number().min(0).optional(),
         prizeDescription: z.string().max(500).optional(),
-        pointsToWin: z.number().min(1).max(21).default(11),
-        bestOf: z.number().min(1).max(7).default(3),
-        winBy: z.number().min(1).max(5).default(2),
+        pointsToWin: z.number().int().min(1).max(21).default(11),
+        bestOf: z.number().int().min(1).max(7).default(3),
+        winBy: z.number().int().min(1).max(5).default(2),
         courtId: z.number().optional(),
-        locationLat: z.number().min(-90).max(90).optional(),
-        locationLng: z.number().min(-180).max(180).optional(),
+        locationLat: z.number().optional(),
+        locationLng: z.number().optional(),
         locationName: z.string().max(255).optional(),
         skillLevelMin: z.string().optional(),
         skillLevelMax: z.string().optional(),
@@ -1930,7 +1886,7 @@ export const appRouter = router({
         name: z.string().min(3).max(100).optional(),
         description: z.string().max(2000).optional(),
         rules: z.string().max(5000).optional(),
-        maxParticipants: z.number().min(2).max(128).optional(),
+        maxParticipants: z.number().int().min(2).max(128).optional(),
         registrationDeadline: z.string().optional(),
         startDate: z.string().optional(),
         endDate: z.string().optional(),
@@ -2141,8 +2097,8 @@ export const appRouter = router({
       })),
     createPost: protectedProcedure
       .input(z.object({
-        content: z.string().min(1).max(5000),
-        photoUrl: z.string().max(10_000_000).optional(),
+        content: z.string().min(1).max(2000),
+        photoUrl: z.string().optional(),
         postType: z.enum(["general", "highlight", "question", "tip", "looking_for_players"]).optional(),
       }))
       .mutation(({ ctx, input }) => db.createFeedPost(ctx.user.id, {
@@ -2153,7 +2109,7 @@ export const appRouter = router({
       .input(z.object({ postId: z.number() }))
       .mutation(({ ctx, input }) => db.toggleFeedLike(ctx.user.id, input.postId)),
     addComment: protectedProcedure
-      .input(z.object({ postId: z.number(), content: z.string().min(1).max(5000) }))
+      .input(z.object({ postId: z.number(), content: z.string().min(1).max(1000) }))
       .mutation(({ ctx, input }) => db.addFeedComment(ctx.user.id, input.postId, sanitizeString(input.content))),
     getComments: protectedProcedure
       .input(z.object({ postId: z.number(), limit: z.number().min(1).max(100).default(50) }))

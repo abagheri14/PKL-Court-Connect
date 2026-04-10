@@ -55,8 +55,7 @@ export async function requestFirebasePushToken(): Promise<string | null> {
   try {
     const token = await getToken(msg, { vapidKey });
     return token;
-  } catch (err) {
-    console.warn("Failed to get Firebase push token:", err);
+  } catch {
     return null;
   }
 }

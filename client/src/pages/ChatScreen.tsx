@@ -89,7 +89,7 @@ export default function ChatScreen() {
   });
 
   // Real-time socket for instant messages + typing indicators
-  const { sendMessage: socketSend, sendTyping, markRead: socketMarkRead, isAnyoneTyping } = useChatSocket({
+  const { sendTyping, markRead: socketMarkRead, isAnyoneTyping } = useChatSocket({
     conversationId,
     userId: user?.id,
     onNewMessage: useCallback(() => {
@@ -141,7 +141,6 @@ export default function ChatScreen() {
 
   const sendMessageMutation = trpc.chat.sendMessage.useMutation({
     onSuccess: () => {
-      messagesQuery.refetch();
       utils.matches.list.invalidate();
     },
     onError: (err) => toast.error(err.message || t("chat.failedToSend")),
@@ -211,13 +210,6 @@ export default function ChatScreen() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [messages.length]);
 
-  // Clean up typing timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (typingTimeout.current) clearTimeout(typingTimeout.current);
-    };
-  }, []);
-
   // Handle typing indicator
   const handleInputChange = (value: string) => {
     setInput(value);
@@ -230,9 +222,9 @@ export default function ChatScreen() {
     return (
       <div className="min-h-screen flex items-center justify-center px-4">
         {matchesQuery.isError ? (
-          <QueryError message={t("chat.failedToLoadConversation")} onRetry={() => matchesQuery.refetch()} />
+          <QueryError message={t("Failed to load conversation")} onRetry={() => matchesQuery.refetch()} />
         ) : (
-          <p className="text-muted-foreground">{t("chat.noConversationSelected")}</p>
+          <p className="text-muted-foreground">{t("No conversation selected")}</p>
         )}
       </div>
     );
@@ -270,7 +262,6 @@ export default function ChatScreen() {
       <div className="card-elevated border-b border-primary/10 px-4 py-3 flex items-center gap-3 flex-shrink-0">
         <button
           onClick={() => goBack()}
-          aria-label="Go back"
           className="p-2 rounded-xl glass hover:scale-105 transition-transform"
         >
           <ArrowLeft size={18} />
@@ -284,7 +275,7 @@ export default function ChatScreen() {
           <p className="font-bold text-sm">{peerUser ? getDisplayName(peerUser) : "..."}</p>
           <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
             <Lock size={8} className="text-green-400" />
-            {t("chat.encrypted")}
+            {t("Encrypted")}
           </div>
         </div>
         <div className="relative">
@@ -302,7 +293,7 @@ export default function ChatScreen() {
                   className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-lg"
                 >
                   <UserX size={14} />
-                  {t("chat.unmatch")}
+                  {t("Unmatch")}
                 </button>
               )}
             </div>
@@ -314,14 +305,14 @@ export default function ChatScreen() {
       {showUnmatchConfirm && (
         <div className="px-4 py-2">
           <div className="card-elevated rounded-xl p-4 border-red-500/30">
-            <p className="text-sm font-semibold mb-1">{t("chat.unmatchConfirm", { name: peerUser ? getDisplayName(peerUser) : t("chat.thisUser") })}</p>
-            <p className="text-xs text-muted-foreground mb-3">{t("chat.unmatchWarning")}</p>
+            <p className="text-sm font-semibold mb-1">{t("Unmatch {{name}}?", { name: peerUser ? getDisplayName(peerUser) : t("this user") })}</p>
+            <p className="text-xs text-muted-foreground mb-3">{t("This cannot be undone. Your conversation will be deleted.")}</p>
             <div className="flex gap-2">
               <Button size="sm" className="flex-1 bg-red-500 text-white hover:bg-red-600" onClick={() => { if (match) unmatchMutation.mutate({ matchId: match.id }); setShowUnmatchConfirm(false); }}>
-                {t("chat.unmatch")}
+                {t("Unmatch")}
               </Button>
               <Button size="sm" variant="outline" className="flex-1" onClick={() => setShowUnmatchConfirm(false)}>
-                {t("common.cancel")}
+                {t("Cancel")}
               </Button>
             </div>
           </div>
@@ -335,14 +326,13 @@ export default function ChatScreen() {
         ) : (
         <>
         <div className="text-center text-xs text-muted-foreground mb-4">
-          <p>{isDmConversation ? t("chat.startOfConversation") : t("chat.matchedOn", { date: match?.matchedAt ? new Date(match.matchedAt).toLocaleDateString(i18n.language, { month: "long", day: "numeric", year: "numeric" }) : t("chat.recently") })}</p>
+          <p>{isDmConversation ? t("Start of conversation") : t("You matched on {{date}}", { date: match?.matchedAt ? new Date(match.matchedAt).toLocaleDateString(i18n.language, { month: "long", day: "numeric", year: "numeric" }) : t("recently") })}</p>
         </div>
         {messages.map((msg: any) => {
           const isMine = msg.senderId === user.id;
           const content = decryptedMessages.get(msg.id) ?? msg.content ?? "";
           const isCheers = content.startsWith("🎉") || content.startsWith("🏆") || content.startsWith("🔥") || content.startsWith("⭐");
           const isLocationPin = msg.messageType === "location_pin";
-          const isImage = msg.messageType === "image" || /\.(png|jpe?g|gif|webp)$/i.test(content) || (content.startsWith("/api/files/") && !isLocationPin);
 
           return (
             <div key={msg.id} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
@@ -354,8 +344,6 @@ export default function ChatScreen() {
                     ? "px-4 py-3 bg-gradient-to-br from-secondary/20 via-yellow-500/10 to-orange-500/10 border border-secondary/30 rounded-2xl"
                     : isLocationPin
                     ? "overflow-hidden rounded-2xl border border-primary/20"
-                    : isImage
-                    ? "p-1 rounded-2xl overflow-hidden"
                     : `px-3.5 py-2.5 ${isMine
                         ? "bg-gradient-to-r from-primary to-accent text-white rounded-br-md shadow-[0_2px_12px_rgba(168,85,247,0.15)]"
                         : "card-elevated rounded-bl-md"
@@ -377,7 +365,7 @@ export default function ChatScreen() {
                             <div className="w-10 h-10 rounded-full bg-secondary/20 flex items-center justify-center">
                               <Navigation size={20} className="text-secondary" />
                             </div>
-                            <span className="text-[10px] font-medium text-secondary/80">{t("chat.tapToOpenMap")}</span>
+                            <span className="text-[10px] font-medium text-secondary/80">{t("Tap to open map")}</span>
                           </div>
                         </div>
                       </a>
@@ -405,20 +393,6 @@ export default function ChatScreen() {
                 ) : isCheers ? (
                   <div className="text-center">
                     <p className="text-2xl mb-1">{content}</p>
-                    <p className={`text-[10px] mt-1 ${isMine ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
-                      {new Date(msg.sentAt).toLocaleTimeString(i18n.language, { hour: "numeric", minute: "2-digit" })}
-                      {isMine && msg.readAt && user?.isPremium && " ✓✓"}
-                    </p>
-                  </div>
-                ) : isImage ? (
-                  <div>
-                    <img
-                      src={content.startsWith("data:") || content.startsWith("http") ? content : content.startsWith("/") ? content : `/api/files/${content}`}
-                      alt="Shared photo"
-                      className="max-w-[240px] max-h-[320px] rounded-xl object-cover cursor-pointer"
-                      onClick={() => window.open(content.startsWith("data:") || content.startsWith("http") ? content : content.startsWith("/") ? content : `/api/files/${content}`, "_blank")}
-                      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                    />
                     <p className={`text-[10px] mt-1 ${isMine ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
                       {new Date(msg.sentAt).toLocaleTimeString(i18n.language, { hour: "numeric", minute: "2-digit" })}
                       {isMine && msg.readAt && user?.isPremium && " ✓✓"}
@@ -493,7 +467,7 @@ export default function ChatScreen() {
               <span className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
               <span className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
             </div>
-            {t("chat.typing")}
+            {t("typing...")}
           </div>
         </div>
       )}
@@ -566,14 +540,14 @@ export default function ChatScreen() {
           onClick={() => {
             if (!conversationId) return;
             if (!navigator.geolocation) {
-              toast.error(t("chat.locationNotAvailable"));
+              toast.error(t("Location not available on this device"));
               return;
             }
             setLocationSharing(true);
             navigator.geolocation.getCurrentPosition(
               async (pos) => {
                 const { latitude, longitude } = pos.coords;
-                const encContent = await encrypt(t("chat.sharedLocation"));
+                const encContent = await encrypt(t("📍 Shared location"));
                 sendMessageMutation.mutate({
                   conversationId,
                   content: encContent,
@@ -582,11 +556,11 @@ export default function ChatScreen() {
                   locationLng: longitude,
                   locationName: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`,
                 });
-                toast(t("chat.locationShared"), { icon: "📍" });
+                toast(t("Location shared!"), { icon: "📍" });
                 setLocationSharing(false);
               },
               (err) => {
-                toast.error(t("chat.locationError", { msg: err.message }));
+                toast.error(t("Could not get location: {{msg}}", { msg: err.message }));
                 setLocationSharing(false);
               },
               { enableHighAccuracy: true, timeout: 10000 }
@@ -597,7 +571,7 @@ export default function ChatScreen() {
         </button>
         <button
           className={cn("p-2 transition-colors", showCheersPicker ? "text-secondary" : "text-secondary/60 hover:text-secondary")}
-          title={t("chat.sendCheers")}
+          title={t("Send Cheers")}
           onClick={() => setShowCheersPicker(v => !v)}
         >
           <PartyPopper size={18} />
@@ -606,7 +580,7 @@ export default function ChatScreen() {
           value={input}
           onChange={e => handleInputChange(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={t("chat.messagePlaceholder")}
+          placeholder={t("Type a message...")}
           className="flex-1 bg-background/50 h-9 text-sm"
         />
         <Button

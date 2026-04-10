@@ -151,7 +151,7 @@ export default function LocationPickerSection({ value, onChange, label, accentCo
   return (
     <div className="space-y-3">
       <h3 className="text-sm font-semibold flex items-center gap-2">
-        <MapPin size={14} style={{ color: accent }} /> {label || t("locationPicker.location")}
+        <MapPin size={14} style={{ color: accent }} /> {label || "Location"}
       </h3>
 
       {/* Mode selector */}
@@ -184,7 +184,7 @@ export default function LocationPickerSection({ value, onChange, label, accentCo
             <p className="text-xs font-medium truncate">{courtDisplay.name}</p>
             {courtDisplay.address && <p className="text-[10px] text-muted-foreground truncate">{courtDisplay.address}</p>}
           </div>
-          <button onClick={() => setShowCourtPicker(true)} className="text-[10px] text-secondary font-medium">{t("locationPicker.change")}</button>
+          <button onClick={() => setShowCourtPicker(true)} className="text-[10px] text-secondary font-medium">Change</button>
           <button onClick={handleClear} className="p-0.5"><X size={12} className="text-muted-foreground" /></button>
         </div>
       )}
@@ -196,7 +196,7 @@ export default function LocationPickerSection({ value, onChange, label, accentCo
           className="w-full text-left p-3 rounded-xl border border-dashed border-border hover:border-secondary/40 flex items-center gap-2 text-muted-foreground"
         >
           <Search size={14} />
-          <span className="text-xs">{t("locationPicker.tapToBrowse")}</span>
+          <span className="text-xs">Tap to browse courts on the map</span>
         </button>
       )}
 
@@ -204,7 +204,7 @@ export default function LocationPickerSection({ value, onChange, label, accentCo
       {mode === "custom" && (
         <div className="space-y-3">
           <div className="space-y-1.5">
-            <label className="text-[10px] text-muted-foreground">{t("locationPicker.addressOrName")}</label>
+            <label className="text-[10px] text-muted-foreground">Address or Location Name</label>
             <Input
               value={customAddress}
               onChange={e => handleAddressChange(e.target.value)}
@@ -219,12 +219,12 @@ export default function LocationPickerSection({ value, onChange, label, accentCo
               onClick={() => setShowCustomMap(true)}
               className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border border-dashed border-border hover:border-secondary/40 text-xs text-muted-foreground"
             >
-              <Navigation size={12} /> {t("locationPicker.dropPin")}
+              <Navigation size={12} /> Drop a pin on the map (optional)
             </button>
           ) : (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] text-muted-foreground">{t("locationPicker.tapToPlace")}</span>
+                <span className="text-[10px] text-muted-foreground">Tap to place pin · Drag to adjust</span>
                 {customPin && (
                   <span className="text-[10px] text-secondary font-mono">
                     {customPin.lat.toFixed(4)}, {customPin.lng.toFixed(4)}
@@ -250,7 +250,7 @@ export default function LocationPickerSection({ value, onChange, label, accentCo
 
           {value.locationName && (
             <button onClick={handleClear} className="text-[10px] text-muted-foreground hover:text-foreground">
-              {t("locationPicker.clearLocation")}
+              Clear location
             </button>
           )}
         </div>

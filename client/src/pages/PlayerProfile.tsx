@@ -6,11 +6,11 @@ import { getLevelInfo, getTierColor } from "@/lib/gamification";
 import { ArrowLeft, Crown, MapPin, MessageCircle, Star, Shield, CheckCircle, Flag, ThumbsUp, Loader2, Ban, Swords, Flame, Send, X, Calendar, Clock, Users, AlertCircle, RefreshCw, Trophy, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
-import CourtPickerModal from "@/components/CourtPickerModal";
+const CourtPickerModal = lazy(() => import("@/components/CourtPickerModal"));
 
 const endorsementTypes = ["good-sport", "skilled-player", "great-partner", "on-time", "accurate-rater"] as const;
 
@@ -80,19 +80,19 @@ export default function PlayerProfile() {
     { enabled: !!selectedPlayerId }
   );
   const favoriteMutation = trpc.favorites.add.useMutation({
-    onSuccess: () => { favoriteQuery.refetch(); toast.success("Added to favorites!"); },
+    onSuccess: () => { favoriteQuery.refetch(); toast.success(t("profile.addedToFavorites")); },
     onError: (err) => toast.error(err.message),
   });
   const unfavoriteMutation = trpc.favorites.remove.useMutation({
-    onSuccess: () => { favoriteQuery.refetch(); toast.success("Removed from favorites"); },
+    onSuccess: () => { favoriteQuery.refetch(); toast.success(t("profile.removedFromFavorites")); },
     onError: (err) => toast.error(err.message),
   });
   const rivalriesQuery = trpc.rivalries.list.useQuery();
   const rivalryData = (rivalriesQuery.data ?? []).find((r: any) => r.opponentId === selectedPlayerId);
   const [challengeSent, setChallengeSent] = useState(false);
   const [showChallengeDialog, setShowChallengeDialog] = useState(false);
-  const [challengeGameType, setChallengeGameType] = useState<string>("casual");
-  const [challengeFormat, setChallengeFormat] = useState<string>("singles");
+  const [challengeGameType, setChallengeGameType] = useState<"casual" | "competitive" | "tournament" | "practice">("casual");
+  const [challengeFormat, setChallengeFormat] = useState<"singles" | "mens-doubles" | "womens-doubles" | "mixed-doubles">("singles");
   const [challengeMessage, setChallengeMessage] = useState("");
   const [challengeDate, setChallengeDate] = useState("");
   const [challengeDuration, setChallengeDuration] = useState(60);
@@ -159,7 +159,7 @@ export default function PlayerProfile() {
       <div className="relative overflow-hidden">
         <div className="absolute -top-20 -right-20 w-48 h-48 rounded-full bg-primary/8 blur-3xl" />
         <div className="relative px-5 pt-7 pb-3 flex items-center gap-3">
-          <button onClick={() => goBack()} aria-label="Go back" className="p-2 rounded-xl glass hover:scale-105 transition-transform">
+          <button onClick={() => goBack()} className="p-2 rounded-xl glass hover:scale-105 transition-transform">
             <ArrowLeft size={18} />
           </button>
           <h1 className="text-lg font-bold tracking-tight">{t("playerProfile.title")}</h1>
@@ -243,27 +243,27 @@ export default function PlayerProfile() {
           )}
         >
           <Heart size={16} className={favoriteQuery.data ? "fill-current" : ""} />
-          {favoriteQuery.data ? "Favorited" : "Add to Favorites"}
+          {favoriteQuery.data ? t("profile.favorited") : t("profile.addToFavorites")}
         </button>
 
         {rivalryData && (
           <div className="card-elevated rounded-xl p-3">
             <div className="flex items-center gap-2 mb-2">
               <Swords size={14} className="text-[#BFFF00]" />
-              <span className="text-xs font-bold">Head-to-Head Rivalry</span>
+              <span className="text-xs font-bold">{t("profile.rivalry")}</span>
             </div>
             <div className="grid grid-cols-3 gap-2 text-center">
               <div>
                 <p className="text-lg font-bold text-green-400">{rivalryData.myWins}</p>
-                <p className="text-[10px] text-muted-foreground">Your Wins</p>
+                <p className="text-[10px] text-muted-foreground">{t("profile.yourWins")}</p>
               </div>
               <div>
                 <p className="text-lg font-bold text-muted-foreground">{rivalryData.totalGames}</p>
-                <p className="text-[10px] text-muted-foreground">Games</p>
+                <p className="text-[10px] text-muted-foreground">{t("profile.games")}</p>
               </div>
               <div>
                 <p className="text-lg font-bold text-red-400">{rivalryData.theirWins}</p>
-                <p className="text-[10px] text-muted-foreground">Their Wins</p>
+                <p className="text-[10px] text-muted-foreground">{t("profile.theirWins")}</p>
               </div>
             </div>
           </div>
@@ -337,7 +337,7 @@ export default function PlayerProfile() {
                 </div>
               ))}
               {playerAchievements.length > 8 && (
-                <span className="text-[10px] text-muted-foreground self-center px-2">+{playerAchievements.length - 8} more</span>
+                <span className="text-[10px] text-muted-foreground self-center px-2">{t("profile.moreAchievements", { count: playerAchievements.length - 8 })}</span>
               )}
             </div>
           </div>
@@ -439,7 +439,7 @@ export default function PlayerProfile() {
               size="sm"
               disabled={!reportReason}
               onClick={() => {
-                const reportTypeMap: Record<string, string> = {
+                const reportTypeMap: Record<string, "inappropriate" | "fake-profile" | "harassment" | "safety" | "other"> = {
                   "Inappropriate behavior": "inappropriate",
                   "Fake profile": "fake-profile",
                   "Harassment": "harassment",
@@ -448,7 +448,7 @@ export default function PlayerProfile() {
                 };
                 reportMutation.mutate({
                   reportedId: player.id,
-                  reportType: (reportTypeMap[reportReason] || "other") as any,
+                  reportType: reportTypeMap[reportReason] ?? "other",
                   description: reportReason,
                 });
               }}
@@ -520,7 +520,7 @@ export default function PlayerProfile() {
             <div>
               <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide block mb-1">{t("playerProfile.gameType")}</label>
               <div className="flex gap-1.5 flex-wrap">
-                {["casual", "competitive", "tournament", "practice"].map(gt => (
+                {(["casual", "competitive", "tournament", "practice"] as ("casual" | "competitive" | "tournament" | "practice")[]).map(gt => (
                   <button key={gt} onClick={() => setChallengeGameType(gt)}
                     className={cn("text-[11px] px-3 py-1.5 rounded-lg font-medium transition-all",
                       challengeGameType === gt ? "pill-tab-active text-white" : "bg-muted/15 text-muted-foreground hover:bg-muted/25"
@@ -532,7 +532,7 @@ export default function PlayerProfile() {
             <div>
               <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide block mb-1">{t("playerProfile.format")}</label>
               <div className="flex gap-1.5 flex-wrap">
-                {[{ v: "singles", l: "singles" }, { v: "mens-doubles", l: "mens-doubles" }, { v: "womens-doubles", l: "womens-doubles" }, { v: "mixed-doubles", l: "mixed-doubles" }].map(f => (
+                {([{ v: "singles", l: "singles" }, { v: "mens-doubles", l: "mens-doubles" }, { v: "womens-doubles", l: "womens-doubles" }, { v: "mixed-doubles", l: "mixed-doubles" }] as { v: "singles" | "mens-doubles" | "womens-doubles" | "mixed-doubles"; l: string }[]).map(f => (
                   <button key={f.v} onClick={() => setChallengeFormat(f.v)}
                     className={cn("text-[11px] px-3 py-1.5 rounded-lg font-medium transition-all",
                       challengeFormat === f.v ? "pill-tab-active text-white" : "bg-muted/15 text-muted-foreground hover:bg-muted/25"
@@ -645,8 +645,8 @@ export default function PlayerProfile() {
             <Button
               onClick={() => challengeMutation.mutate({
                 challengedId: player.id,
-                gameType: challengeGameType as any,
-                format: challengeFormat as any,
+                gameType: challengeGameType,
+                format: challengeFormat,
                 message: challengeMessage || undefined,
                 scheduledAt: challengeDate || undefined,
                 durationMinutes: challengeDuration,
@@ -662,12 +662,16 @@ export default function PlayerProfile() {
         </div>
       )}
 
-      <CourtPickerModal
-        open={showCourtPicker}
-        onClose={() => setShowCourtPicker(false)}
-        onSelect={(court) => setChallengeLocation(court.name + (court.address ? ` — ${court.address}` : ""))}
-        title={t("playerProfile.selectCourtForChallenge")}
-      />
+      {showCourtPicker && (
+        <Suspense fallback={null}>
+          <CourtPickerModal
+            open={showCourtPicker}
+            onClose={() => setShowCourtPicker(false)}
+            onSelect={(court) => setChallengeLocation(court.name + (court.address ? ` — ${court.address}` : ""))}
+            title={t("playerProfile.selectCourtForChallenge")}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }

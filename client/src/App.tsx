@@ -20,6 +20,7 @@ import ChatScreen from "./pages/ChatScreen";
 import ProfileScreen from "./pages/ProfileScreen";
 import PlayerProfile from "./pages/PlayerProfile";
 import EditProfile from "./pages/EditProfile";
+// Lazy-loaded: pulls in ~200KB Mapbox GL JS only when needed
 const CourtsScreen = lazy(() => import("./pages/CourtsScreen"));
 const CourtDetail = lazy(() => import("./pages/CourtDetail"));
 import GameHistory from "./pages/GameHistory";

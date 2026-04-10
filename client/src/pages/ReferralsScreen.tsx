@@ -6,9 +6,11 @@ import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 export default function ReferralsScreen() {
   const { goBack } = useApp();
+  const { t } = useTranslation();
   const utils = trpc.useUtils();
   const [redeemCode, setRedeemCode] = useState("");
 
@@ -16,7 +18,7 @@ export default function ReferralsScreen() {
   const createMutation = trpc.referrals.create.useMutation({
     onSuccess: (data: any) => {
       utils.referrals.list.invalidate();
-      toast.success(`Referral code created: ${data.code}`);
+      toast.success(t("referral.codeCreated", { code: data.code }));
     },
     onError: (err) => toast.error(err.message),
   });
@@ -24,7 +26,7 @@ export default function ReferralsScreen() {
     onSuccess: () => {
       utils.referrals.list.invalidate();
       setRedeemCode("");
-      toast.success("Code redeemed! XP awarded 🎉");
+      toast.success(t("referral.codeRedeemed"));
     },
     onError: (err) => toast.error(err.message),
   });
@@ -35,7 +37,7 @@ export default function ReferralsScreen() {
   const copyCode = () => {
     if (myCode) {
       navigator.clipboard.writeText(myCode);
-      toast.success("Code copied!");
+      toast.success(t("referral.codeCopied"));
     }
   };
 
@@ -43,18 +45,18 @@ export default function ReferralsScreen() {
     <div className="min-h-screen bg-background pb-24">
       <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm border-b border-border/30 px-4 py-3">
         <div className="flex items-center gap-3">
-          <button onClick={goBack} aria-label="Go back" className="p-1.5 rounded-full hover:bg-muted/50">
+          <button onClick={goBack} className="p-1.5 rounded-full hover:bg-muted/50">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <Gift className="w-5 h-5 text-[#BFFF00]" />
-          <h1 className="text-lg font-bold">Referrals</h1>
+          <h1 className="text-lg font-bold">{t("referral.title")}</h1>
         </div>
       </div>
 
       <div className="px-4 py-4 space-y-4">
         {/* Your referral code */}
         <div className="card-elevated px-4 py-4">
-          <h2 className="font-semibold text-sm mb-2">Your Referral Code</h2>
+          <h2 className="font-semibold text-sm mb-2">{t("referral.yourCode")}</h2>
           {myCode ? (
             <div className="flex items-center gap-2">
               <div className="flex-1 bg-muted/30 rounded-lg px-3 py-2 font-mono text-lg text-[#BFFF00]">{myCode}</div>
@@ -64,20 +66,20 @@ export default function ReferralsScreen() {
             </div>
           ) : (
             <Button onClick={() => createMutation.mutate()} disabled={createMutation.isPending} className="w-full bg-[#BFFF00] text-black hover:bg-[#BFFF00]/90">
-              {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Generate Referral Code"}
+              {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : t("referral.generateCode")}
             </Button>
           )}
-          <p className="text-xs text-muted-foreground mt-2">Share your code — earn 200 XP when a friend signs up!</p>
+          <p className="text-xs text-muted-foreground mt-2">{t("referral.shareCodeHint")}</p>
         </div>
 
         {/* Redeem a code */}
         <div className="card-elevated px-4 py-4">
-          <h2 className="font-semibold text-sm mb-2">Redeem a Code</h2>
+          <h2 className="font-semibold text-sm mb-2">{t("referral.redeemTitle")}</h2>
           <div className="flex gap-2">
             <Input
               value={redeemCode}
               onChange={(e) => setRedeemCode(e.target.value.toUpperCase())}
-              placeholder="Enter code (e.g. PKL-ABC123)"
+              placeholder={t("referral.redeemPlaceholder")}
               className="flex-1 font-mono"
               maxLength={20}
             />
@@ -86,19 +88,19 @@ export default function ReferralsScreen() {
               disabled={!redeemCode || redeemMutation.isPending}
               className="bg-[#BFFF00] text-black hover:bg-[#BFFF00]/90"
             >
-              {redeemMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Redeem"}
+              {redeemMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : t("referral.redeemButton")}
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground mt-2">Get 100 XP by redeeming a friend's code!</p>
+          <p className="text-xs text-muted-foreground mt-2">{t("referral.redeemHint")}</p>
         </div>
 
         {/* Referral history */}
         <div className="card-elevated px-4 py-4">
-          <h2 className="font-semibold text-sm mb-3">Referral History</h2>
+          <h2 className="font-semibold text-sm mb-3">{t("referral.history")}</h2>
           {referralsQuery.isLoading ? (
             <div className="flex justify-center py-4"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
           ) : referrals.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">No referrals yet</p>
+            <p className="text-sm text-muted-foreground text-center py-4">{t("referral.noReferrals")}</p>
           ) : (
             <div className="space-y-2">
               {referrals.map((r: any) => (

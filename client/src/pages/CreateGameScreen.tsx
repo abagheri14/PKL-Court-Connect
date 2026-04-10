@@ -14,14 +14,14 @@ const gameTypes = ["Casual", "Competitive", "Tournament", "Practice"] as const;
 const formats = ["Singles", "Men's Doubles", "Women's Doubles", "Mixed Doubles"] as const;
 const skillLevels = ["2.0", "2.5", "3.0", "3.5", "4.0", "4.5", "5.0", "5.0+"];
 
-const formatMap: Record<string, string> = {
+const formatMap: Record<string, "singles" | "mens-doubles" | "womens-doubles" | "mixed-doubles"> = {
   "Singles": "singles",
   "Men's Doubles": "mens-doubles",
   "Women's Doubles": "womens-doubles",
   "Mixed Doubles": "mixed-doubles",
 };
 
-const gameTypeMap: Record<string, string> = {
+const gameTypeMap: Record<string, "casual" | "competitive" | "tournament" | "practice"> = {
   "Casual": "casual",
   "Competitive": "competitive",
   "Tournament": "tournament",
@@ -31,7 +31,6 @@ const gameTypeMap: Record<string, string> = {
 export default function CreateGameScreen() {
   const { navigate, goBack, createGameGroupId, setCreateGameGroupId } = useApp();
   const { t, i18n } = useTranslation();
-  const utils = trpc.useUtils();
   const courtsQuery = trpc.courts.list.useQuery();
   const courts: any[] = courtsQuery.data ?? [];
   const [createdGameId, setCreatedGameId] = useState<number | null>(null);
@@ -40,8 +39,6 @@ export default function CreateGameScreen() {
   const createGameMutation = trpc.games.create.useMutation({
     onSuccess: (data: any) => {
       toast.success(t("createGame.gameCreated"));
-      utils.games.upcoming.invalidate();
-      utils.games.list.invalidate();
       setCreateGameGroupId(null);
       if (data?.id) {
         setCreatedGameId(data.id);
@@ -87,8 +84,8 @@ export default function CreateGameScreen() {
       locationName: locationData.locationName || selectedCourt?.name || form.locationName || undefined,
       scheduledAt: `${form.date}T${form.time}:00`,
       durationMinutes: form.duration,
-      gameType: (gameTypeMap[form.gameType] || "casual") as any,
-      format: (formatMap[form.format] || "mixed-doubles") as any,
+      gameType: gameTypeMap[form.gameType] ?? "casual",
+      format: formatMap[form.format] ?? "mixed-doubles",
       maxPlayers: form.maxPlayers,
       skillLevelMin: form.skillMin,
       skillLevelMax: form.skillMax,
@@ -101,7 +98,7 @@ export default function CreateGameScreen() {
   return (
     <div className="pb-24 min-h-screen">
       <div className="px-4 pt-6 pb-3 flex items-center gap-3">
-        <button onClick={() => goBack()} aria-label="Go back" className="p-1 rounded-full hover:bg-muted/20">
+        <button onClick={() => goBack()} className="p-1 rounded-full hover:bg-muted/20">
           <ArrowLeft size={20} />
         </button>
         <h1 className="text-lg font-bold">{t("createGame.title")}</h1>

@@ -35,8 +35,8 @@ export function useE2E(peerUserId: number | null | undefined) {
           onSuccess: () => localStorage.setItem("e2e_published_key", pubKey),
         });
       }
-    }).catch((err) => {
-      console.warn("[E2E] Key generation failed, encryption disabled:", err);
+    }).catch(() => {
+      // E2E key generation failed — encryption disabled, messages still send unencrypted
     });
   }, []);
 

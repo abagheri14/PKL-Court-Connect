@@ -29,17 +29,6 @@ export function useGeolocation(options?: UseGeolocationOptions) {
     error: null,
   });
 
-  // Update fallback coords when user profile loads (e.g. null → real coords)
-  useEffect(() => {
-    setState(s => {
-      // Only update if we're still at the old fallback (geolocation hasn't resolved yet)
-      if (s.loading && (s.lat === FALLBACK_LAT || s.lng === FALLBACK_LNG) && defaultLat !== FALLBACK_LAT) {
-        return { ...s, lat: defaultLat, lng: defaultLng };
-      }
-      return s;
-    });
-  }, [defaultLat, defaultLng]);
-
   useEffect(() => {
     if (!navigator.geolocation) {
       setState(s => ({ ...s, loading: false, error: "Geolocation not supported" }));

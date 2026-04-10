@@ -10,12 +10,12 @@ import PlayerAvatar from "@/components/PlayerAvatar";
 import { QueryError } from "@/components/QueryError";
 import { useTranslation } from "react-i18next";
 
-const tabs = ["System Health", "Access Control", "Global Config", "Audit Log"];
+const tabKeys = ["systemHealth", "accessControl", "globalConfig", "auditLog"] as const;
 
 export default function SuperAdminDashboard() {
   const { user, navigate, goBack } = useApp();
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState("System Health");
+  const [activeTab, setActiveTab] = useState("systemHealth");
 
   const statsQuery = trpc.admin.getStats.useQuery(undefined, { refetchInterval: 30000 });
   const usersQuery = trpc.admin.getUsers.useQuery(undefined, { refetchInterval: 30000 });
@@ -43,8 +43,8 @@ export default function SuperAdminDashboard() {
       <div className="min-h-screen flex items-center justify-center px-4">
         <div className="card-elevated rounded-xl p-6 text-center">
           <Lock size={40} className="mx-auto text-muted-foreground/30 mb-3" />
-          <p className="text-sm text-muted-foreground">Super Admin access required</p>
-          <Button onClick={() => navigate("home")} variant="outline" className="mt-4">Go Home</Button>
+          <p className="text-sm text-muted-foreground">{t("admin.accessRequired")}</p>
+          <Button onClick={() => navigate("home")} variant="outline" className="mt-4">{t("admin.goHome")}</Button>
         </div>
       </div>
     );
@@ -56,39 +56,39 @@ export default function SuperAdminDashboard() {
       <div className="relative overflow-hidden">
         <div className="absolute -top-20 -right-20 w-48 h-48 rounded-full bg-accent/8 blur-3xl" />
         <div className="relative px-5 pt-7 pb-3 flex items-center gap-3">
-          <button onClick={() => goBack()} aria-label="Go back" className="p-2 rounded-xl glass hover:scale-105 transition-transform">
+          <button onClick={() => goBack()} className="p-2 rounded-xl glass hover:scale-105 transition-transform">
             <ArrowLeft size={18} />
           </button>
-          <h1 className="text-lg font-bold tracking-tight">Super Admin</h1>
+          <h1 className="text-lg font-bold tracking-tight">{t("admin.title")}</h1>
           <span className="ml-auto sport-badge sport-badge-gold text-[9px]">SUPER ADMIN</span>
         </div>
       </div>
 
       {/* Tabs — Premium pill-tab-active style */}
       <div className="px-5 pb-4 flex gap-1.5 overflow-x-auto scrollbar-none">
-        {tabs.map(t => (
+        {tabKeys.map(tab => (
           <button
-            key={t}
-            onClick={() => setActiveTab(t)}
+            key={tab}
+            onClick={() => setActiveTab(tab)}
             className={cn(
               "px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all",
-              activeTab === t
+              activeTab === tab
                 ? "pill-tab-active text-white"
                 : "bg-muted/10 text-muted-foreground hover:bg-muted/20"
             )}
           >
-            {t}
+            {t(`admin.tab.${tab}`)}
           </button>
         ))}
       </div>
 
       {/* System Health */}
-      {activeTab === "System Health" && (
+      {activeTab === "systemHealth" && (
         <div className="px-5 space-y-4">
           {statsQuery.isLoading ? (
             <div className="flex justify-center py-12"><Loader2 className="animate-spin text-muted-foreground" size={32} /></div>
           ) : statsQuery.isError ? (
-            <QueryError message="Failed to load system stats" onRetry={() => statsQuery.refetch()} />
+            <QueryError message={t("admin.loadStatsFailed")} onRetry={() => statsQuery.refetch()} />
           ) : (
             <>
               {/* Status Banner */}
@@ -96,28 +96,28 @@ export default function SuperAdminDashboard() {
                 <div className="flex items-center gap-3">
                   <CheckCircle size={20} className="text-green-400" />
                   <div>
-                    <p className="text-sm font-semibold text-green-400">All Systems Operational</p>
-                    <p className="text-[10px] text-muted-foreground">Last checked: 30 seconds ago</p>
+                    <p className="text-sm font-semibold text-green-400">{t("admin.allSystemsOperational")}</p>
+                    <p className="text-[10px] text-muted-foreground">{t("admin.lastChecked")}</p>
                   </div>
                 </div>
               </div>
 
               {/* Key Metrics */}
               <div className="grid grid-cols-2 gap-3">
-                <MetricCard icon={<Users size={14} />} label="Total Users" value={String(stats.totalUsers ?? 0)} color="purple" />
-                <MetricCard icon={<Activity size={14} />} label="Active Users" value={String(stats.activeUsers ?? 0)} color="blue" />
-                <MetricCard icon={<Globe size={14} />} label="Total Matches" value={String(stats.totalMatches ?? 0)} color="green" />
-                <MetricCard icon={<AlertTriangle size={14} />} label="Pending Reports" value={String(stats.pendingReports ?? 0)} color="yellow" />
+                <MetricCard icon={<Users size={14} />} label={t("admin.totalUsers")} value={String(stats.totalUsers ?? 0)} color="purple" />
+                <MetricCard icon={<Activity size={14} />} label={t("admin.activeUsers")} value={String(stats.activeUsers ?? 0)} color="blue" />
+                <MetricCard icon={<Globe size={14} />} label={t("admin.totalMatches")} value={String(stats.totalMatches ?? 0)} color="green" />
+                <MetricCard icon={<AlertTriangle size={14} />} label={t("admin.pendingReports")} value={String(stats.pendingReports ?? 0)} color="yellow" />
               </div>
 
               {/* Resource Usage */}
               <div className="card-elevated rounded-xl p-4">
                 <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-                  <Server size={14} className="text-secondary" /> Platform Overview
+                  <Server size={14} className="text-secondary" /> {t("admin.platformOverview")}
                 </h3>
                 <div className="space-y-3">
-                  <ResourceBar icon={<Users size={12} />} label="Active Users" value={stats.totalUsers ? Math.round((stats.activeUsers / stats.totalUsers) * 100) : 0} />
-                  <ResourceBar icon={<Database size={12} />} label="Reports Resolved" value={stats.pendingReports > 0 ? Math.max(0, 100 - stats.pendingReports * 10) : 100} />
+                  <ResourceBar icon={<Users size={12} />} label={t("admin.activeUsers")} value={stats.totalUsers ? Math.round((stats.activeUsers / stats.totalUsers) * 100) : 0} />
+                  <ResourceBar icon={<Database size={12} />} label={t("admin.reportsResolved")} value={stats.pendingReports > 0 ? Math.max(0, 100 - stats.pendingReports * 10) : 100} />
                 </div>
               </div>
             </>
@@ -126,21 +126,21 @@ export default function SuperAdminDashboard() {
       )}
 
       {/* Access Control */}
-      {activeTab === "Access Control" && (
+      {activeTab === "accessControl" && (
         <div className="px-5 space-y-4">
           {usersQuery.isLoading ? (
             <div className="flex justify-center py-12"><Loader2 className="animate-spin text-muted-foreground" size={32} /></div>
           ) : usersQuery.isError ? (
-            <QueryError message="Failed to load users" onRetry={() => usersQuery.refetch()} />
+            <QueryError message={t("admin.loadUsersFailed")} onRetry={() => usersQuery.refetch()} />
           ) : (
             <>
               <div className="card-elevated rounded-xl p-4">
                 <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-                  <Shield size={14} className="text-secondary" /> Admin Users
+                  <Shield size={14} className="text-secondary" /> {t("admin.adminUsers")}
                 </h3>
                 <div className="space-y-3">
                   {adminUsers.length === 0 ? (
-                    <p className="text-xs text-muted-foreground text-center py-4">No admin users found</p>
+                    <p className="text-xs text-muted-foreground text-center py-4">{t("admin.noAdminUsers")}</p>
                   ) : adminUsers.map((admin: any) => (
                     <div key={admin.id} className="flex items-center gap-3 p-2 rounded-xl bg-background/30">
                       <PlayerAvatar user={{ id: admin.id, name: admin.name, nickname: admin.nickname, profilePhotoUrl: admin.profilePhotoUrl, hasProfilePhoto: !!admin.profilePhotoUrl }} size="sm" showBadges={false} />
@@ -168,12 +168,12 @@ export default function SuperAdminDashboard() {
               </div>
 
               <div className="card-elevated rounded-xl p-4">
-                <h3 className="text-sm font-semibold mb-3">Role Permissions</h3>
+                <h3 className="text-sm font-semibold mb-3">{t("admin.rolePermissions")}</h3>
                 <div className="space-y-2">
                   {[
-                    { role: "User", permissions: "View profile, Match, Chat, Court search" },
-                    { role: "Admin", permissions: "All User + User management, Reports, Content moderation" },
-                    { role: "Super Admin", permissions: "All Admin + System config, Access control, Audit logs, DB access" },
+                    { role: t("admin.role.user"), permissions: t("admin.permissions.user") },
+                    { role: t("admin.role.admin"), permissions: t("admin.permissions.admin") },
+                    { role: t("admin.role.superAdmin"), permissions: t("admin.permissions.superAdmin") },
                   ].map((r, i) => (
                     <div key={i} className="p-2 rounded-xl bg-background/30">
                       <p className="text-xs font-semibold text-secondary">{r.role}</p>
@@ -188,20 +188,20 @@ export default function SuperAdminDashboard() {
       )}
 
       {/* Global Config */}
-      {activeTab === "Global Config" && (
+      {activeTab === "globalConfig" && (
         <div className="px-5 space-y-3">
           {settingsQuery.isLoading ? (
             <div className="flex justify-center py-12"><Loader2 className="animate-spin text-muted-foreground" size={32} /></div>
           ) : settingsQuery.isError ? (
-            <QueryError message="Failed to load settings" onRetry={() => settingsQuery.refetch()} />
+            <QueryError message={t("admin.loadSettingsFailed")} onRetry={() => settingsQuery.refetch()} />
           ) : (
             <>
               <div className="card-elevated rounded-xl p-4">
                 <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-                  <Settings size={14} className="text-secondary" /> Application Settings
+                  <Settings size={14} className="text-secondary" /> {t("admin.appSettings")}
                 </h3>
                 {appSettings.length === 0 ? (
-                  <p className="text-xs text-muted-foreground text-center py-4">No settings configured yet</p>
+                  <p className="text-xs text-muted-foreground text-center py-4">{t("admin.noSettings")}</p>
                 ) : (
                   <div className="space-y-3">
                     {appSettings.map((setting: any) => (
@@ -225,7 +225,7 @@ export default function SuperAdminDashboard() {
                               }}
                               disabled={updateSettingMutation.isPending}
                             >
-                              Save
+                              {t("common.save")}
                             </Button>
                             <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setEditingKey(null)}>✕</Button>
                           </div>
@@ -244,13 +244,13 @@ export default function SuperAdminDashboard() {
               </div>
               <div className="card-elevated rounded-xl p-4">
                 <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-                  <Zap size={14} className="text-secondary" /> Global Events
+                  <Zap size={14} className="text-secondary" /> {t("admin.globalEvents")}
                 </h3>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between p-2 rounded-xl bg-background/30">
                     <div>
-                      <p className="text-xs font-medium">Double XP Weekend</p>
-                      <p className="text-[10px] text-muted-foreground">All users earn 2x XP for 48 hours</p>
+                      <p className="text-xs font-medium">{t("admin.doubleXpWeekend")}</p>
+                      <p className="text-[10px] text-muted-foreground">{t("admin.doubleXpDesc")}</p>
                     </div>
                     <Button
                       size="sm"
@@ -260,13 +260,13 @@ export default function SuperAdminDashboard() {
                         toast.success(t("admin.doubleXpActivated"), { icon: "⚡", duration: 5000 });
                       }}
                     >
-                      Activate
+                      {t("admin.activate")}
                     </Button>
                   </div>
                   <div className="flex items-center justify-between p-2 rounded-xl bg-background/30">
                     <div>
-                      <p className="text-xs font-medium">Community Challenge</p>
-                      <p className="text-[10px] text-muted-foreground">Launch a platform-wide challenge event</p>
+                      <p className="text-xs font-medium">{t("admin.communityChallenge")}</p>
+                      <p className="text-[10px] text-muted-foreground">{t("admin.communityChallengeDesc")}</p>
                     </div>
                     <Button
                       size="sm"
@@ -277,7 +277,7 @@ export default function SuperAdminDashboard() {
                         toast.success(t("admin.challengeLaunched"), { icon: "🏆", duration: 5000 });
                       }}
                     >
-                      Launch
+                      {t("admin.launch")}
                     </Button>
                   </div>
                 </div>
@@ -286,7 +286,7 @@ export default function SuperAdminDashboard() {
               {/* Maintenance Mode */}
               <div className="card-elevated rounded-xl p-4 border border-red-500/20">
                 <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-                  <Wrench size={14} className="text-red-400" /> Maintenance Mode
+                  <Wrench size={14} className="text-red-400" /> {t("admin.maintenanceMode")}
                 </h3>
                 {(() => {
                   const maintenanceSetting = appSettings.find((s: any) => s.key === "maintenance_mode");
@@ -294,18 +294,18 @@ export default function SuperAdminDashboard() {
                   return (
                     <div className="flex items-center justify-between p-2 rounded-xl bg-background/30">
                       <div>
-                        <p className="text-xs font-medium">{isActive ? "🔴 Maintenance Active" : "🟢 App is Live"}</p>
-                        <p className="text-[10px] text-muted-foreground">When enabled, users see a maintenance screen</p>
+                        <p className="text-xs font-medium">{isActive ? t("admin.maintenanceActive") : t("admin.appIsLive")}</p>
+                        <p className="text-[10px] text-muted-foreground">{t("admin.maintenanceDesc")}</p>
                       </div>
                       <Button
                         size="sm"
                         className={cn("text-xs", isActive ? "bg-green-600 hover:bg-green-500 text-white" : "bg-red-600 hover:bg-red-500 text-white")}
                         onClick={() => {
                           updateSettingMutation.mutate({ key: "maintenance_mode", value: isActive ? "false" : "true" });
-                          toast.success(isActive ? "Maintenance mode disabled" : "Maintenance mode enabled", { icon: isActive ? "🟢" : "🔴" });
+                          toast.success(isActive ? t("admin.maintenanceDisabled") : t("admin.maintenanceEnabled"), { icon: isActive ? "🟢" : "🔴" });
                         }}
                       >
-                        {isActive ? "Disable" : "Enable"}
+                        {isActive ? t("common.disable") : t("common.enable")}
                       </Button>
                     </div>
                   );
@@ -315,15 +315,15 @@ export default function SuperAdminDashboard() {
               {/* Feature Flags */}
               <div className="card-elevated rounded-xl p-4">
                 <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-                  <ToggleLeft size={14} className="text-secondary" /> Feature Flags
+                  <ToggleLeft size={14} className="text-secondary" /> {t("admin.featureFlags")}
                 </h3>
                 <div className="space-y-2">
                   {[
-                    { key: "feature_swipe_enabled", label: "Swipe Matching", desc: "Enable/disable the swipe deck" },
-                    { key: "feature_coaching_enabled", label: "Coaching Sessions", desc: "Enable coaching feature" },
-                    { key: "feature_groups_enabled", label: "Groups & Communities", desc: "Enable groups feature" },
-                    { key: "feature_premium_enabled", label: "Premium Purchases", desc: "Enable premium subscriptions" },
-                    { key: "feature_chat_enabled", label: "Chat & Messaging", desc: "Enable chat system" },
+                    { key: "feature_swipe_enabled", label: t("admin.flag.swipeMatching"), desc: t("admin.flag.swipeMatchingDesc") },
+                    { key: "feature_coaching_enabled", label: t("admin.flag.coachingSessions"), desc: t("admin.flag.coachingSessionsDesc") },
+                    { key: "feature_groups_enabled", label: t("admin.flag.groupsCommunities"), desc: t("admin.flag.groupsCommunitiesDesc") },
+                    { key: "feature_premium_enabled", label: t("admin.flag.premiumPurchases"), desc: t("admin.flag.premiumPurchasesDesc") },
+                    { key: "feature_chat_enabled", label: t("admin.flag.chatMessaging"), desc: t("admin.flag.chatMessagingDesc") },
                   ].map(flag => {
                     const setting = appSettings.find((s: any) => s.key === flag.key);
                     const isEnabled = setting?.value !== "false"; // default enabled
@@ -355,24 +355,24 @@ export default function SuperAdminDashboard() {
       )}
 
       {/* Audit Log */}
-      {activeTab === "Audit Log" && (
+      {activeTab === "auditLog" && (
         <div className="px-5 space-y-3">
           {reportsQuery.isLoading ? (
             <div className="flex justify-center py-12"><Loader2 className="animate-spin text-muted-foreground" size={32} /></div>
           ) : reportsQuery.isError ? (
-            <QueryError message="Failed to load audit log" onRetry={() => reportsQuery.refetch()} />
+            <QueryError message={t("admin.loadAuditFailed")} onRetry={() => reportsQuery.refetch()} />
           ) : (
             <div className="card-elevated rounded-xl p-4">
-              <h3 className="text-sm font-semibold mb-3">Recent Reports & Actions</h3>
+              <h3 className="text-sm font-semibold mb-3">{t("admin.recentReports")}</h3>
               {auditReports.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-4">No reports found</p>
+                <p className="text-xs text-muted-foreground text-center py-4">{t("admin.noReports")}</p>
               ) : (
                 <div className="space-y-3">
                   {auditReports.map((entry: any) => (
                     <div key={entry.id} className="flex gap-3 p-2 rounded-xl bg-background/30">
                       <div className="w-1 rounded-full bg-secondary/50 flex-shrink-0" />
                       <div className="flex-1">
-                        <p className="text-xs font-medium">{entry.reason || "Report"}</p>
+                        <p className="text-xs font-medium">{entry.reason || t("admin.report")}</p>
                         <p className="text-[10px] text-muted-foreground">
                           Status: <span className={cn("font-medium", entry.status === "pending" ? "text-yellow-400" : "text-green-400")}>{entry.status}</span>
                         </p>

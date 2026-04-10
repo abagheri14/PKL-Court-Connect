@@ -9,6 +9,7 @@ export * from "./_core/errors";
 // ── Public User Type (safe for client) ────────────────────────────────────
 export type UserPublic = {
   id: number;
+  openId: string;
   username: string | null;
   name: string | null;
   nickname: string | null;
@@ -34,7 +35,6 @@ export type UserPublic = {
   handedness: "left" | "right" | "ambidextrous" | null;
   goals: string | null;
   courtPreference: "indoor" | "outdoor" | "both" | null;
-  playFrequency: "once-month" | "once-week" | "2-3-week" | "daily" | null;
   availabilityWeekdays: boolean;
   availabilityWeekends: boolean;
   availabilityMornings: boolean;
@@ -91,7 +91,7 @@ export type MessageWithSender = {
   senderName: string | null;
   senderAvatar: string | null;
   content: string | null;
-  messageType: "text" | "image" | "video" | "location_pin" | "system";
+  messageType: "text" | "image" | "location_pin" | "system";
   locationLat: number | null;
   locationLng: number | null;
   locationName: string | null;

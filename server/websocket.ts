@@ -107,15 +107,6 @@ export function setupSocketIO(io: SocketIOServer) {
           return;
         }
         // Sanitize content - strip HTML tags and limit length
-        // Validate location coordinates if provided
-        if (data.locationLat !== undefined && (typeof data.locationLat !== "number" || data.locationLat < -90 || data.locationLat > 90)) {
-          socket.emit("chat:error", { error: "Invalid latitude" });
-          return;
-        }
-        if (data.locationLng !== undefined && (typeof data.locationLng !== "number" || data.locationLng < -180 || data.locationLng > 180)) {
-          socket.emit("chat:error", { error: "Invalid longitude" });
-          return;
-        }
         const sanitizedContent = data.content?.replace(/<[^>]*>/g, "").trim().slice(0, 5000);
         if (!sanitizedContent && data.messageType !== "location_pin" && data.messageType !== "image") {
           socket.emit("chat:error", { error: "Message content is required" });

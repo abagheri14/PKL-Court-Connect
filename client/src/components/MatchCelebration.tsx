@@ -4,7 +4,6 @@ import PlayerAvatar from "@/components/PlayerAvatar";
 import { useApp } from "@/contexts/AppContext";
 import { X, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useTranslation } from "react-i18next";
 
 interface MatchCelebrationProps {
   player: any;
@@ -17,14 +16,13 @@ export default function MatchCelebration({ player, onClose, onMessage }: MatchCe
   const [show, setShow] = useState(false);
   const [showContent, setShowContent] = useState(false);
   const { user } = useApp();
-  const { t } = useTranslation();
   const displayName = getDisplayName(player);
 
   useEffect(() => {
     // Stagger entrance
     requestAnimationFrame(() => setShow(true));
-    const timer = setTimeout(() => setShowContent(true), 300);
-    return () => clearTimeout(timer);
+    const t = setTimeout(() => setShowContent(true), 300);
+    return () => clearTimeout(t);
   }, []);
 
   return (
@@ -71,9 +69,9 @@ export default function MatchCelebration({ player, onClose, onMessage }: MatchCe
         {/* Rally title */}
         <div className="mb-8">
           <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-secondary via-yellow-300 to-orange-400 tracking-tight text-center animate-pulse-subtle">
-            {t("celebration.itsARally")}
+            IT'S A RALLY!
           </h1>
-          <p className="text-center text-white/60 text-sm mt-2">{t("celebration.wantToPlay", { name: displayName })}</p>
+          <p className="text-center text-white/60 text-sm mt-2">You and {displayName} want to play!</p>
         </div>
 
         {/* Player avatars */}
@@ -117,13 +115,13 @@ export default function MatchCelebration({ player, onClose, onMessage }: MatchCe
             className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-secondary to-orange-400 text-black font-bold text-sm flex items-center justify-center gap-2 hover:shadow-[0_0_30px_rgba(255,215,0,0.3)] transition-all active:scale-95"
           >
             <MessageCircle size={18} />
-            {t("celebration.sendMessage")}
+            Send a Message
           </button>
           <button
             onClick={onClose}
             className="w-full py-3 rounded-2xl bg-white/10 text-white/80 font-medium text-sm hover:bg-white/15 transition-all active:scale-95"
           >
-            {t("celebration.keepSwiping")}
+            Keep Swiping
           </button>
         </div>
       </div>

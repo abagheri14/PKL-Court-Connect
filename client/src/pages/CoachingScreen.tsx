@@ -14,7 +14,6 @@ import { toast } from "sonner";
 import { QueryError } from "@/components/QueryError";
 import PlayerAvatar from "@/components/PlayerAvatar";
 import { useTranslation } from "react-i18next";
-import CourtPickerModal from "@/components/CourtPickerModal";
 import LocationPickerSection, { type LocationData } from "@/components/LocationPickerSection";
 import InvitePickerModal from "@/components/InvitePickerModal";
 
@@ -91,7 +90,7 @@ export default function CoachingScreen() {
   const [showCoachingInvite, setShowCoachingInvite] = useState(false);
   const [locationData, setLocationData] = useState<LocationData>({});
 
-  const statusFilter = activeFilter === "All" ? undefined : activeFilter.toLowerCase() as any;
+  const statusFilter = activeFilter === "All" ? undefined : activeFilter.toLowerCase() as "open" | "full" | "completed" | "cancelled";
   const sessionsQuery = trpc.coaching.list.useQuery({ status: statusFilter }, { refetchInterval: 30000 });
   const allSessions: any[] = sessionsQuery.data ?? [];
   const sessions = sessionSearch.trim()
@@ -800,7 +799,7 @@ export default function CoachingScreen() {
         <div className="absolute -top-20 -right-20 w-48 h-48 rounded-full bg-secondary/8 blur-3xl" />
         <div className="relative px-5 pt-7 pb-4">
           <div className="flex items-center gap-3 mb-4">
-            <button onClick={() => goBack()} aria-label="Go back" className="p-2 rounded-xl glass hover:scale-105 transition-transform">
+            <button onClick={() => goBack()} className="p-2 rounded-xl glass hover:scale-105 transition-transform">
               <ArrowLeft size={18} />
             </button>
             <div className="flex-1">
