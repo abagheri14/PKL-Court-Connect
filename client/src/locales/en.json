@@ -845,7 +845,12 @@
     "selectVibeError": "Please select your vibe preference",
     "selectGoalError": "Please select at least one goal",
     "selectAvailabilityError": "Please select at least one availability",
-    "addPhotoError": "Please add at least one photo"
+    "addPhotoError": "Please add at least one photo",
+    "dateOfBirth": "Date of Birth",
+    "ageRequirement": "You must be at least 18 years old",
+    "selectGenderError": "Please select your gender",
+    "dobRequired": "Please enter your date of birth",
+    "under18": "You must be at least 18 years old to use PKL Court Connect"
   },
   "help": {
     "title": "Help & Support",

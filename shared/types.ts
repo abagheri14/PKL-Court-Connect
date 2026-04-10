@@ -9,7 +9,6 @@ export * from "./_core/errors";
 // ── Public User Type (safe for client) ────────────────────────────────────
 export type UserPublic = {
   id: number;
-  openId: string;
   username: string | null;
   name: string | null;
   nickname: string | null;

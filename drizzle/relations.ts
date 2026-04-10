@@ -4,7 +4,14 @@ import {
   messages, courts, courtReviews, games, gameParticipants, gameFeedback,
   endorsements, achievements, userAchievements, notifications,
   blocks, reports, groups, groupMembers, sharedCoaching, coachingParticipants,
-  adminUsers,
+  adminUsers, challenges, gameResults, gameRounds, coachingReviews,
+  coachingAnnouncements, questClaims, tournaments, tournamentParticipants,
+  tournamentMatches, courtSubmissions, courtBookings, activityFeed,
+  messageReactions, courtPhotos, rivalries, favoritePlayers, referrals,
+  feedPosts, feedComments, feedLikes, feedReactions, feedBookmarks,
+  userPhotos, emailVerificationCodes, passwordResetTokens,
+  accountDeletionTokens, archivedUsers, notificationPreferences,
+  pushSubscriptions,
 } from "./schema";
 
 // ── Users ───────────────────────────────────────────────────────────────────
@@ -143,4 +150,176 @@ export const coachingParticipantsRelations = relations(coachingParticipants, ({ 
 export const adminUsersRelations = relations(adminUsers, ({ one }) => ({
   user: one(users, { fields: [adminUsers.userId], references: [users.id] }),
   assignedByUser: one(users, { fields: [adminUsers.assignedBy], references: [users.id] }),
+}));
+
+// ── Challenges ──────────────────────────────────────────────────────────────
+export const challengesRelations = relations(challenges, ({ one }) => ({
+  challenger: one(users, { fields: [challenges.challengerId], references: [users.id], relationName: "challenger" }),
+  challenged: one(users, { fields: [challenges.challengedId], references: [users.id], relationName: "challenged" }),
+  game: one(games, { fields: [challenges.gameId], references: [games.id] }),
+  court: one(courts, { fields: [challenges.courtId], references: [courts.id] }),
+}));
+
+// ── Game Results ────────────────────────────────────────────────────────────
+export const gameResultsRelations = relations(gameResults, ({ one }) => ({
+  game: one(games, { fields: [gameResults.gameId], references: [games.id] }),
+  recorder: one(users, { fields: [gameResults.recordedBy], references: [users.id] }),
+}));
+
+// ── Game Rounds ─────────────────────────────────────────────────────────────
+export const gameRoundsRelations = relations(gameRounds, ({ one }) => ({
+  game: one(games, { fields: [gameRounds.gameId], references: [games.id] }),
+}));
+
+// ── Coaching Reviews ────────────────────────────────────────────────────────
+export const coachingReviewsRelations = relations(coachingReviews, ({ one }) => ({
+  coaching: one(sharedCoaching, { fields: [coachingReviews.coachingId], references: [sharedCoaching.id] }),
+  user: one(users, { fields: [coachingReviews.userId], references: [users.id] }),
+}));
+
+// ── Coaching Announcements ──────────────────────────────────────────────────
+export const coachingAnnouncementsRelations = relations(coachingAnnouncements, ({ one }) => ({
+  coaching: one(sharedCoaching, { fields: [coachingAnnouncements.coachingId], references: [sharedCoaching.id] }),
+  sender: one(users, { fields: [coachingAnnouncements.senderId], references: [users.id] }),
+}));
+
+// ── Quest Claims ────────────────────────────────────────────────────────────
+export const questClaimsRelations = relations(questClaims, ({ one }) => ({
+  user: one(users, { fields: [questClaims.userId], references: [users.id] }),
+}));
+
+// ── Tournaments ─────────────────────────────────────────────────────────────
+export const tournamentsRelations = relations(tournaments, ({ one, many }) => ({
+  organizer: one(users, { fields: [tournaments.organizerId], references: [users.id] }),
+  group: one(groups, { fields: [tournaments.groupId], references: [groups.id] }),
+  court: one(courts, { fields: [tournaments.courtId], references: [courts.id] }),
+  winner: one(users, { fields: [tournaments.winnerId], references: [users.id], relationName: "tournamentWinner" }),
+  runnerUp: one(users, { fields: [tournaments.runnerUpId], references: [users.id], relationName: "tournamentRunnerUp" }),
+  participants: many(tournamentParticipants),
+  matches: many(tournamentMatches),
+}));
+
+export const tournamentParticipantsRelations = relations(tournamentParticipants, ({ one }) => ({
+  tournament: one(tournaments, { fields: [tournamentParticipants.tournamentId], references: [tournaments.id] }),
+  user: one(users, { fields: [tournamentParticipants.userId], references: [users.id] }),
+}));
+
+export const tournamentMatchesRelations = relations(tournamentMatches, ({ one }) => ({
+  tournament: one(tournaments, { fields: [tournamentMatches.tournamentId], references: [tournaments.id] }),
+  participant1: one(tournamentParticipants, { fields: [tournamentMatches.participant1Id], references: [tournamentParticipants.id], relationName: "matchParticipant1" }),
+  participant2: one(tournamentParticipants, { fields: [tournamentMatches.participant2Id], references: [tournamentParticipants.id], relationName: "matchParticipant2" }),
+  game: one(games, { fields: [tournamentMatches.gameId], references: [games.id] }),
+  winnerParticipant: one(tournamentParticipants, { fields: [tournamentMatches.winnerId], references: [tournamentParticipants.id], relationName: "matchWinner" }),
+}));
+
+// ── Court Submissions ───────────────────────────────────────────────────────
+export const courtSubmissionsRelations = relations(courtSubmissions, ({ one }) => ({
+  submitter: one(users, { fields: [courtSubmissions.submittedBy], references: [users.id] }),
+  reviewer: one(users, { fields: [courtSubmissions.reviewedBy], references: [users.id] }),
+}));
+
+// ── Court Bookings ──────────────────────────────────────────────────────────
+export const courtBookingsRelations = relations(courtBookings, ({ one }) => ({
+  court: one(courts, { fields: [courtBookings.courtId], references: [courts.id] }),
+  user: one(users, { fields: [courtBookings.userId], references: [users.id] }),
+  game: one(games, { fields: [courtBookings.gameId], references: [games.id] }),
+}));
+
+// ── Activity Feed ───────────────────────────────────────────────────────────
+export const activityFeedRelations = relations(activityFeed, ({ one }) => ({
+  user: one(users, { fields: [activityFeed.userId], references: [users.id] }),
+}));
+
+// ── Message Reactions ───────────────────────────────────────────────────────
+export const messageReactionsRelations = relations(messageReactions, ({ one }) => ({
+  message: one(messages, { fields: [messageReactions.messageId], references: [messages.id] }),
+  user: one(users, { fields: [messageReactions.userId], references: [users.id] }),
+}));
+
+// ── Court Photos ────────────────────────────────────────────────────────────
+export const courtPhotosRelations = relations(courtPhotos, ({ one }) => ({
+  court: one(courts, { fields: [courtPhotos.courtId], references: [courts.id] }),
+  user: one(users, { fields: [courtPhotos.userId], references: [users.id] }),
+}));
+
+// ── Rivalries ───────────────────────────────────────────────────────────────
+export const rivalriesRelations = relations(rivalries, ({ one }) => ({
+  user1: one(users, { fields: [rivalries.user1Id], references: [users.id], relationName: "rivalryUser1" }),
+  user2: one(users, { fields: [rivalries.user2Id], references: [users.id], relationName: "rivalryUser2" }),
+}));
+
+// ── Favorite Players ────────────────────────────────────────────────────────
+export const favoritePlayersRelations = relations(favoritePlayers, ({ one }) => ({
+  user: one(users, { fields: [favoritePlayers.userId], references: [users.id] }),
+  favorite: one(users, { fields: [favoritePlayers.favoriteId], references: [users.id] }),
+}));
+
+// ── Referrals ───────────────────────────────────────────────────────────────
+export const referralsRelations = relations(referrals, ({ one }) => ({
+  referrer: one(users, { fields: [referrals.referrerId], references: [users.id], relationName: "referrer" }),
+  referred: one(users, { fields: [referrals.referredId], references: [users.id], relationName: "referred" }),
+}));
+
+// ── Feed Posts ───────────────────────────────────────────────────────────────
+export const feedPostsRelations = relations(feedPosts, ({ one, many }) => ({
+  user: one(users, { fields: [feedPosts.userId], references: [users.id] }),
+  comments: many(feedComments),
+  likes: many(feedLikes),
+  reactions: many(feedReactions),
+  bookmarks: many(feedBookmarks),
+}));
+
+export const feedCommentsRelations = relations(feedComments, ({ one }) => ({
+  post: one(feedPosts, { fields: [feedComments.postId], references: [feedPosts.id] }),
+  user: one(users, { fields: [feedComments.userId], references: [users.id] }),
+}));
+
+export const feedLikesRelations = relations(feedLikes, ({ one }) => ({
+  post: one(feedPosts, { fields: [feedLikes.postId], references: [feedPosts.id] }),
+  user: one(users, { fields: [feedLikes.userId], references: [users.id] }),
+}));
+
+export const feedReactionsRelations = relations(feedReactions, ({ one }) => ({
+  post: one(feedPosts, { fields: [feedReactions.postId], references: [feedPosts.id] }),
+  user: one(users, { fields: [feedReactions.userId], references: [users.id] }),
+}));
+
+export const feedBookmarksRelations = relations(feedBookmarks, ({ one }) => ({
+  post: one(feedPosts, { fields: [feedBookmarks.postId], references: [feedPosts.id] }),
+  user: one(users, { fields: [feedBookmarks.userId], references: [users.id] }),
+}));
+
+// ── User Photos ─────────────────────────────────────────────────────────────
+export const userPhotosRelations = relations(userPhotos, ({ one }) => ({
+  user: one(users, { fields: [userPhotos.userId], references: [users.id] }),
+}));
+
+// ── Email Verification Codes ────────────────────────────────────────────────
+export const emailVerificationCodesRelations = relations(emailVerificationCodes, ({ one }) => ({
+  user: one(users, { fields: [emailVerificationCodes.userId], references: [users.id] }),
+}));
+
+// ── Password Reset Tokens ───────────────────────────────────────────────────
+export const passwordResetTokensRelations = relations(passwordResetTokens, ({ one }) => ({
+  user: one(users, { fields: [passwordResetTokens.userId], references: [users.id] }),
+}));
+
+// ── Account Deletion Tokens ─────────────────────────────────────────────────
+export const accountDeletionTokensRelations = relations(accountDeletionTokens, ({ one }) => ({
+  user: one(users, { fields: [accountDeletionTokens.userId], references: [users.id] }),
+}));
+
+// ── Archived Users ──────────────────────────────────────────────────────────
+export const archivedUsersRelations = relations(archivedUsers, ({ one }) => ({
+  originalUser: one(users, { fields: [archivedUsers.originalUserId], references: [users.id] }),
+}));
+
+// ── Notification Preferences ────────────────────────────────────────────────
+export const notificationPreferencesRelations = relations(notificationPreferences, ({ one }) => ({
+  user: one(users, { fields: [notificationPreferences.userId], references: [users.id] }),
+}));
+
+// ── Push Subscriptions ──────────────────────────────────────────────────────
+export const pushSubscriptionsRelations = relations(pushSubscriptions, ({ one }) => ({
+  user: one(users, { fields: [pushSubscriptions.userId], references: [users.id] }),
 }));

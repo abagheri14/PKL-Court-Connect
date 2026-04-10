@@ -835,7 +835,12 @@
     "selectVibeError": "Veuillez sélectionner votre ambiance",
     "selectGoalError": "Veuillez sélectionner au moins un objectif",
     "selectAvailabilityError": "Veuillez sélectionner au moins une disponibilité",
-    "addPhotoError": "Veuillez ajouter au moins une photo"
+    "addPhotoError": "Veuillez ajouter au moins une photo",
+    "dateOfBirth": "Date de naissance",
+    "ageRequirement": "Vous devez avoir au moins 18 ans",
+    "selectGenderError": "Veuillez sélectionner votre genre",
+    "dobRequired": "Veuillez entrer votre date de naissance",
+    "under18": "Vous devez avoir au moins 18 ans pour utiliser PKL Court Connect"
   },
   "help": {
     "title": "Aide et support",
