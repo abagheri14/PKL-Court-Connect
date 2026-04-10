@@ -47,8 +47,10 @@ export async function ensureSchema(): Promise<void> {
     try {
       await db.execute(sql.raw(`ALTER TABLE \`${table}\` ADD COLUMN ${colDef}`));
     } catch (e: any) {
-      if (e?.errno === 1060 || e?.code === 'ER_DUP_FIELDNAME') return; // already exists
-      console.error(`[Schema] Failed to add column to ${table}: ${colDef}`, e?.message);
+      // Drizzle wraps MySQL errors — check errno, code, and message string
+      const msg = String(e?.message ?? e ?? '');
+      if (e?.errno === 1060 || e?.code === 'ER_DUP_FIELDNAME' || msg.includes('Duplicate column') || msg.includes('1060')) return;
+      console.error(`[Schema] Failed to add column to ${table}: ${colDef}`, msg);
     }
   }
 
