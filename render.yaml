@@ -1,0 +1,39 @@
+services:
+  - type: web
+    name: pkl-court-connect
+    runtime: node
+    region: ohio
+    plan: free
+    buildCommand: npm install -g pnpm && pnpm install --no-frozen-lockfile && pnpm build
+    startCommand: pnpm db:push --force && node dist/index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: VITE_APP_ID
+        value: pkl-court-connect
+      - key: PORT
+        value: 10000
+      - key: CORS_ORIGIN
+        sync: false
+      - key: VITE_MAPBOX_TOKEN
+        sync: false
+      - key: OAUTH_SERVER_URL
+        sync: false
+      - key: OWNER_OPEN_ID
+        sync: false
+      - key: VITE_OAUTH_PORTAL_URL
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: STRIPE_MONTHLY_PRICE_ID
+        sync: false
+      - key: STRIPE_ANNUAL_PRICE_ID
+        sync: false
+      - key: APP_BASE_URL
+        sync: false

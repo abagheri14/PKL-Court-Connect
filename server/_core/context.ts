@@ -4,7 +4,15 @@ import { sdk } from "./sdk";
 import { updateUserProfile } from "../db";
 
 // Track users whose premium expiry has already been processed (avoid repeated writes)
-const premiumExpiryProcessed = new Set<number>();
+// Uses a Map with timestamps for automatic TTL cleanup (1 hour)
+const premiumExpiryProcessed = new Map<number, number>();
+const PREMIUM_EXPIRY_TTL = 60 * 60 * 1000; // 1 hour
+setInterval(() => {
+  const now = Date.now();
+  for (const [uid, ts] of Array.from(premiumExpiryProcessed.entries())) {
+    if (now - ts > PREMIUM_EXPIRY_TTL) premiumExpiryProcessed.delete(uid);
+  }
+}, 5 * 60 * 1000).unref();
 
 export type TrpcContext = {
   req: CreateExpressContextOptions["req"];
@@ -34,7 +42,7 @@ export async function createContext(
     // Debounce: only fire write once per user (tracked in-memory)
     if (!premiumExpiryProcessed.has(user.id)) {
       const uid = user.id;
-      premiumExpiryProcessed.add(uid);
+      premiumExpiryProcessed.set(uid, Date.now());
       updateUserProfile(uid, { isPremium: false, premiumUntil: null } as any).catch(() => {
         premiumExpiryProcessed.delete(uid); // retry next request on failure
       });

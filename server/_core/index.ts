@@ -59,11 +59,12 @@ async function startServer() {
   );
 
   // Socket.io for real-time features
+  const corsOrigin = process.env.NODE_ENV === "production"
+    ? (process.env.CORS_ORIGIN || true)
+    : "*";
   const io = new SocketIOServer(server, {
     cors: {
-      origin: process.env.NODE_ENV === "production"
-        ? (process.env.CORS_ORIGIN || false)
-        : "*",
+      origin: corsOrigin,
       methods: ["GET", "POST"],
     },
     path: "/socket.io",
@@ -85,12 +86,8 @@ async function startServer() {
   }
 
   // Ensure DB schema is up-to-date BEFORE accepting any requests
-  try {
-    await ensureSchema();
-    console.log("[Schema] Database schema verified.");
-  } catch (err) {
-    console.error("[Schema] Migration failed (server starting anyway):", err);
-  }
+  await ensureSchema();
+  console.log("[Schema] Database schema verified.");
 
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);

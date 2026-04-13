@@ -29,6 +29,8 @@ import { cn } from "@/lib/utils";
 
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN || "";
 
+const hasToken = Boolean(mapboxgl.accessToken);
+
 interface MapViewProps {
   className?: string;
   initialCenter?: { lat: number; lng: number };
@@ -51,6 +53,11 @@ export function MapView({
 
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
+
+    if (!hasToken) {
+      setError("Map is not available. Mapbox token is not configured.");
+      return;
+    }
 
     try {
       map.current = new mapboxgl.Map({
