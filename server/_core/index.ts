@@ -11,7 +11,7 @@ import { serveStatic, setupVite } from "./vite";
 import { setupSocketIO } from "../websocket";
 import { setupStripeWebhook } from "../stripeWebhook";
 import { setupFileUpload } from "../fileUpload";
-import { seedAchievements, seedCourts, seedTestAccounts, ensureSchema } from "../db";
+import { seedAchievements, seedCourts, seedTestAccounts, ensureSchema, syncUserLevels } from "../db";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -87,6 +87,7 @@ async function startServer() {
 
   // Ensure DB schema is up-to-date BEFORE accepting any requests
   await ensureSchema();
+  await syncUserLevels();
   console.log("[Schema] Database schema verified.");
 
   server.listen(port, () => {

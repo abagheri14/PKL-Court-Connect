@@ -9,7 +9,7 @@ import {
   gameResults, notificationPreferences, challenges, gameRounds, courtSubmissions,
   tournaments, tournamentParticipants, tournamentMatches, emailVerificationCodes,
   courtBookings, activityFeed, messageReactions, courtPhotos, rivalries, favoritePlayers, referrals,
-  feedPosts, feedComments, feedLikes, feedReactions, feedBookmarks,
+  feedPosts, feedComments, feedLikes, feedReactions, feedBookmarks, uploadedFiles,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -33,6 +33,48 @@ export async function getDb(): Promise<ReturnType<typeof drizzle>> {
     }
   }
   return _db!;
+}
+
+// =============================================================================
+// DURABLE UPLOAD STORAGE
+// =============================================================================
+
+export async function saveUploadedFile(userId: number, fileKey: string, mimeType: string, data: Buffer) {
+  const db = await getDb();
+  const dataBase64 = data.toString("base64");
+  await db.insert(uploadedFiles).values({
+    fileKey,
+    userId,
+    mimeType,
+    sizeBytes: data.length,
+    dataBase64,
+  }).onDuplicateKeyUpdate({
+    set: {
+      userId,
+      mimeType,
+      sizeBytes: data.length,
+      dataBase64,
+      updatedAt: new Date(),
+    },
+  });
+  return { key: fileKey, url: `/api/files/${fileKey}` };
+}
+
+export async function getUploadedFile(fileKey: string) {
+  const db = await getDb();
+  const [file] = await db.select({
+    fileKey: uploadedFiles.fileKey,
+    mimeType: uploadedFiles.mimeType,
+    sizeBytes: uploadedFiles.sizeBytes,
+    dataBase64: uploadedFiles.dataBase64,
+  }).from(uploadedFiles).where(eq(uploadedFiles.fileKey, fileKey)).limit(1);
+  if (!file) return null;
+  return {
+    fileKey: file.fileKey,
+    mimeType: file.mimeType,
+    sizeBytes: file.sizeBytes,
+    data: Buffer.from(file.dataBase64, "base64"),
+  };
 }
 
 // =============================================================================
@@ -282,6 +324,72 @@ export async function setTravelMode(userId: number, lat: number | null, lng: num
   await db.update(users).set({ travelModeLat: lat, travelModeLng: lng, travelModeCity: city }).where(eq(users.id, userId));
 }
 
+const LEVEL_THRESHOLDS = [
+  { level: 25, minXp: 65000 },
+  { level: 24, minXp: 55000 },
+  { level: 23, minXp: 48000 },
+  { level: 22, minXp: 43000 },
+  { level: 21, minXp: 38000 },
+  { level: 20, minXp: 34000 },
+  { level: 19, minXp: 30000 },
+  { level: 18, minXp: 26000 },
+  { level: 17, minXp: 23000 },
+  { level: 16, minXp: 20000 },
+  { level: 15, minXp: 18000 },
+  { level: 14, minXp: 16000 },
+  { level: 13, minXp: 14000 },
+  { level: 12, minXp: 12000 },
+  { level: 11, minXp: 10000 },
+  { level: 10, minXp: 8500 },
+  { level: 9, minXp: 6500 },
+  { level: 8, minXp: 5000 },
+  { level: 7, minXp: 3500 },
+  { level: 6, minXp: 2500 },
+  { level: 5, minXp: 1500 },
+  { level: 4, minXp: 1000 },
+  { level: 3, minXp: 500 },
+  { level: 2, minXp: 250 },
+];
+
+function getLevelForXp(xp: number): number {
+  return LEVEL_THRESHOLDS.find(threshold => xp >= threshold.minXp)?.level ?? 1;
+}
+
+function levelCaseSql() {
+  return sql`CASE
+    WHEN ${users.xp} >= 65000 THEN 25
+    WHEN ${users.xp} >= 55000 THEN 24
+    WHEN ${users.xp} >= 48000 THEN 23
+    WHEN ${users.xp} >= 43000 THEN 22
+    WHEN ${users.xp} >= 38000 THEN 21
+    WHEN ${users.xp} >= 34000 THEN 20
+    WHEN ${users.xp} >= 30000 THEN 19
+    WHEN ${users.xp} >= 26000 THEN 18
+    WHEN ${users.xp} >= 23000 THEN 17
+    WHEN ${users.xp} >= 20000 THEN 16
+    WHEN ${users.xp} >= 18000 THEN 15
+    WHEN ${users.xp} >= 16000 THEN 14
+    WHEN ${users.xp} >= 14000 THEN 13
+    WHEN ${users.xp} >= 12000 THEN 12
+    WHEN ${users.xp} >= 10000 THEN 11
+    WHEN ${users.xp} >= 8500 THEN 10
+    WHEN ${users.xp} >= 6500 THEN 9
+    WHEN ${users.xp} >= 5000 THEN 8
+    WHEN ${users.xp} >= 3500 THEN 7
+    WHEN ${users.xp} >= 2500 THEN 6
+    WHEN ${users.xp} >= 1500 THEN 5
+    WHEN ${users.xp} >= 1000 THEN 4
+    WHEN ${users.xp} >= 500 THEN 3
+    WHEN ${users.xp} >= 250 THEN 2
+    ELSE 1
+  END`;
+}
+
+export async function syncUserLevels() {
+  const db = await getDb();
+  await db.update(users).set({ level: levelCaseSql() } as any).where(eq(users.isDeleted, false));
+}
+
 export async function addXp(userId: number, amount: number, opts?: { skipMultiplier?: boolean }) {
   const db = await getDb();
   let finalAmount = amount;
@@ -303,6 +411,13 @@ export async function addXp(userId: number, amount: number, opts?: { skipMultipl
     weeklyXp: sql`CASE WHEN ${users.weeklyXpResetAt} IS NULL OR ${users.weeklyXpResetAt} < ${monday} THEN ${finalAmount} ELSE ${users.weeklyXp} + ${finalAmount} END`,
     weeklyXpResetAt: sql`CASE WHEN ${users.weeklyXpResetAt} IS NULL OR ${users.weeklyXpResetAt} < ${monday} THEN NOW() ELSE ${users.weeklyXpResetAt} END`,
   }).where(eq(users.id, userId));
+  const [updatedUser] = await db.select({ xp: users.xp, level: users.level }).from(users).where(eq(users.id, userId)).limit(1);
+  if (updatedUser) {
+    const nextLevel = getLevelForXp(updatedUser.xp ?? 0);
+    if (updatedUser.level !== nextLevel) {
+      await db.update(users).set({ level: nextLevel }).where(eq(users.id, userId));
+    }
+  }
 }
 
 export async function claimDailyQuest(userId: number, questId: string, xp: number): Promise<{ success: boolean; alreadyClaimed?: boolean }> {
@@ -5178,8 +5293,8 @@ export async function redeemReferralCode(userId: number, code: string) {
   if (alreadyReferred) throw new Error("You've already used a referral code");
   await db.update(referrals).set({ referredId: userId, status: "completed", completedAt: new Date() }).where(eq(referrals.id, ref.id));
   // Award XP to both users: 200 XP to referrer, 100 XP to referred
-  await db.update(users).set({ xp: sql`${users.xp} + 200` }).where(eq(users.id, ref.referrerId));
-  await db.update(users).set({ xp: sql`${users.xp} + 100` }).where(eq(users.id, userId));
+  await addXp(ref.referrerId, 200, { skipMultiplier: true });
+  await addXp(userId, 100, { skipMultiplier: true });
   await db.update(referrals).set({ xpRewarded: true }).where(eq(referrals.id, ref.id));
   return { success: true, referrerXp: 200, referredXp: 100 };
 }

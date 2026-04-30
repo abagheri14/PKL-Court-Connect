@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, boolean, float, json, decimal, index, uniqueIndex } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, boolean, float, json, decimal, index, uniqueIndex, longtext } from "drizzle-orm/mysql-core";
 
 // =============================================================================
 // USERS
@@ -131,6 +131,23 @@ export const userPhotos = mysqlTable("user_photos", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 }, (table) => ({
   userIdx: index("idx_user_photos_user").on(table.userId),
+}));
+
+// =============================================================================
+// UPLOADED FILES (Durable fallback for Render's ephemeral filesystem)
+// =============================================================================
+export const uploadedFiles = mysqlTable("uploaded_files", {
+  id: int("id").autoincrement().primaryKey(),
+  fileKey: varchar("fileKey", { length: 512 }).notNull(),
+  userId: int("userId").notNull(),
+  mimeType: varchar("mimeType", { length: 100 }).notNull(),
+  sizeBytes: int("sizeBytes").notNull(),
+  dataBase64: longtext("dataBase64").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  keyIdx: uniqueIndex("idx_uploaded_files_key").on(table.fileKey),
+  userIdx: index("idx_uploaded_files_user").on(table.userId),
 }));
 
 // =============================================================================

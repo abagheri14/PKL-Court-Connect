@@ -23,7 +23,7 @@ function getTimeAgo(date: Date, t: (key: string, opts?: Record<string, unknown>)
 }
 
 export default function CourtDetail() {
-  const { selectedCourtId, navigate, goBack } = useApp();
+  const { selectedCourtId, navigate, goBack, refetchUser } = useApp();
   const { t, i18n } = useTranslation();
   const courtQuery = trpc.courts.getById.useQuery(
     { courtId: selectedCourtId! },
@@ -56,7 +56,7 @@ export default function CourtDetail() {
   const [bookingCourtNum, setBookingCourtNum] = useState("");
   const [bookingNotes, setBookingNotes] = useState("");
   const checkInMutation = trpc.achievements.claimQuest.useMutation({
-    onSuccess: () => { setCheckedIn(true); toast.success(t("court.checkedIn")); },
+    onSuccess: () => { setCheckedIn(true); refetchUser(); toast.success(t("court.checkedIn")); },
   });
 
   const mapRef = useRef<mapboxgl.Map | null>(null);
