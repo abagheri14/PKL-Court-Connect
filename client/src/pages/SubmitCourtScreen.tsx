@@ -3,12 +3,13 @@ import { trpc } from "@/lib/trpc";
 import { MapView, mapboxgl } from "@/components/Map";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, MapPin, Send, Loader2, Sun, Moon, Lightbulb, DollarSign } from "lucide-react";
+import { ArrowLeft, MapPin, Send, Loader2, Sun, Moon, Lightbulb, DollarSign, Camera, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, type ChangeEvent } from "react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { useGeolocation } from "@/hooks/useGeolocation";
+import { UPLOAD_PURPOSE } from "@shared/const";
 
 const courtTypes = ["outdoor", "indoor", "both"] as const;
 const surfaceTypes = ["Concrete", "Asphalt", "Portable", "Gym Floor", "Other"];
@@ -23,6 +24,7 @@ export default function SubmitCourtScreen() {
   const [pin, setPin] = useState<{ lat: number; lng: number } | null>(null);
   const markerRef = useRef<mapboxgl.Marker | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   // Form state
   const [name, setName] = useState("");
@@ -37,6 +39,8 @@ export default function SubmitCourtScreen() {
   const [costInfo, setCostInfo] = useState("");
   const [amenities, setAmenities] = useState("");
   const [notes, setNotes] = useState("");
+  const [photoUrl, setPhotoUrl] = useState("");
+  const [photoUploading, setPhotoUploading] = useState(false);
 
   const submitMutation = trpc.courts.submit.useMutation({
     onSuccess: () => {
@@ -111,8 +115,41 @@ export default function SubmitCourtScreen() {
       isFree,
       costInfo: !isFree ? costInfo.trim() || undefined : undefined,
       amenities: amenities.trim() || undefined,
+      photoUrl: photoUrl || undefined,
       notes: notes.trim() || undefined,
     });
+  };
+
+  const handlePhotoUpload = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error(t("photoUpload.tooLarge", { size: 10 }));
+      e.target.value = "";
+      return;
+    }
+    if (!file.type.match(/^image\/(jpeg|png|webp|gif)$/)) {
+      toast.error(t("photoUpload.invalidType"));
+      e.target.value = "";
+      return;
+    }
+
+    setPhotoUploading(true);
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("purpose", UPLOAD_PURPOSE.COURT_PHOTO);
+    try {
+      const res = await fetch("/api/upload", { method: "POST", body: formData, credentials: "include" });
+      if (!res.ok) throw new Error("Upload failed");
+      const data = await res.json();
+      setPhotoUrl(data.url);
+      toast.success(t("photoUpload.success"));
+    } catch {
+      toast.error(t("photoUpload.uploadError"));
+    } finally {
+      setPhotoUploading(false);
+      e.target.value = "";
+    }
   };
 
   return (
@@ -289,6 +326,34 @@ export default function SubmitCourtScreen() {
             <span className="text-xs font-semibold text-muted-foreground mb-1 block">{t("Amenities")}</span>
             <Input value={amenities} onChange={e => setAmenities(e.target.value)} placeholder={t("e.g. Water fountain, Restrooms, Parking")} className="bg-background/50" />
           </label>
+
+          {/* Court photo */}
+          <div className="mb-3">
+            <span className="text-xs font-semibold text-muted-foreground mb-1 block">{t("Court Photo")}</span>
+            {photoUrl ? (
+              <div className="relative overflow-hidden rounded-xl border border-border/60 bg-muted/10">
+                <img src={photoUrl} alt="" className="h-36 w-full object-cover" />
+                <button
+                  type="button"
+                  onClick={() => setPhotoUrl("")}
+                  className="absolute right-2 top-2 rounded-full bg-black/60 p-1.5 text-white transition-colors hover:bg-black/75"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => photoInputRef.current?.click()}
+                disabled={photoUploading}
+                className="w-full rounded-xl border border-dashed border-border/70 bg-muted/10 px-3 py-4 text-sm text-muted-foreground transition-colors hover:border-secondary/60 hover:text-foreground disabled:opacity-60"
+              >
+                {photoUploading ? <Loader2 size={16} className="mx-auto animate-spin" /> : <Camera size={16} className="mx-auto mb-1 text-secondary" />}
+                {photoUploading ? t("Uploading...") : t("Add a court photo")}
+              </button>
+            )}
+            <input ref={photoInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={handlePhotoUpload} />
+          </div>
 
           {/* Notes */}
           <label className="block mb-4">

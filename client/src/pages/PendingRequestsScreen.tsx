@@ -33,22 +33,31 @@ export default function PendingRequestsScreen() {
     onSuccess: (_d, vars) => {
       utils.challenges.allPending.invalidate();
       utils.challenges.pending.invalidate();
+      utils.games.upcoming.invalidate();
+      utils.games.list.invalidate();
       toast.success(vars.accept ? t("pending.challengeAccepted") : t("pending.challengeDeclined"));
     },
+    onError: (err) => toast.error(err.message),
   });
 
   const approveGameMutation = trpc.games.approveParticipant.useMutation({
     onSuccess: () => {
       utils.challenges.allPending.invalidate();
+      utils.games.upcoming.invalidate();
+      utils.games.list.invalidate();
       toast.success(t("pending.playerApproved"));
     },
+    onError: (err) => toast.error(err.message),
   });
 
   const declineGameMutation = trpc.games.declineParticipant.useMutation({
     onSuccess: () => {
       utils.challenges.allPending.invalidate();
+      utils.games.upcoming.invalidate();
+      utils.games.list.invalidate();
       toast(t("pending.playerDeclined"));
     },
+    onError: (err) => toast.error(err.message),
   });
 
   const approveCoachingMutation = trpc.coaching.approveParticipant.useMutation({
@@ -70,6 +79,7 @@ export default function PendingRequestsScreen() {
       utils.challenges.allPending.invalidate();
       toast.success(t("pending.challengeCancelled") || "Challenge withdrawn");
     },
+    onError: (err) => toast.error(err.message),
   });
 
   const challenges = data?.challenges ?? [];

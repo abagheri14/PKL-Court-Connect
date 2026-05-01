@@ -19,6 +19,7 @@ export default function HomeDashboard() {
 
   const matchesQuery = trpc.matches.list.useQuery(undefined, { refetchInterval: 30000 });
   const gamesQuery = trpc.games.upcoming.useQuery(undefined, { refetchInterval: 30000 });
+  const completedGamesQuery = trpc.games.list.useQuery({ status: "completed" }, { refetchInterval: 30000 });
   const achievementsQuery = trpc.achievements.list.useQuery(undefined, { refetchInterval: 60000 });
   const notificationsQuery = trpc.notifications.list.useQuery(undefined, { refetchInterval: 15000 });
   const leaderboardQuery = trpc.leaderboard.get.useQuery({ type: "xp", limit: 50 }, { refetchInterval: 60000 });
@@ -34,6 +35,7 @@ export default function HomeDashboard() {
 
   const matches = matchesQuery.data ?? [];
   const allUpcomingGames = gamesQuery.data ?? [];
+  const completedGames = completedGamesQuery.data ?? [];
   // Home page: only show games the user has joined or organized
   const upcomingGames = allUpcomingGames.filter((g: any) =>
     g.organizerId === user?.id || (g.participants ?? []).some((p: any) => p.userId === user?.id)
@@ -45,13 +47,13 @@ export default function HomeDashboard() {
 
   if (!user) return null;
 
-  const hasError = matchesQuery.isError || gamesQuery.isError || achievementsQuery.isError || leaderboardQuery.isError;
-  if (hasError && !matchesQuery.data && !gamesQuery.data) {
+  const hasError = matchesQuery.isError || gamesQuery.isError || completedGamesQuery.isError || achievementsQuery.isError || leaderboardQuery.isError;
+  if (hasError && !matchesQuery.data && !gamesQuery.data && !completedGamesQuery.data) {
     return (
       <div className="pb-24 min-h-screen flex items-center justify-center">
         <QueryError
             message={t("home.errorLoadDashboard")}
-          onRetry={() => { matchesQuery.refetch(); gamesQuery.refetch(); achievementsQuery.refetch(); }}
+          onRetry={() => { matchesQuery.refetch(); gamesQuery.refetch(); completedGamesQuery.refetch(); achievementsQuery.refetch(); leaderboardQuery.refetch(); }}
         />
       </div>
     );
@@ -68,7 +70,7 @@ export default function HomeDashboard() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const sentMessageToday = matches.some(m => m.lastMessageAt && new Date(m.lastMessageAt) >= today);
-  const gamesCompletedToday = upcomingGames.filter((g: any) => g.status === "completed" && g.completedAt && new Date(g.completedAt) >= today).length;
+  const gamesCompletedToday = completedGames.filter((g: any) => g.completedAt && new Date(g.completedAt) >= today).length;
   const dailyQuests = [
     { id: "q1", title: t("quests.dailyLogin"), desc: t("quests.dailyLoginDesc"), xp: 50 * xpMultiplier, icon: Flame, progress: 1, max: 1, done: true },
     { id: "q2", title: t("quests.swipe5Players"), desc: t("quests.swipe5PlayersDesc"), xp: 30 * xpMultiplier, icon: Zap, progress: Math.min(5, user.swipesUsedToday || 0), max: 5, done: (user.swipesUsedToday || 0) >= 5 },

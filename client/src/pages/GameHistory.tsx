@@ -42,28 +42,36 @@ export default function GameHistory() {
   const [sortBy, setSortBy] = useState<"date" | "rating">("date");
   const [gameView, setGameView] = useState<"mine" | "all">("all");
   const utils = trpc.useUtils();
+  const refreshGameCaches = () => {
+    upcomingQuery.refetch();
+    pastQuery.refetch();
+    inProgressQuery.refetch();
+    utils.games.upcoming.invalidate();
+    utils.games.list.invalidate();
+    utils.challenges.allPending.invalidate();
+  };
   const feedbackMutation = trpc.games.giveFeedback.useMutation({
     onSuccess: () => { toast.success(t("gameHistory.feedbackSubmitted")); setFeedbackGameId(null); setFeedbackReviewedId(null); setFeedbackComment(""); setFeedbackRating(5); pastQuery.refetch(); utils.auth.me.invalidate(); },
     onError: (err) => { toast.error(err.message); setFeedbackGameId(null); setFeedbackReviewedId(null); },
   });
   const approveGameMutation = trpc.games.approveParticipant.useMutation({
-    onSuccess: () => { toast.success(t("gameHistory.playerApproved")); upcomingQuery.refetch(); },
+    onSuccess: () => { toast.success(t("gameHistory.playerApproved")); refreshGameCaches(); },
     onError: (err: any) => toast.error(err.message),
   });
   const declineGameMutation = trpc.games.declineParticipant.useMutation({
-    onSuccess: () => { toast(t("gameHistory.playerDeclined")); upcomingQuery.refetch(); },
+    onSuccess: () => { toast(t("gameHistory.playerDeclined")); refreshGameCaches(); },
     onError: (err: any) => toast.error(err.message),
   });
   const joinGameMutation = trpc.games.join.useMutation({
-    onSuccess: () => { toast.success(t("gameHistory.requestSent")); upcomingQuery.refetch(); },
+    onSuccess: () => { toast.success(t("gameHistory.requestSent")); refreshGameCaches(); },
     onError: (err: any) => toast.error(err.message),
   });
   const confirmScoreMutation = trpc.games.confirmScore.useMutation({
-    onSuccess: () => { toast.success(t("gameHistory.scoreConfirmed")); pastQuery.refetch(); },
+    onSuccess: () => { toast.success(t("gameHistory.scoreConfirmed")); refreshGameCaches(); },
     onError: (err: any) => toast.error(err.message),
   });
   const disputeScoreMutation = trpc.games.disputeScore.useMutation({
-    onSuccess: () => { toast(t("gameHistory.scoreDisputed")); pastQuery.refetch(); },
+    onSuccess: () => { toast(t("gameHistory.scoreDisputed")); refreshGameCaches(); },
     onError: (err: any) => toast.error(err.message),
   });
   const allGamesRaw = [...upcomingGames, ...pastGames];

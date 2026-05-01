@@ -711,9 +711,52 @@ export async function isGameParticipant(userId: number, gameId: number): Promise
   const db = await getDb();
   const [row] = await db.select({ id: gameParticipants.id })
     .from(gameParticipants)
-    .where(and(eq(gameParticipants.gameId, gameId), eq(gameParticipants.userId, userId)))
+    .where(and(
+      eq(gameParticipants.gameId, gameId),
+      eq(gameParticipants.userId, userId),
+      eq(gameParticipants.status, "confirmed"),
+    ))
     .limit(1);
-  return !!row;
+  if (row) return true;
+
+  const [game] = await db.select({ organizerId: games.organizerId })
+    .from(games)
+    .where(eq(games.id, gameId))
+    .limit(1);
+  return game?.organizerId === userId;
+}
+
+async function getConfirmedGameParticipantIds(conn: any, gameId: number) {
+  const rows = await conn.select({ userId: gameParticipants.userId })
+    .from(gameParticipants)
+    .where(and(eq(gameParticipants.gameId, gameId), eq(gameParticipants.status, "confirmed")));
+  return new Set<number>(rows.map((row: { userId: number }) => row.userId));
+}
+
+function validateGameTeamAssignments(team1PlayerIds: number[], team2PlayerIds: number[], confirmedIds: Set<number>) {
+  const team1Set = new Set(team1PlayerIds);
+  const team2Set = new Set(team2PlayerIds);
+  if (team1Set.size !== team1PlayerIds.length || team2Set.size !== team2PlayerIds.length) {
+    throw new Error("Teams cannot contain duplicate players");
+  }
+  const overlap = team1PlayerIds.find(playerId => team2Set.has(playerId));
+  if (overlap !== undefined) {
+    throw new Error("A player cannot be assigned to both teams");
+  }
+  const invalidPlayer = Array.from(team1Set).concat(Array.from(team2Set)).find(playerId => !confirmedIds.has(playerId));
+  if (invalidPlayer !== undefined) {
+    throw new Error("Teams can only include confirmed game participants");
+  }
+}
+
+function parseNumberArrayJson(value: string | null | undefined): number[] {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.filter((item): item is number => Number.isInteger(item)) : [];
+  } catch {
+    return [];
+  }
 }
 
 export async function isGroupMember(userId: number, groupId: number): Promise<boolean> {
@@ -945,7 +988,16 @@ export async function reviewCourtSubmission(adminId: number, data: {
       addedBy: sub.submittedBy,
       isVerified: true,
     };
-    await db.insert(courts).values(courtData);
+    const [insertedCourt] = await db.insert(courts).values(courtData);
+    const courtId = Number(insertedCourt.insertId);
+
+    if (sub.photoUrl && courtId) {
+      await db.insert(courtPhotos).values({
+        courtId,
+        userId: sub.submittedBy,
+        photoUrl: sub.photoUrl,
+      });
+    }
 
     // Award achievement check for the submitter
     checkAndAwardAchievements(sub.submittedBy).catch(() => {});
@@ -1042,7 +1094,7 @@ export async function joinGame(userId: number, gameId: number) {
 
     // Check capacity
     const [countResult] = await tx.select({ count: sql<number>`COUNT(*)` })
-      .from(gameParticipants).where(eq(gameParticipants.gameId, gameId));
+      .from(gameParticipants).where(and(eq(gameParticipants.gameId, gameId), eq(gameParticipants.status, "confirmed")));
     if (countResult.count >= game.maxPlayers) throw new Error("Game is full");
 
     // Prevent duplicate
@@ -1073,6 +1125,7 @@ export async function joinGame(userId: number, gameId: number) {
     // Don't fail the join if notification fails
     console.error("Failed to send join notification:", e);
   }
+  return { success: true };
 }
 
 /** Approve a pending game participant (organizer only) */
@@ -1092,6 +1145,7 @@ export async function approveGameParticipant(organizerId: number, gameId: number
   if (countResult.count >= game.maxPlayers) {
     await db.update(games).set({ isOpen: false }).where(eq(games.id, gameId));
   }
+  return { success: true };
 }
 
 /** Decline a pending game participant (organizer only) */
@@ -1101,6 +1155,7 @@ export async function declineGameParticipant(organizerId: number, gameId: number
   if (!game || game.organizerId !== organizerId) throw new Error("Only the organizer can decline participants");
   await db.update(gameParticipants).set({ status: "declined" })
     .where(and(eq(gameParticipants.gameId, gameId), eq(gameParticipants.userId, userId)));
+  return { success: true };
 }
 
 export async function leaveGame(userId: number, gameId: number) {
@@ -1564,16 +1619,6 @@ export async function createChallenge(challengerId: number, challengedId: number
     notes: data.notes || null,
   }).$returningId();
 
-  // Send notification to the challenged player
-  const challenger = await db.select({ nickname: users.nickname, name: users.name }).from(users).where(eq(users.id, challengerId)).limit(1);
-  const challengerName = challenger[0]?.nickname || challenger[0]?.name || "Someone";
-  await createNotification(challengedId, {
-    type: "game_invite",
-    title: "New Challenge!",
-    content: `${challengerName} challenged you to a ${data.gameType || "casual"} ${data.format || "singles"} game`,
-    link: "challenges",
-  });
-
   return { id: result.id };
 }
 
@@ -1644,6 +1689,7 @@ export async function getPendingChallengesForUser(userId: number) {
   const db = await getDb();
   const rows = await db.select({
     id: challenges.id,
+    challengerUserId: challenges.challengerId,
     challengerId: challenges.challengerId,
     challengedId: challenges.challengedId,
     gameType: challenges.gameType,
@@ -1654,6 +1700,7 @@ export async function getPendingChallengesForUser(userId: number) {
     challengerName: users.name,
     challengerUsername: users.username,
     challengerNickname: users.nickname,
+    challengerProfilePhotoUrl: users.profilePhotoUrl,
     challengerPhoto: users.profilePhotoUrl,
   }).from(challenges)
     .leftJoin(users, eq(users.id, challenges.challengerId))
@@ -1670,6 +1717,7 @@ export async function getSentChallenges(userId: number) {
   const db = await getDb();
   return db.select({
     id: challenges.id,
+    challengedUserId: challenges.challengedId,
     challengedId: challenges.challengedId,
     gameType: challenges.gameType,
     format: challenges.format,
@@ -1678,6 +1726,7 @@ export async function getSentChallenges(userId: number) {
     createdAt: challenges.createdAt,
     challengedName: users.name,
     challengedUsername: users.username,
+    challengedProfilePhotoUrl: users.profilePhotoUrl,
   }).from(challenges)
     .leftJoin(users, eq(users.id, challenges.challengedId))
     .where(eq(challenges.challengerId, userId))
@@ -1696,10 +1745,13 @@ export async function getAllPendingForUser(userId: number) {
     gameId: gameParticipants.gameId,
     userId: gameParticipants.userId,
     joinedAt: gameParticipants.joinedAt,
+    createdAt: gameParticipants.joinedAt,
     userName: users.name,
     userUsername: users.username,
+    userProfilePhotoUrl: users.profilePhotoUrl,
     gameName: sql<string>`(SELECT locationName FROM games WHERE id = ${gameParticipants.gameId})`,
     gameDate: sql<Date>`(SELECT scheduledAt FROM games WHERE id = ${gameParticipants.gameId})`,
+    scheduledAt: sql<Date>`(SELECT scheduledAt FROM games WHERE id = ${gameParticipants.gameId})`,
   }).from(gameParticipants)
     .leftJoin(users, eq(users.id, gameParticipants.userId))
     .where(and(
@@ -1713,8 +1765,10 @@ export async function getAllPendingForUser(userId: number) {
     coachingId: coachingParticipants.coachingId,
     userId: coachingParticipants.userId,
     joinedAt: coachingParticipants.joinedAt,
+    createdAt: coachingParticipants.joinedAt,
     userName: users.name,
     userUsername: users.username,
+    userProfilePhotoUrl: users.profilePhotoUrl,
     sessionTitle: sql<string>`(SELECT title FROM shared_coaching WHERE id = ${coachingParticipants.coachingId})`,
   }).from(coachingParticipants)
     .leftJoin(users, eq(users.id, coachingParticipants.userId))
@@ -1732,8 +1786,10 @@ export async function getAllPendingForUser(userId: number) {
   const myPendingGameReqs = await db.select({
     gameId: gameParticipants.gameId,
     joinedAt: gameParticipants.joinedAt,
+    createdAt: gameParticipants.joinedAt,
     gameName: sql<string>`(SELECT locationName FROM games WHERE id = ${gameParticipants.gameId})`,
     gameDate: sql<Date>`(SELECT scheduledAt FROM games WHERE id = ${gameParticipants.gameId})`,
+    scheduledAt: sql<Date>`(SELECT scheduledAt FROM games WHERE id = ${gameParticipants.gameId})`,
   }).from(gameParticipants)
     .where(and(
       eq(gameParticipants.userId, userId),
@@ -1745,6 +1801,7 @@ export async function getAllPendingForUser(userId: number) {
   const myPendingCoachingReqs = await db.select({
     coachingId: coachingParticipants.coachingId,
     joinedAt: coachingParticipants.joinedAt,
+    createdAt: coachingParticipants.joinedAt,
     sessionTitle: sql<string>`(SELECT title FROM shared_coaching WHERE id = ${coachingParticipants.coachingId})`,
   }).from(coachingParticipants)
     .where(and(
@@ -2242,7 +2299,7 @@ export async function getGroupById(groupId: number) {
 }
 
 export async function createGroup(userId: number, data: {
-  name: string; description?: string; groupType?: string; isPrivate?: boolean; locationCity?: string;
+  name: string; description?: string; groupType?: string; isPrivate?: boolean; locationCity?: string; photo?: string;
 }) {
   const db = await getDb();
   return db.transaction(async (tx) => {
@@ -2264,6 +2321,7 @@ export async function createGroup(userId: number, data: {
       createdBy: userId,
       memberCount: 1,
       locationCity: data.locationCity,
+      photo: data.photo,
       conversationId,
     });
     const groupId = inserted.insertId;
@@ -3712,7 +3770,7 @@ export async function confirmGameScore(userId: number, gameId: number) {
     // Lock the result row to prevent concurrent confirm race
     const [result] = await tx.select().from(gameResults).where(eq(gameResults.gameId, gameId)).for("update").limit(1);
     if (!result) throw new Error("No game result found");
-    const confirmed: number[] = result.scoreConfirmedBy ? JSON.parse(result.scoreConfirmedBy) : [];
+    const confirmed = parseNumberArrayJson(result.scoreConfirmedBy);
     if (confirmed.includes(userId)) throw new Error("You already confirmed this score");
     confirmed.push(userId);
     await tx.update(gameResults)
@@ -3738,9 +3796,9 @@ export async function getGameResult(gameId: number) {
   if (!result.length) return null;
   return {
     ...result[0],
-    team1PlayerIds: result[0].team1PlayerIds ? JSON.parse(result[0].team1PlayerIds) : [],
-    team2PlayerIds: result[0].team2PlayerIds ? JSON.parse(result[0].team2PlayerIds) : [],
-    scoreConfirmedBy: result[0].scoreConfirmedBy ? JSON.parse(result[0].scoreConfirmedBy) : [],
+    team1PlayerIds: parseNumberArrayJson(result[0].team1PlayerIds),
+    team2PlayerIds: parseNumberArrayJson(result[0].team2PlayerIds),
+    scoreConfirmedBy: parseNumberArrayJson(result[0].scoreConfirmedBy),
   };
 }
 
@@ -3775,6 +3833,9 @@ export async function saveTeamAssignments(userId: number, gameId: number, team1P
   const [game] = await db.select().from(games).where(eq(games.id, gameId)).limit(1);
   if (!game) throw new Error("Game not found");
   if (game.organizerId !== userId) throw new Error("Only the organizer can assign teams");
+  const confirmedIds = await getConfirmedGameParticipantIds(db, gameId);
+  confirmedIds.add(game.organizerId);
+  validateGameTeamAssignments(team1PlayerIds, team2PlayerIds, confirmedIds);
   // Store team assignments in gameResults (upsert pattern)
   const existing = await db.select().from(gameResults).where(eq(gameResults.gameId, gameId)).limit(1);
   if (existing.length > 0) {
@@ -3809,6 +3870,9 @@ export async function startGameWithTeams(userId: number, gameId: number, team1Pl
       if (!participant) throw new Error("Only the organizer or a confirmed participant can start the game");
     }
     if (game.status !== "scheduled") throw new Error("Game is not in a startable state");
+    const confirmedIds = await getConfirmedGameParticipantIds(tx, gameId);
+    confirmedIds.add(game.organizerId);
+    validateGameTeamAssignments(team1PlayerIds, team2PlayerIds, confirmedIds);
     // Save team assignments
     const existing = await tx.select().from(gameResults).where(eq(gameResults.gameId, gameId)).limit(1);
     if (existing.length > 0) {
@@ -3855,7 +3919,7 @@ export async function saveGameRound(userId: number, gameId: number, data: {
     if (!isOrganizer) {
       const [participant] = await tx.select({ id: gameParticipants.id })
         .from(gameParticipants)
-        .where(and(eq(gameParticipants.gameId, gameId), eq(gameParticipants.userId, userId)))
+        .where(and(eq(gameParticipants.gameId, gameId), eq(gameParticipants.userId, userId), eq(gameParticipants.status, "confirmed")))
         .limit(1);
       if (!participant) throw new Error("Only participants or the organizer can update rounds");
     }
@@ -3898,7 +3962,7 @@ export async function getGameRounds(userId: number, gameId: number) {
   if (!isOrganizer) {
     const [participant] = await db.select({ id: gameParticipants.id })
       .from(gameParticipants)
-      .where(and(eq(gameParticipants.gameId, gameId), eq(gameParticipants.userId, userId)))
+      .where(and(eq(gameParticipants.gameId, gameId), eq(gameParticipants.userId, userId), eq(gameParticipants.status, "confirmed")))
       .limit(1);
     if (!participant) throw new Error("Only participants or the organizer can view rounds");
   }
@@ -3927,6 +3991,9 @@ export async function completeGame(userId: number, gameId: number, data: {
       if (!participant) throw new Error("Only the organizer or a confirmed participant can complete the game");
     }
     if (gameRow.status !== "in-progress") throw new Error("Game is not in progress or already completed");
+    const confirmedIds = await getConfirmedGameParticipantIds(tx, gameId);
+    confirmedIds.add(Number(gameRow.organizerId));
+    validateGameTeamAssignments(data.team1PlayerIds, data.team2PlayerIds, confirmedIds);
 
     // Compute authoritative totals from saved rounds (prevents stale-closure client bugs)
     const savedRounds = await tx.select().from(gameRounds).where(eq(gameRounds.gameId, gameId));
@@ -4021,8 +4088,8 @@ export async function getGameScoreboard(gameId: number) {
     rounds,
     result: result ? {
       ...result,
-      team1PlayerIds: result.team1PlayerIds ? JSON.parse(result.team1PlayerIds) : [],
-      team2PlayerIds: result.team2PlayerIds ? JSON.parse(result.team2PlayerIds) : [],
+      team1PlayerIds: parseNumberArrayJson(result.team1PlayerIds),
+      team2PlayerIds: parseNumberArrayJson(result.team2PlayerIds),
     } : null,
     participants,
   };
@@ -5321,12 +5388,10 @@ export async function getCourtLeaderboard(courtId: number) {
   const winMap = new Map<number, number>();
   const gameMap = new Map<number, number>();
   for (const result of results) {
-    const winnerIds: number[] = result.winnerTeam === "team1"
-      ? JSON.parse(result.team1PlayerIds || "[]")
-      : result.winnerTeam === "team2"
-        ? JSON.parse(result.team2PlayerIds || "[]")
-        : [];
-    const allIds = [...JSON.parse(result.team1PlayerIds || "[]"), ...JSON.parse(result.team2PlayerIds || "[]")];
+    const team1Ids = parseNumberArrayJson(result.team1PlayerIds);
+    const team2Ids = parseNumberArrayJson(result.team2PlayerIds);
+    const winnerIds = result.winnerTeam === "team1" ? team1Ids : result.winnerTeam === "team2" ? team2Ids : [];
+    const allIds = [...team1Ids, ...team2Ids];
     for (const id of allIds) gameMap.set(id, (gameMap.get(id) ?? 0) + 1);
     for (const id of winnerIds) winMap.set(id, (winMap.get(id) ?? 0) + 1);
   }
@@ -5451,18 +5516,26 @@ export async function getFeedPosts(userId: number, opts: {
 
 export async function toggleFeedLike(userId: number, postId: number) {
   const db = await getDb();
-  // Check if already liked
-  const [existing] = await db.select({ id: feedLikes.id }).from(feedLikes)
-    .where(and(eq(feedLikes.postId, postId), eq(feedLikes.userId, userId))).limit(1);
-  if (existing) {
-    await db.delete(feedLikes).where(eq(feedLikes.id, existing.id));
-    await db.update(feedPosts).set({ likesCount: sql`GREATEST(${feedPosts.likesCount} - 1, 0)` }).where(eq(feedPosts.id, postId));
-    return { liked: false };
-  } else {
-    await db.insert(feedLikes).values({ postId, userId });
-    await db.update(feedPosts).set({ likesCount: sql`${feedPosts.likesCount} + 1` }).where(eq(feedPosts.id, postId));
+  return db.transaction(async (tx) => {
+    const [post] = await tx.select({ id: feedPosts.id })
+      .from(feedPosts)
+      .where(eq(feedPosts.id, postId))
+      .for("update")
+      .limit(1);
+    if (!post) throw new Error("Post not found");
+
+    const [existing] = await tx.select({ id: feedLikes.id }).from(feedLikes)
+      .where(and(eq(feedLikes.postId, postId), eq(feedLikes.userId, userId))).limit(1);
+    if (existing) {
+      await tx.delete(feedLikes).where(eq(feedLikes.id, existing.id));
+      await tx.update(feedPosts).set({ likesCount: sql`GREATEST(${feedPosts.likesCount} - 1, 0)` }).where(eq(feedPosts.id, postId));
+      return { liked: false };
+    }
+
+    await tx.insert(feedLikes).values({ postId, userId });
+    await tx.update(feedPosts).set({ likesCount: sql`${feedPosts.likesCount} + 1` }).where(eq(feedPosts.id, postId));
     return { liked: true };
-  }
+  });
 }
 
 export async function addFeedComment(userId: number, postId: number, content: string) {
@@ -5492,43 +5565,63 @@ export async function getFeedComments(postId: number, limit = 50) {
 
 export async function deleteFeedPost(userId: number, postId: number) {
   const db = await getDb();
-  const [post] = await db.select({ userId: feedPosts.userId }).from(feedPosts).where(eq(feedPosts.id, postId)).limit(1);
-  if (!post) throw new Error("Post not found");
-  if (post.userId !== userId) throw new Error("Not authorized");
-  await db.delete(feedComments).where(eq(feedComments.postId, postId));
-  await db.delete(feedLikes).where(eq(feedLikes.postId, postId));
-  await db.delete(feedReactions).where(eq(feedReactions.postId, postId));
-  await db.delete(feedBookmarks).where(eq(feedBookmarks.postId, postId));
-  await db.delete(feedPosts).where(eq(feedPosts.id, postId));
-  return { success: true };
+  return db.transaction(async (tx) => {
+    const [post] = await tx.select({ userId: feedPosts.userId }).from(feedPosts).where(eq(feedPosts.id, postId)).for("update").limit(1);
+    if (!post) throw new Error("Post not found");
+    if (post.userId !== userId) throw new Error("Not authorized");
+    await tx.delete(feedComments).where(eq(feedComments.postId, postId));
+    await tx.delete(feedLikes).where(eq(feedLikes.postId, postId));
+    await tx.delete(feedReactions).where(eq(feedReactions.postId, postId));
+    await tx.delete(feedBookmarks).where(eq(feedBookmarks.postId, postId));
+    await tx.delete(feedPosts).where(eq(feedPosts.id, postId));
+    return { success: true };
+  });
 }
 
 // ── Feed Reactions ────────────────────────────────────────────────────────
 export async function toggleFeedReaction(userId: number, postId: number, emoji: string) {
   const db = await getDb();
-  const [existing] = await db.select({ id: feedReactions.id }).from(feedReactions)
-    .where(and(eq(feedReactions.postId, postId), eq(feedReactions.userId, userId), eq(feedReactions.emoji, emoji))).limit(1);
-  if (existing) {
-    await db.delete(feedReactions).where(eq(feedReactions.id, existing.id));
-    return { added: false, emoji };
-  } else {
-    await db.insert(feedReactions).values({ postId, userId, emoji });
+  return db.transaction(async (tx) => {
+    const [post] = await tx.select({ id: feedPosts.id })
+      .from(feedPosts)
+      .where(eq(feedPosts.id, postId))
+      .for("update")
+      .limit(1);
+    if (!post) throw new Error("Post not found");
+
+    const [existing] = await tx.select({ id: feedReactions.id }).from(feedReactions)
+      .where(and(eq(feedReactions.postId, postId), eq(feedReactions.userId, userId), eq(feedReactions.emoji, emoji))).limit(1);
+    if (existing) {
+      await tx.delete(feedReactions).where(eq(feedReactions.id, existing.id));
+      return { added: false, emoji };
+    }
+
+    await tx.insert(feedReactions).values({ postId, userId, emoji });
     return { added: true, emoji };
-  }
+  });
 }
 
 // ── Feed Bookmarks ────────────────────────────────────────────────────────
 export async function toggleFeedBookmark(userId: number, postId: number) {
   const db = await getDb();
-  const [existing] = await db.select({ id: feedBookmarks.id }).from(feedBookmarks)
-    .where(and(eq(feedBookmarks.postId, postId), eq(feedBookmarks.userId, userId))).limit(1);
-  if (existing) {
-    await db.delete(feedBookmarks).where(eq(feedBookmarks.id, existing.id));
-    return { bookmarked: false };
-  } else {
-    await db.insert(feedBookmarks).values({ postId, userId });
+  return db.transaction(async (tx) => {
+    const [post] = await tx.select({ id: feedPosts.id })
+      .from(feedPosts)
+      .where(eq(feedPosts.id, postId))
+      .for("update")
+      .limit(1);
+    if (!post) throw new Error("Post not found");
+
+    const [existing] = await tx.select({ id: feedBookmarks.id }).from(feedBookmarks)
+      .where(and(eq(feedBookmarks.postId, postId), eq(feedBookmarks.userId, userId))).limit(1);
+    if (existing) {
+      await tx.delete(feedBookmarks).where(eq(feedBookmarks.id, existing.id));
+      return { bookmarked: false };
+    }
+
+    await tx.insert(feedBookmarks).values({ postId, userId });
     return { bookmarked: true };
-  }
+  });
 }
 
 export async function getBookmarkedPosts(userId: number, limit = 30) {
@@ -5551,15 +5644,22 @@ export async function getBookmarkedPosts(userId: number, limit = 30) {
 }
 
 // ── Report Post ───────────────────────────────────────────────────────────
-export async function reportFeedPost(userId: number, postId: number, reason: string) {
+export async function reportFeedPost(
+  userId: number,
+  postId: number,
+  reportType: "inappropriate" | "fake-profile" | "harassment" | "safety" | "other",
+  description?: string,
+) {
   const db = await getDb();
   const [post] = await db.select({ userId: feedPosts.userId }).from(feedPosts).where(eq(feedPosts.id, postId)).limit(1);
   if (!post) throw new Error("Post not found");
-  // Use reports table (targetType = 'feed_post')
-  await db.insert(reports).values({
-    reporterId: userId,
+  if (post.userId === userId) throw new Error("You cannot report your own post");
+
+  const details = description?.trim() || reportType.replace(/-/g, " ");
+  await createReport(userId, {
     reportedId: post.userId,
-    reason: `[Feed Post #${postId}] ${reason}`,
-  } as any);
+    reportType,
+    description: `[Feed Post #${postId}] ${details}`,
+  });
   return { success: true };
 }

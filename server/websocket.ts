@@ -214,6 +214,7 @@ export function setupSocketIO(io: SocketIOServer) {
       // Validate score values are reasonable
       if (data.team1Score < 0 || data.team1Score > 99 || data.team2Score < 0 || data.team2Score > 99) return;
       if (data.currentRound < 1 || data.currentRound > 10) return;
+      if (data.servingTeam !== 1 && data.servingTeam !== 2) return;
       socket.to(`game:${data.gameId}`).emit("game:scoreUpdate", data);
     });
 

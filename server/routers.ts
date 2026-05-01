@@ -74,6 +74,11 @@ function sanitizeString(str: string): string {
   return str.replace(/<[^>]*>/g, "").replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, "").trim();
 }
 
+const uploadedImageUrlSchema = z.string().max(2048).refine(
+  url => /^(https?:\/\/|\/uploads\/|\/api\/files\/)/i.test(url),
+  { message: "Photo URL must use HTTP/HTTPS or be a relative upload/file path" },
+);
+
 export const appRouter = router({
   system: systemRouter,
 
@@ -431,6 +436,10 @@ export const appRouter = router({
       .input(z.object({ targetUserId: z.number() }))
       .mutation(async ({ ctx, input }) => {
         if (input.targetUserId === ctx.user.id) throw new TRPCError({ code: "BAD_REQUEST", message: "Cannot message yourself" });
+        const targetUser = await db.getUserById(input.targetUserId);
+        if (!targetUser || !targetUser.isActive || targetUser.isDeleted) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+        }
         // Premium-only feature
         const sender = await db.getUserById(ctx.user.id);
         if (!sender?.isPremium) throw new TRPCError({ code: "FORBIDDEN", message: "Direct messaging is a premium feature" });
@@ -563,7 +572,7 @@ export const appRouter = router({
         isFree: z.boolean().default(true),
         costInfo: z.string().max(200).optional(),
         amenities: z.string().max(500).optional(),
-        photoUrl: z.string().max(1000).optional(),
+        photoUrl: uploadedImageUrlSchema.optional(),
         notes: z.string().max(500).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
@@ -629,7 +638,7 @@ export const appRouter = router({
       .input(z.object({ courtId: z.number() }))
       .query(({ input }) => db.getCourtPhotos(input.courtId)),
     addPhoto: protectedProcedure
-      .input(z.object({ courtId: z.number(), photoUrl: z.string().max(1000), caption: z.string().max(255).optional() }))
+      .input(z.object({ courtId: z.number(), photoUrl: uploadedImageUrlSchema, caption: z.string().max(255).optional() }))
       .mutation(async ({ ctx, input }) => {
         const sanitized = { ...input };
         if (sanitized.caption) sanitized.caption = sanitizeString(sanitized.caption);
@@ -659,7 +668,17 @@ export const appRouter = router({
         notes: z.string().max(500).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const sanitized = { ...input, startTime: new Date(input.startTime), endTime: new Date(input.endTime) };
+        const court = await db.getCourtById(input.courtId);
+        if (!court) throw new TRPCError({ code: "NOT_FOUND", message: "Court not found" });
+        const startTime = new Date(input.startTime);
+        const endTime = new Date(input.endTime);
+        if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid booking time" });
+        }
+        if (endTime <= startTime) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "End time must be after start time" });
+        }
+        const sanitized = { ...input, startTime, endTime };
         if (input.notes) sanitized.notes = sanitizeString(input.notes);
         return db.createCourtBooking(ctx.user.id, sanitized);
       }),
@@ -1240,7 +1259,7 @@ export const appRouter = router({
         groupType: z.enum(["social", "league", "tournament", "coaching"]).default("social"),
         isPrivate: z.boolean().default(false),
         locationCity: z.string().optional(),
-        photo: z.string().max(2000).optional(),
+        photo: uploadedImageUrlSchema.optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const sanitized = { ...input };
@@ -1320,7 +1339,7 @@ export const appRouter = router({
         name: z.string().min(1).max(100).optional(),
         description: z.string().optional(),
         locationCity: z.string().optional(),
-        photo: z.string().refine(url => /^(https?:\/\/|\/uploads\/|\/api\/files\/)/i.test(url), { message: "Photo URL must use HTTP/HTTPS or be a relative upload/file path" }).optional(),
+        photo: uploadedImageUrlSchema.optional(),
       }))
       .mutation(({ ctx, input }) => {
         const { groupId, ...data } = input;
@@ -1536,7 +1555,7 @@ export const appRouter = router({
       .input(z.object({ userId: z.number().optional() }).optional())
       .query(({ ctx, input }) => db.getUserPhotos(input?.userId ?? ctx.user.id)),
     add: protectedProcedure
-      .input(z.object({ photoUrl: z.string().max(2048) }))
+      .input(z.object({ photoUrl: uploadedImageUrlSchema }))
       .mutation(({ ctx, input }) => db.addUserPhoto(ctx.user.id, input.photoUrl)),
     remove: protectedProcedure
       .input(z.object({ photoId: z.number() }))
@@ -2098,7 +2117,7 @@ export const appRouter = router({
     createPost: protectedProcedure
       .input(z.object({
         content: z.string().min(1).max(2000),
-        photoUrl: z.string().optional(),
+        photoUrl: uploadedImageUrlSchema.optional(),
         postType: z.enum(["general", "highlight", "question", "tip", "looking_for_players"]).optional(),
       }))
       .mutation(({ ctx, input }) => db.createFeedPost(ctx.user.id, {
@@ -2127,8 +2146,17 @@ export const appRouter = router({
       .input(z.object({ limit: z.number().min(1).max(100).default(30) }).optional())
       .query(({ ctx, input }) => db.getBookmarkedPosts(ctx.user.id, input?.limit ?? 30)),
     reportPost: protectedProcedure
-      .input(z.object({ postId: z.number(), reason: z.string().min(1).max(500) }))
-      .mutation(({ ctx, input }) => db.reportFeedPost(ctx.user.id, input.postId, sanitizeString(input.reason))),
+      .input(z.object({
+        postId: z.number(),
+        reportType: z.enum(["inappropriate", "fake-profile", "harassment", "safety", "other"]),
+        description: z.string().max(500).optional(),
+      }))
+      .mutation(({ ctx, input }) => db.reportFeedPost(
+        ctx.user.id,
+        input.postId,
+        input.reportType,
+        input.description ? sanitizeString(input.description) : undefined,
+      )),
   }),
 
   // ── Favorite Players ───────────────────────────────────────────────────

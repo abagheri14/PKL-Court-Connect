@@ -13,6 +13,7 @@ import { ArrowLeft, Camera, Save, Loader2, Plus, X, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import PlayerAvatar from "@/components/PlayerAvatar";
 import { toast } from "sonner";
+import { UPLOAD_PURPOSE } from "@shared/const";
 
 const skillLevels = ["Beginner", "2.5", "3.0", "3.5", "4.0", "4.5", "5.0+"];
 const vibes = ["Social", "Competitive", "Both"] as const;
@@ -84,7 +85,7 @@ export default function EditProfile() {
   });
 
   const { uploading, openFilePicker, cropSrc, handleCropComplete, handleCropCancel } = usePhotoUpload({
-    purpose: "profile-photo",
+    purpose: UPLOAD_PURPOSE.PROFILE_PHOTO,
     enableCrop: true,
     onSuccess: (url) => {
       addPhotoMutation.mutate({ photoUrl: url });

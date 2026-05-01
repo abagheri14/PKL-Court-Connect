@@ -22,6 +22,7 @@ export default function GamePlayScreen() {
   const { t, i18n } = useTranslation();
   const { selectedGameId, goBack, user } = useApp();
   const [phase, setPhase] = useState<Phase>("setup");
+  const utils = trpc.useUtils();
 
   // Queries — disable refetchInterval while scoring to prevent overwriting local state
   const isScoringRef = useRef(false);
@@ -41,7 +42,7 @@ export default function GamePlayScreen() {
   });
   const startWithTeamsMutation = trpc.games.startWithTeams.useMutation({
     onSuccess: () => { scoreboardQuery.refetch(); setPhase("playing"); },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => { setTimerRunning(false); toast.error(err.message); },
   });
   const saveTeamsMutation = trpc.games.saveTeams.useMutation({
     onSuccess: () => scoreboardQuery.refetch(),
@@ -57,9 +58,12 @@ export default function GamePlayScreen() {
       toast.success(t("gamePlay.gameCompleted"));
       scoreboardQuery.refetch();
       roundsQuery.refetch();
+      utils.auth.me.invalidate();
+      utils.games.list.invalidate();
+      utils.games.upcoming.invalidate();
       setPhase("summary");
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => { completingRef.current = false; toast.error(err.message); },
   });
 
   const scoreboard = scoreboardQuery.data;

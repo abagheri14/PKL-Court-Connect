@@ -5,7 +5,7 @@ import fs from "fs";
 import { getSignedUrl, uploadFile } from "./storage";
 import { getUploadedFile, saveUploadedFile } from "./db";
 import { sdk } from "./_core/sdk";
-import { COOKIE_NAME } from "@shared/const";
+import { COOKIE_NAME, DEFAULT_UPLOAD_PURPOSE, isUploadPurpose } from "@shared/const";
 import { parse as parseCookieHeader } from "cookie";
 
 const UPLOAD_DIR = path.join(process.cwd(), "uploads");
@@ -37,19 +37,6 @@ const upload = multer({
     }
   },
 });
-
-const ALLOWED_PURPOSES = [
-  "profile-photo",
-  "chat-image",
-  "court-photo",
-  "profile",
-  "court",
-  "game",
-  "group",
-  "coaching",
-  "chat",
-  "general",
-];
 
 function normalizeFileKey(value: string): string | null {
   const normalized = value.replace(/\\/g, "/");
@@ -90,8 +77,8 @@ export function setupFileUpload(app: Express) {
         return;
       }
 
-      const rawPurpose = (req.body?.purpose as string) || "general";
-      const purpose = ALLOWED_PURPOSES.includes(rawPurpose) ? rawPurpose : "general";
+      const rawPurpose = (req.body?.purpose as string) || DEFAULT_UPLOAD_PURPOSE;
+      const purpose = isUploadPurpose(rawPurpose) ? rawPurpose : DEFAULT_UPLOAD_PURPOSE;
       const userId = (req as any).userId as number | undefined;
       if (!userId) {
         fs.promises.unlink(req.file.path).catch(() => {});

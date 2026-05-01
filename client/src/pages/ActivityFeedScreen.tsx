@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import { useTranslation } from "react-i18next";
+import { UPLOAD_PURPOSE } from "@shared/const";
 
 // ── Icons & Maps ──────────────────────────────────────────────────────────
 const activityIcons: Record<string, any> = {
@@ -33,6 +34,8 @@ const postTypeIcons: Record<string, any> = {
   general: Newspaper, highlight: Star, question: HelpCircle, tip: Lightbulb, looking_for_players: Megaphone,
 };
 type PostType = "general" | "highlight" | "question" | "tip" | "looking_for_players";
+type FeedReportType = "inappropriate" | "harassment" | "safety" | "other";
+
 const postTypeLabels: Record<PostType, string> = {
   general: "Post", highlight: "Highlight", question: "Question", tip: "Tip", looking_for_players: "LFP",
 };
@@ -142,7 +145,7 @@ function PostComposer({ onSuccess }: { onSuccess: () => void }) {
     setUploading(true);
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("purpose", "feed");
+    formData.append("purpose", UPLOAD_PURPOSE.FEED);
     try {
       const res = await fetch("/api/upload", { method: "POST", body: formData, credentials: "include" });
       if (!res.ok) throw new Error();
@@ -252,13 +255,13 @@ function PostComposer({ onSuccess }: { onSuccess: () => void }) {
 }
 
 // ── Comment Section ───────────────────────────────────────────────────────
-function CommentSection({ postId }: { postId: number }) {
+function CommentSection({ postId, onCommentAdded }: { postId: number; onCommentAdded?: () => void }) {
   const { t } = useTranslation();
   const { user } = useApp();
   const [newComment, setNewComment] = useState("");
   const commentsQuery = trpc.feed.getComments.useQuery({ postId, limit: 50 });
   const addCommentMutation = trpc.feed.addComment.useMutation({
-    onSuccess: () => { setNewComment(""); commentsQuery.refetch(); },
+    onSuccess: () => { setNewComment(""); commentsQuery.refetch(); onCommentAdded?.(); },
     onError: (err) => toast.error(err.message),
   });
 
@@ -309,8 +312,14 @@ function CommentSection({ postId }: { postId: number }) {
 }
 
 // ── Feed Post Card (Boo-style) ────────────────────────────────────────────
-function FeedPostCard({ post, onLikeToggle, onDelete, onRefresh }: {
-  post: any; onLikeToggle: (postId: number) => void; onDelete?: (postId: number) => void; onRefresh?: () => void;
+function FeedPostCard({ post, onLikeToggle, onDelete, onRefresh, onBookmarkToggle, onReactionToggle, onCommentAdded }: {
+  post: any;
+  onLikeToggle: (postId: number) => void;
+  onDelete?: (postId: number) => void;
+  onRefresh?: () => void;
+  onBookmarkToggle?: (postId: number, bookmarked: boolean) => void;
+  onReactionToggle?: (postId: number, emoji: string, added: boolean) => void;
+  onCommentAdded?: (postId: number) => void;
 }) {
   const { t } = useTranslation();
   const { user, navigate, selectPlayer } = useApp();
@@ -319,24 +328,32 @@ function FeedPostCard({ post, onLikeToggle, onDelete, onRefresh }: {
   const [imageExpanded, setImageExpanded] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showReportDialog, setShowReportDialog] = useState(false);
-  const [reportReason, setReportReason] = useState("");
+  const [reportType, setReportType] = useState<FeedReportType | "">("");
   const isOwn = post.userId === user?.id;
+  const reportOptions: Array<{ value: FeedReportType; label: string }> = [
+    { value: "safety", label: t("feed.reportReasons.spam") },
+    { value: "harassment", label: t("feed.reportReasons.harassment") },
+    { value: "inappropriate", label: t("feed.reportReasons.inappropriate") },
+    { value: "other", label: t("feed.reportReasons.other") },
+  ];
+  const selectedReportOption = reportOptions.find((option) => option.value === reportType);
 
   const toggleBookmarkMutation = trpc.feed.toggleBookmark.useMutation({
     onSuccess: (data) => {
       toast(data.bookmarked ? t("feed.saved") : t("feed.removedFromSaved"));
+      onBookmarkToggle?.(post.id, data.bookmarked);
       onRefresh?.();
     },
     onError: (err) => toast.error(err.message),
   });
 
   const toggleReactionMutation = trpc.feed.toggleReaction.useMutation({
-    onSuccess: () => { setShowReactions(false); onRefresh?.(); },
+    onSuccess: (data) => { setShowReactions(false); onReactionToggle?.(post.id, data.emoji, data.added); onRefresh?.(); },
     onError: (err) => toast.error(err.message),
   });
 
   const reportPostMutation = trpc.feed.reportPost.useMutation({
-    onSuccess: () => { toast.success(t("feed.postReported")); setShowReportDialog(false); setReportReason(""); },
+    onSuccess: () => { toast.success(t("feed.postReported")); setShowReportDialog(false); setReportType(""); },
     onError: (err) => toast.error(err.message),
   });
 
@@ -430,7 +447,7 @@ function FeedPostCard({ post, onLikeToggle, onDelete, onRefresh }: {
                     </button>
                   )}
                   {!isOwn && (
-                    <button onClick={() => { setShowReportDialog(true); setShowMenu(false); }} className="flex items-center gap-2 w-full px-3 py-2 text-xs text-left text-orange-400 hover:bg-orange-500/10 transition-colors">
+                    <button onClick={() => { setReportType(""); setShowReportDialog(true); setShowMenu(false); }} className="flex items-center gap-2 w-full px-3 py-2 text-xs text-left text-orange-400 hover:bg-orange-500/10 transition-colors">
                       <Filter className="w-3.5 h-3.5" /> {t("feed.report")}
                     </button>
                   )}
@@ -528,7 +545,7 @@ function FeedPostCard({ post, onLikeToggle, onDelete, onRefresh }: {
             </button>
           </div>
 
-          {showComments && <CommentSection postId={post.id} />}
+          {showComments && <CommentSection postId={post.id} onCommentAdded={() => onCommentAdded?.(post.id)} />}
         </div>
       </div>
 
@@ -548,16 +565,16 @@ function FeedPostCard({ post, onLikeToggle, onDelete, onRefresh }: {
           <div className="bg-background rounded-2xl p-5 w-full max-w-sm border border-border/50" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-sm font-bold mb-3">{t("feed.reportPost")}</h3>
             <div className="space-y-2 mb-3">
-              {[t("feed.reportReasons.spam"), t("feed.reportReasons.harassment"), t("feed.reportReasons.inappropriate"), t("feed.reportReasons.other")].map((r) => (
+              {reportOptions.map((option) => (
                 <button
-                  key={r}
-                  onClick={() => setReportReason(r)}
+                  key={option.value}
+                  onClick={() => setReportType(option.value)}
                   className={cn(
                     "w-full text-left px-3 py-2 rounded-xl text-xs border transition-colors",
-                    reportReason === r ? "border-[#BFFF00]/40 bg-[#BFFF00]/10 text-[#BFFF00]" : "border-border/30 hover:bg-muted/20"
+                    reportType === option.value ? "border-[#BFFF00]/40 bg-[#BFFF00]/10 text-[#BFFF00]" : "border-border/30 hover:bg-muted/20"
                   )}
                 >
-                  {r}
+                  {option.label}
                 </button>
               ))}
             </div>
@@ -565,8 +582,8 @@ function FeedPostCard({ post, onLikeToggle, onDelete, onRefresh }: {
               <Button size="sm" variant="outline" onClick={() => setShowReportDialog(false)} className="flex-1 text-xs">{t("common.cancel")}</Button>
               <Button
                 size="sm"
-                onClick={() => reportPostMutation.mutate({ postId: post.id, reason: reportReason })}
-                disabled={!reportReason || reportPostMutation.isPending}
+                onClick={() => reportType && reportPostMutation.mutate({ postId: post.id, reportType, description: selectedReportOption?.label })}
+                disabled={!reportType || reportPostMutation.isPending}
                 className="flex-1 text-xs bg-red-500 hover:bg-red-600 text-white"
               >
                 {reportPostMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : t("feed.report")}
@@ -603,6 +620,7 @@ function ActivityItemCard({ item }: { item: any }) {
 // ── Main Feed Screen (Boo-style) ──────────────────────────────────────────
 export default function ActivityFeedScreen() {
   const { t } = useTranslation();
+  const utils = trpc.useUtils();
   const { user } = useApp();
   const [tab, setTab] = useState<"posts" | "trending" | "saved" | "activity" | "my">("posts");
   const [filter, setFilter] = useState("all");
@@ -622,7 +640,24 @@ export default function ActivityFeedScreen() {
   useEffect(() => {
     if (postsQuery.data) {
       const data = postsQuery.data;
-      if (offset === 0) { setAllPosts(data); } else { setAllPosts(prev => [...prev, ...data]); }
+      if (offset === 0) {
+        setAllPosts(data);
+      } else {
+        setAllPosts(prev => {
+          const next = [...prev];
+          const indexById = new Map(next.map((post, index) => [post.id, index]));
+          for (const post of data) {
+            const existingIndex = indexById.get(post.id);
+            if (existingIndex === undefined) {
+              next.push(post);
+              indexById.set(post.id, next.length - 1);
+            } else {
+              next[existingIndex] = post;
+            }
+          }
+          return next;
+        });
+      }
       setHasMore(data.length >= PAGE_SIZE);
     }
   }, [postsQuery.data, offset]);
@@ -630,12 +665,67 @@ export default function ActivityFeedScreen() {
   const communityQuery = trpc.feed.list.useQuery({ limit: 50 }, { enabled: tab === "activity" });
   const myQuery = trpc.feed.my.useQuery({ limit: 50 }, { enabled: tab === "my" });
 
+  const invalidateFeedQueries = useCallback(() => {
+    void Promise.all([
+      utils.feed.posts.invalidate(),
+      utils.feed.bookmarks.invalidate(),
+      utils.feed.list.invalidate(),
+      utils.feed.my.invalidate(),
+    ]);
+  }, [utils]);
+
+  const updateLoadedPost = useCallback((postId: number, updater: (post: any) => any) => {
+    setAllPosts(prev => prev.map((post) => post.id === postId ? updater(post) : post));
+  }, []);
+
+  const handleBookmarkToggle = useCallback((postId: number, bookmarked: boolean) => {
+    updateLoadedPost(postId, (post) => ({ ...post, isBookmarked: bookmarked }));
+  }, [updateLoadedPost]);
+
+  const handleReactionToggle = useCallback((postId: number, emoji: string, added: boolean) => {
+    updateLoadedPost(postId, (post) => {
+      const reactions = { ...(post.reactions ?? {}) };
+      const myReactions = Array.isArray(post.myReactions) ? [...post.myReactions] : [];
+
+      if (added) {
+        reactions[emoji] = (reactions[emoji] ?? 0) + 1;
+        if (!myReactions.includes(emoji)) myReactions.push(emoji);
+      } else {
+        const nextCount = (reactions[emoji] ?? 0) - 1;
+        if (nextCount > 0) reactions[emoji] = nextCount;
+        else delete reactions[emoji];
+      }
+
+      return {
+        ...post,
+        reactions,
+        myReactions: added ? myReactions : myReactions.filter((item: string) => item !== emoji),
+      };
+    });
+  }, [updateLoadedPost]);
+
+  const handleCommentAdded = useCallback((postId: number) => {
+    updateLoadedPost(postId, (post) => ({ ...post, commentsCount: (post.commentsCount ?? 0) + 1 }));
+    invalidateFeedQueries();
+  }, [invalidateFeedQueries, updateLoadedPost]);
+
   const toggleLikeMutation = trpc.feed.toggleLike.useMutation({
-    onSuccess: () => { postsQuery.refetch(); savedQuery.refetch(); },
+    onSuccess: (data, variables) => {
+      updateLoadedPost(variables.postId, (post) => ({
+        ...post,
+        isLiked: data.liked,
+        likesCount: Math.max(0, (post.likesCount ?? 0) + (data.liked ? 1 : -1)),
+      }));
+      invalidateFeedQueries();
+    },
     onError: (err) => toast.error(err.message),
   });
   const deletePostMutation = trpc.feed.deletePost.useMutation({
-    onSuccess: () => { postsQuery.refetch(); toast.success(t("feed.postDeleted")); },
+    onSuccess: (_data, variables) => {
+      setAllPosts(prev => prev.filter((post) => post.id !== variables.postId));
+      invalidateFeedQueries();
+      toast.success(t("feed.postDeleted"));
+    },
     onError: (err) => toast.error(err.message),
   });
 
@@ -644,11 +734,17 @@ export default function ActivityFeedScreen() {
   const handleRefresh = async () => {
     setRefreshing(true);
     setOffset(0);
-    await Promise.all([postsQuery.refetch(), savedQuery.refetch(), communityQuery.refetch(), myQuery.refetch()]);
+    setAllPosts([]);
+    await Promise.all([
+      utils.feed.posts.invalidate(),
+      utils.feed.bookmarks.invalidate(),
+      utils.feed.list.invalidate(),
+      utils.feed.my.invalidate(),
+    ]);
     setRefreshing(false);
     toast.success(t("feed.refreshed"));
   };
-  const handleRefetchPosts = useCallback(() => { postsQuery.refetch(); savedQuery.refetch(); }, []);
+  const handleRefetchPosts = useCallback(() => { invalidateFeedQueries(); }, [invalidateFeedQueries]);
 
   const loadMore = useCallback(() => {
     if (hasMore && !postsQuery.isFetching) { setOffset(prev => prev + PAGE_SIZE); }
@@ -771,7 +867,16 @@ export default function ActivityFeedScreen() {
                 </div>
               )}
               {posts.map((post: any) => (
-                <FeedPostCard key={post.id} post={post} onLikeToggle={handleLikeToggle} onDelete={handleDeletePost} onRefresh={handleRefetchPosts} />
+                <FeedPostCard
+                  key={post.id}
+                  post={post}
+                  onLikeToggle={handleLikeToggle}
+                  onDelete={handleDeletePost}
+                  onRefresh={handleRefetchPosts}
+                  onBookmarkToggle={handleBookmarkToggle}
+                  onReactionToggle={handleReactionToggle}
+                  onCommentAdded={handleCommentAdded}
+                />
               ))}
               {/* Load more / infinite scroll trigger */}
               {hasMore && tab === "posts" && (
@@ -798,7 +903,15 @@ export default function ActivityFeedScreen() {
             </div>
           ) : (
             savedPosts.map((post: any) => (
-              <FeedPostCard key={post.id} post={post} onLikeToggle={handleLikeToggle} onRefresh={handleRefetchPosts} />
+              <FeedPostCard
+                key={post.id}
+                post={post}
+                onLikeToggle={handleLikeToggle}
+                onRefresh={handleRefetchPosts}
+                onBookmarkToggle={handleBookmarkToggle}
+                onReactionToggle={handleReactionToggle}
+                onCommentAdded={handleCommentAdded}
+              />
             ))
           )
         ) : (

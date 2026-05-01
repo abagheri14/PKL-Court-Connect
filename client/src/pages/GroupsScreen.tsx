@@ -17,6 +17,7 @@ import { getLevelInfo, getTierColor } from "@/lib/gamification";
 import { useChatSocket } from "@/hooks/useChatSocket";
 import { useQueryClient } from "@tanstack/react-query";
 import InvitePickerModal from "@/components/InvitePickerModal";
+import { UPLOAD_PURPOSE } from "@shared/const";
 
 const groupTypes = ["All", "Social", "League", "Tournament", "Coaching"] as const;
 const groupTypeIcons: Record<string, string> = {
@@ -268,7 +269,7 @@ export default function GroupsScreen() {
       if (file.size > 10 * 1024 * 1024) { toast.error(t("common.fileTooLarge")); return; }
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("purpose", "group");
+      formData.append("purpose", UPLOAD_PURPOSE.GROUP);
       try {
         const res = await fetch("/api/upload", { method: "POST", body: formData, credentials: "include" });
         if (!res.ok) throw new Error("Upload failed");
@@ -1051,7 +1052,7 @@ export default function GroupsScreen() {
                   if (file.size > 10 * 1024 * 1024) { toast.error(t("common.fileTooLarge")); return; }
                   const formData = new FormData();
                   formData.append("file", file);
-                  formData.append("purpose", "group");
+                  formData.append("purpose", UPLOAD_PURPOSE.GROUP);
                   try {
                     const res = await fetch("/api/upload", { method: "POST", body: formData, credentials: "include" });
                     if (!res.ok) throw new Error("Upload failed");

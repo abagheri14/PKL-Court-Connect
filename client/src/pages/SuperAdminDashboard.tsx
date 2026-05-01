@@ -372,7 +372,7 @@ export default function SuperAdminDashboard() {
                     <div key={entry.id} className="flex gap-3 p-2 rounded-xl bg-background/30">
                       <div className="w-1 rounded-full bg-secondary/50 flex-shrink-0" />
                       <div className="flex-1">
-                        <p className="text-xs font-medium">{entry.reason || t("admin.report")}</p>
+                        <p className="text-xs font-medium">{entry.description || entry.reason || (entry.reportType ? String(entry.reportType).replace(/-/g, " ") : t("admin.report"))}</p>
                         <p className="text-[10px] text-muted-foreground">
                           Status: <span className={cn("font-medium", entry.status === "pending" ? "text-yellow-400" : "text-green-400")}>{entry.status}</span>
                         </p>

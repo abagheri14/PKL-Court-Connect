@@ -93,8 +93,16 @@ export default function MatchCelebration({ player, onClose, onMessage }: MatchCe
           </div>
 
           {/* Connection indicator */}
-          <div className="flex flex-col items-center gap-1">
-            <div className="text-3xl animate-bounce-slow">🤝</div>
+          <div className="relative flex h-16 w-20 items-center justify-center" aria-hidden="true">
+            <div className="absolute h-12 w-7 -rotate-[32deg] rounded-full bg-secondary shadow-[0_0_18px_rgba(255,215,0,0.35)] animate-bounce-slow">
+              <div className="absolute left-1/2 top-[85%] h-7 w-1.5 -translate-x-1/2 rounded-full bg-white/75" />
+              <div className="absolute inset-1 rounded-full border border-black/20" />
+            </div>
+            <div className="absolute h-12 w-7 rotate-[32deg] rounded-full bg-primary shadow-[0_0_18px_rgba(79,172,254,0.3)] animate-bounce-slow [animation-delay:120ms]">
+              <div className="absolute left-1/2 top-[85%] h-7 w-1.5 -translate-x-1/2 rounded-full bg-white/75" />
+              <div className="absolute inset-1 rounded-full border border-white/25" />
+            </div>
+            <div className="absolute h-3 w-3 rounded-full bg-lime-300 ring-2 ring-white/40 animate-pulse" />
           </div>
 
           {/* Match */}

@@ -1,16 +1,17 @@
 import { useState, useRef, useCallback } from "react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
+import { UPLOAD_PURPOSE, type UploadPurpose } from "@shared/const";
 
 interface UsePhotoUploadOptions {
-  purpose?: "profile-photo" | "chat-image" | "court-photo";
+  purpose?: UploadPurpose;
   maxSizeMB?: number;
   onSuccess?: (url: string) => void;
   enableCrop?: boolean;
 }
 
 export function usePhotoUpload(options: UsePhotoUploadOptions = {}) {
-  const { purpose = "profile-photo", maxSizeMB = 10, onSuccess, enableCrop = false } = options;
+  const { purpose = UPLOAD_PURPOSE.PROFILE_PHOTO, maxSizeMB = 10, onSuccess, enableCrop = false } = options;
   const { t } = useTranslation();
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);

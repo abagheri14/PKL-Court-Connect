@@ -455,6 +455,10 @@ export default function AdminDashboard() {
                   )}>{sub.status}</span>
                 </div>
 
+                {sub.photoUrl && (
+                  <img src={sub.photoUrl} alt="" className="mb-3 h-28 w-full rounded-xl object-cover" />
+                )}
+
                 {/* Court details */}
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px] mb-3">
                   <div><span className="text-muted-foreground">Type:</span> {isEditing ? (

@@ -14,6 +14,7 @@ import { ArrowLeft, Lock, MapPin, Send, Image, Smile, MoreVertical, UserX, Loade
 import { toast } from "sonner";
 import { QueryError } from "@/components/QueryError";
 import { useTranslation } from "react-i18next";
+import { UPLOAD_PURPOSE } from "@shared/const";
 
 export default function ChatScreen() {
   const { user, selectedMatchId, selectedConversationId, navigate, goBack, setActiveTab, selectPlayer } = useApp();
@@ -175,7 +176,7 @@ export default function ChatScreen() {
 
   // Photo upload for chat images
   const { openFilePicker, uploading: photoUploading } = usePhotoUpload({
-    purpose: "chat-image",
+    purpose: UPLOAD_PURPOSE.CHAT_IMAGE,
     onSuccess: async (url) => {
       if (!conversationId) return;
       const encryptedUrl = await encrypt(url);

@@ -17,12 +17,16 @@ export default function ChallengeOverlay() {
     onSuccess: (_data, variables) => {
       utils.challenges.pending.invalidate();
       utils.challenges.allPending.invalidate();
+      utils.games.upcoming.invalidate();
+      utils.games.list.invalidate();
+      setDismissed(prev => new Set(prev).add(variables.challengeId));
       if (variables.accept) {
         toast.success(t("challengeReceived.accepted"));
       } else {
         toast(t("challengeReceived.declined"));
       }
     },
+    onError: (err) => toast.error(err.message),
   });
 
   const pendingChallenges = pendingQuery.data ?? [];
@@ -36,11 +40,9 @@ export default function ChallengeOverlay() {
       challenge={activeChallenge}
       onAccept={() => {
         respondMutation.mutate({ challengeId: activeChallenge.id, accept: true });
-        setDismissed(prev => new Set(prev).add(activeChallenge.id));
       }}
       onDecline={() => {
         respondMutation.mutate({ challengeId: activeChallenge.id, accept: false });
-        setDismissed(prev => new Set(prev).add(activeChallenge.id));
       }}
     />
   );
