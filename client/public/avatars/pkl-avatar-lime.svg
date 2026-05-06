@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-label="Lime pickleball avatar">
+  <defs>
+    <linearGradient id="bg" x1="26" y1="18" x2="132" y2="142" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#BFFF00"/>
+      <stop offset="1" stop-color="#2DD4BF"/>
+    </linearGradient>
+  </defs>
+  <rect width="160" height="160" rx="80" fill="url(#bg)"/>
+  <circle cx="80" cy="68" r="34" fill="#101828" opacity="0.9"/>
+  <path d="M32 137c8-29 25-45 48-45s40 16 48 45" fill="#101828" opacity="0.9"/>
+  <circle cx="80" cy="68" r="21" fill="#BFFF00"/>
+  <path d="M63 59h34M61 68h38M65 77h30" stroke="#101828" stroke-width="5" stroke-linecap="round" opacity="0.35"/>
+  <path d="M53 112l54-54" stroke="#fff" stroke-width="9" stroke-linecap="round" opacity="0.9"/>
+  <path d="M103 50l12-12" stroke="#fff" stroke-width="7" stroke-linecap="round" opacity="0.9"/>
+</svg>

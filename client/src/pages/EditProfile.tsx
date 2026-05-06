@@ -17,7 +17,18 @@ import { UPLOAD_PURPOSE } from "@shared/const";
 
 const skillLevels = ["Beginner", "2.5", "3.0", "3.5", "4.0", "4.5", "5.0+"];
 const vibes = ["Social", "Competitive", "Both"] as const;
-const playStyles = ["Power Player", "Kitchen Master", "Strategist", "Defender", "All-Courter"];
+const basePlayStyles = ["Power Player", "Kitchen Master", "Strategist", "Defender", "All-Courter", "Friendly"];
+const allPlayStylesOption = "All of the above";
+const playStyles = [...basePlayStyles, allPlayStylesOption];
+const playStyleDescriptions: Record<string, string> = {
+  "Power Player": "Prefers pace, drives, and decisive put-aways.",
+  "Kitchen Master": "Builds points with dinks, resets, and net control.",
+  "Strategist": "Uses placement, patterns, and patience to create openings.",
+  "Defender": "Keeps rallies alive with blocks, resets, and steady coverage.",
+  "All-Courter": "Comfortable adapting across offense, defense, and transition play.",
+  "Friendly": "Prioritizes welcoming games, encouragement, and relaxed competition.",
+  "All of the above": "Selects every play style so matches can stay broad.",
+};
 const handednessOptions = [
   { value: "right" as const, label: "Right", icon: "🤚" },
   { value: "left" as const, label: "Left", icon: "✋" },
@@ -93,6 +104,11 @@ export default function EditProfile() {
   });
 
   const toggleStyle = (s: string) => {
+    if (s === allPlayStylesOption) {
+      const allSelected = basePlayStyles.every(style => styles.includes(style));
+      setStyles(allSelected ? [] : basePlayStyles);
+      return;
+    }
     setStyles(styles.includes(s) ? styles.filter(x => x !== s) : [...styles, s]);
   };
 
@@ -274,8 +290,10 @@ export default function EditProfile() {
             {playStyles.map(s => (
               <button
                 key={s}
+                title={playStyleDescriptions[s]}
+                aria-label={`${s}. ${playStyleDescriptions[s]}`}
                 onClick={() => toggleStyle(s)}
-                className={cn("px-3 py-2 rounded-full text-xs font-medium border transition-all", styles.includes(s) ? "border-accent bg-accent/20 text-accent" : "border-border bg-background/30 text-muted-foreground hover:border-muted-foreground")}
+                className={cn("px-3 py-2 rounded-full text-xs font-medium border transition-all", (s === allPlayStylesOption ? basePlayStyles.every(style => styles.includes(style)) : styles.includes(s)) ? "border-accent bg-accent/20 text-accent" : "border-border bg-background/30 text-muted-foreground hover:border-muted-foreground")}
               >
                 {s}
               </button>

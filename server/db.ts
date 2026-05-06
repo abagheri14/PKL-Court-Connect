@@ -3118,7 +3118,7 @@ export async function reorderUserPhotos(userId: number, photoIds: number[]) {
 export async function completeOnboarding(userId: number, data: {
   name?: string; nickname?: string; dateOfBirth?: Date; age?: number; skillLevel?: string; vibe?: string;
   pace?: string; playStyle?: string; goals?: string; courtPreference?: string;
-  handedness?: string; gender?: string; availabilityWeekdays?: boolean;
+  handedness?: string; gender?: string; availability?: string; profilePhotoUrl?: string; hasProfilePhoto?: boolean; availabilityWeekdays?: boolean;
   availabilityWeekends?: boolean; availabilityMornings?: boolean;
   availabilityAfternoons?: boolean; availabilityEvenings?: boolean;
 }) {
@@ -3127,7 +3127,7 @@ export async function completeOnboarding(userId: number, data: {
   const profileFields = [
     data.name, data.nickname, data.skillLevel, data.vibe,
     data.pace, data.playStyle, data.goals, data.courtPreference,
-    data.handedness, data.gender,
+    data.handedness, data.gender, data.availability, data.profilePhotoUrl,
   ];
   const boolFields = [
     data.availabilityWeekdays, data.availabilityWeekends,

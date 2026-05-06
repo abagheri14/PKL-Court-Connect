@@ -75,8 +75,8 @@ function sanitizeString(str: string): string {
 }
 
 const uploadedImageUrlSchema = z.string().max(2048).refine(
-  url => /^(https?:\/\/|\/uploads\/|\/api\/files\/)/i.test(url),
-  { message: "Photo URL must use HTTP/HTTPS or be a relative upload/file path" },
+  url => /^(https?:\/\/|\/uploads\/|\/api\/files\/|\/avatars\/)/i.test(url),
+  { message: "Photo URL must use HTTP/HTTPS or be a relative image path" },
 );
 
 export const appRouter = router({
@@ -280,9 +280,12 @@ export const appRouter = router({
         pace: z.enum(["fast", "rally", "both"]).optional(),
         playStyle: z.string().optional(),
         goals: z.string().optional(),
+        availability: z.string().max(500).optional(),
         courtPreference: z.enum(["indoor", "outdoor", "both"]).optional(),
         handedness: z.enum(["left", "right", "ambidextrous"]).optional(),
         gender: z.enum(["male", "female", "non-binary", "prefer-not-to-say"]).optional(),
+        profilePhotoUrl: uploadedImageUrlSchema.optional(),
+        hasProfilePhoto: z.boolean().optional(),
         availabilityWeekdays: z.boolean().optional(),
         availabilityWeekends: z.boolean().optional(),
         availabilityMornings: z.boolean().optional(),
@@ -294,6 +297,7 @@ export const appRouter = router({
         if (sanitized.name) sanitized.name = sanitizeString(sanitized.name);
         if (sanitized.nickname) sanitized.nickname = sanitizeString(sanitized.nickname);
         if (sanitized.goals) sanitized.goals = sanitizeString(sanitized.goals);
+        if (sanitized.availability) sanitized.availability = sanitizeString(sanitized.availability);
         if (sanitized.playStyle) sanitized.playStyle = sanitizeString(sanitized.playStyle);
         // Compute age from dateOfBirth
         if (sanitized.dateOfBirth) {

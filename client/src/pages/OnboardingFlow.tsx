@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { ChevronLeft, ChevronRight, Check, Loader2, Camera, Plus, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Check, Loader2, Camera, Plus, X, Info } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import PKLBallLogo from "@/components/PKLBallLogo";
@@ -16,13 +16,24 @@ import ImageCropper from "@/components/ImageCropper";
 const skillLevels = ["Beginner", "2.5", "3.0", "3.5", "4.0", "4.5", "5.0+"];
 const vibes = ["Social", "Competitive", "Both"];
 const paces = ["Rally & Flow", "Fast & Aggressive", "Both"];
-const playStyles = ["Power Player", "Kitchen Master", "Strategist", "Defender", "All-Courter"];
-const goalOptions = ["Recreation", "Tournaments", "Skill Improvement", "Fitness", "Social"];
+const basePlayStyles = ["Power Player", "Kitchen Master", "Strategist", "Defender", "All-Courter", "Friendly"];
+const allPlayStylesOption = "All of the above";
+const playStyles = [...basePlayStyles, allPlayStylesOption];
+const goalOptions = ["Recreation", "Tournaments", "Skill Improvement", "Fitness", "Social", "Learn", "Leagues", "Other"];
 const availabilities = [
+  "Any",
   "Weekday Mornings", "Weekday Afternoons", "Weekday Evenings",
   "Weekend Mornings", "Weekend Afternoons", "Weekend Evenings",
+  "Specific date(s)",
 ];
 const courtPrefs = ["Indoor", "Outdoor", "Both"];
+const courtAccessPrefs = ["Public", "Private", "Any"];
+const presetAvatars = [
+  { url: "/avatars/pkl-avatar-lime.svg", labelKey: "onboarding.avatarPresetLime" },
+  { url: "/avatars/pkl-avatar-court.svg", labelKey: "onboarding.avatarPresetCourt" },
+  { url: "/avatars/pkl-avatar-sky.svg", labelKey: "onboarding.avatarPresetSky" },
+  { url: "/avatars/pkl-avatar-rose.svg", labelKey: "onboarding.avatarPresetRose" },
+];
 const genders = [
   { value: "male", label: "Male" },
   { value: "female", label: "Female" },
@@ -53,9 +64,13 @@ export default function OnboardingFlow() {
   const [pace, setPace] = useState("");
   const [styles, setStyles] = useState<string[]>([]);
   const [goals, setGoals] = useState<string[]>([]);
+  const [otherGoal, setOtherGoal] = useState("");
   const [avail, setAvail] = useState<string[]>([]);
+  const [specificDates, setSpecificDates] = useState("");
   const [courtPref, setCourtPref] = useState("");
+  const [courtAccess, setCourtAccess] = useState("Any");
   const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
+  const [selectedAvatar, setSelectedAvatar] = useState("");
 
   const { uploading, openFilePicker, cropSrc, handleCropComplete, handleCropCancel } = usePhotoUpload({
     enableCrop: true,
@@ -70,12 +85,49 @@ export default function OnboardingFlow() {
     setter(arr.includes(item) ? arr.filter(x => x !== item) : [...arr, item]);
   };
 
+  const allPlayStylesSelected = basePlayStyles.every(s => styles.includes(s));
+  const displayedPhotos = selectedAvatar ? [selectedAvatar, ...uploadedPhotos.filter(url => url !== selectedAvatar)] : uploadedPhotos;
+
+  const toggleStyle = (style: string) => {
+    if (style === allPlayStylesOption) {
+      setStyles(allPlayStylesSelected ? [] : basePlayStyles);
+      return;
+    }
+    setStyles(prev => prev.includes(style) ? prev.filter(x => x !== style) : [...prev, style]);
+  };
+
+  const toggleAvailability = (item: string) => {
+    if (item === "Any") {
+      setAvail(prev => prev.includes("Any") ? [] : ["Any"]);
+      setSpecificDates("");
+      return;
+    }
+    setAvail(prev => {
+      const withoutAny = prev.filter(x => x !== "Any");
+      return withoutAny.includes(item) ? withoutAny.filter(x => x !== item) : [...withoutAny, item];
+    });
+  };
+
+  const buildGoalsSummary = () => {
+    const selectedGoals = goals.filter(g => g !== "Other");
+    if (goals.includes("Other")) selectedGoals.push(otherGoal.trim() ? `Other: ${otherGoal.trim()}` : "Other");
+    return selectedGoals.join(", ");
+  };
+
+  const buildAvailabilitySummary = () => {
+    const availability = avail.map(item => item === "Specific date(s)" && specificDates.trim() ? `Specific date(s): ${specificDates.trim()}` : item);
+    if (courtAccess) availability.push(`Court access: ${courtAccess}`);
+    return availability.join(", ");
+  };
+
   const handleFinish = async () => {
     const vibeMap: Record<string, "competitive" | "social" | "both"> = { Competitive: "competitive", Social: "social", Both: "both" };
     const paceMap: Record<string, "fast" | "rally" | "both"> = { "Rally & Flow": "rally", "Fast & Aggressive": "fast", Both: "both" };
     const handMap: Record<string, "left" | "right" | "ambidextrous"> = { Left: "left", Right: "right", Ambidextrous: "ambidextrous" };
     const courtMap: Record<string, "indoor" | "outdoor" | "both"> = { Indoor: "indoor", Outdoor: "outdoor", Both: "both" };
     const genderMap: Record<string, "male" | "female" | "non-binary" | "prefer-not-to-say"> = { male: "male", female: "female", "non-binary": "non-binary", "prefer-not-to-say": "prefer-not-to-say" };
+    const anyAvailability = avail.includes("Any");
+    const profilePhotoUrl = displayedPhotos[0];
     try {
       await completeOnboardingMutation.mutateAsync({
         name: fullName || undefined,
@@ -85,15 +137,18 @@ export default function OnboardingFlow() {
         vibe: vibeMap[vibe] || "both",
         pace: paceMap[pace] || "both",
         playStyle: styles.join(", ") || undefined,
-        goals: goals.join(", ") || undefined,
+        goals: buildGoalsSummary() || undefined,
+        availability: buildAvailabilitySummary() || undefined,
         courtPreference: courtMap[courtPref] || "both",
         handedness: handMap[hand] || "right",
         gender: genderMap[gender] || undefined,
-        availabilityWeekdays: avail.some(a => a.startsWith("Weekday")),
-        availabilityWeekends: avail.some(a => a.startsWith("Weekend")),
-        availabilityMornings: avail.some(a => a.endsWith("Mornings")),
-        availabilityAfternoons: avail.some(a => a.endsWith("Afternoons")),
-        availabilityEvenings: avail.some(a => a.endsWith("Evenings")),
+        profilePhotoUrl: profilePhotoUrl || undefined,
+        hasProfilePhoto: Boolean(profilePhotoUrl),
+        availabilityWeekdays: anyAvailability || avail.some(a => a.startsWith("Weekday")),
+        availabilityWeekends: anyAvailability || avail.some(a => a.startsWith("Weekend")),
+        availabilityMornings: anyAvailability || avail.some(a => a.endsWith("Mornings")),
+        availabilityAfternoons: anyAvailability || avail.some(a => a.endsWith("Afternoons")),
+        availabilityEvenings: anyAvailability || avail.some(a => a.endsWith("Evenings")),
       });
       refetchUser();
     } catch (err: any) {
@@ -200,8 +255,42 @@ export default function OnboardingFlow() {
               <Label>{t("onboarding.playStyleMultiple")}</Label>
               <div className="flex flex-wrap gap-2 mt-2">
                 {playStyles.map(s => (
-                  <button key={s} onClick={() => toggleArray(styles, s, setStyles)} className={cn("px-3 py-2 rounded-full text-xs font-medium border transition-all", styles.includes(s) ? "border-accent bg-accent/20 text-accent" : "border-border bg-background/30 text-muted-foreground hover:border-muted-foreground")}>
-                    {{"Power Player": t("onboarding.powerPlayer"), "Kitchen Master": t("onboarding.kitchenMaster"), "Strategist": t("onboarding.strategist"), "Defender": t("onboarding.defender"), "All-Courter": t("onboarding.allCourter")}[s] ?? s}
+                  <button
+                    key={s}
+                    onClick={() => toggleStyle(s)}
+                    title={{
+                      "Power Player": t("onboarding.powerPlayerDesc"),
+                      "Kitchen Master": t("onboarding.kitchenMasterDesc"),
+                      "Strategist": t("onboarding.strategistDesc"),
+                      "Defender": t("onboarding.defenderDesc"),
+                      "All-Courter": t("onboarding.allCourterDesc"),
+                      "Friendly": t("onboarding.friendlyDesc"),
+                      "All of the above": t("onboarding.allOfAboveDesc"),
+                    }[s] ?? s}
+                    aria-label={`${{
+                      "Power Player": t("onboarding.powerPlayer"),
+                      "Kitchen Master": t("onboarding.kitchenMaster"),
+                      "Strategist": t("onboarding.strategist"),
+                      "Defender": t("onboarding.defender"),
+                      "All-Courter": t("onboarding.allCourter"),
+                      "Friendly": t("onboarding.friendly"),
+                      "All of the above": t("onboarding.allOfAbove"),
+                    }[s] ?? s}. ${{
+                      "Power Player": t("onboarding.powerPlayerDesc"),
+                      "Kitchen Master": t("onboarding.kitchenMasterDesc"),
+                      "Strategist": t("onboarding.strategistDesc"),
+                      "Defender": t("onboarding.defenderDesc"),
+                      "All-Courter": t("onboarding.allCourterDesc"),
+                      "Friendly": t("onboarding.friendlyDesc"),
+                      "All of the above": t("onboarding.allOfAboveDesc"),
+                    }[s] ?? ""}`}
+                    className={cn("group relative inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-medium border transition-all", (s === allPlayStylesOption ? allPlayStylesSelected : styles.includes(s)) ? "border-accent bg-accent/20 text-accent" : "border-border bg-background/30 text-muted-foreground hover:border-muted-foreground")}
+                  >
+                    <span>{{"Power Player": t("onboarding.powerPlayer"), "Kitchen Master": t("onboarding.kitchenMaster"), "Strategist": t("onboarding.strategist"), "Defender": t("onboarding.defender"), "All-Courter": t("onboarding.allCourter"), "Friendly": t("onboarding.friendly"), "All of the above": t("onboarding.allOfAbove")}[s] ?? s}</span>
+                    <Info size={11} aria-hidden="true" />
+                    <span className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-48 -translate-x-1/2 rounded-lg border border-border bg-background px-3 py-2 text-left text-[11px] leading-snug text-foreground opacity-0 shadow-lg transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+                      {{"Power Player": t("onboarding.powerPlayerDesc"), "Kitchen Master": t("onboarding.kitchenMasterDesc"), "Strategist": t("onboarding.strategistDesc"), "Defender": t("onboarding.defenderDesc"), "All-Courter": t("onboarding.allCourterDesc"), "Friendly": t("onboarding.friendlyDesc"), "All of the above": t("onboarding.allOfAboveDesc")}[s] ?? s}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -221,20 +310,38 @@ export default function OnboardingFlow() {
               <div className="flex flex-wrap gap-2 mt-2">
                 {goalOptions.map(g => (
                   <button key={g} onClick={() => toggleArray(goals, g, setGoals)} className={cn("px-3 py-2 rounded-full text-xs font-medium border transition-all", goals.includes(g) ? "border-secondary bg-secondary/20 text-secondary" : "border-border bg-background/30 text-muted-foreground hover:border-muted-foreground")}>
-                    {{"Recreation": t("onboarding.recreation"), "Tournaments": t("onboarding.tournaments"), "Skill Improvement": t("onboarding.skillImprovement"), "Fitness": t("onboarding.fitness"), "Social": t("onboarding.socialGoal")}[g] ?? g}
+                    {{"Recreation": t("onboarding.recreation"), "Tournaments": t("onboarding.tournaments"), "Skill Improvement": t("onboarding.skillImprovement"), "Fitness": t("onboarding.fitness"), "Social": t("onboarding.socialGoal"), "Learn": t("onboarding.learn"), "Leagues": t("onboarding.leagues"), "Other": t("onboarding.otherGoal")}[g] ?? g}
                   </button>
                 ))}
               </div>
+              {goals.includes("Other") && (
+                <Input
+                  value={otherGoal}
+                  onChange={e => setOtherGoal(e.target.value)}
+                  placeholder={t("onboarding.otherGoalPlaceholder")}
+                  className="bg-background/50 mt-2"
+                  maxLength={120}
+                />
+              )}
             </div>
             <div>
               <Label>{t("onboarding.availabilityLabel")}</Label>
               <div className="grid grid-cols-2 gap-2 mt-2">
                 {availabilities.map(a => (
-                  <button key={a} onClick={() => toggleArray(avail, a, setAvail)} className={cn("px-2 py-2 rounded-lg text-xs font-medium border transition-all", avail.includes(a) ? "border-accent bg-accent/20 text-accent" : "border-border bg-background/30 text-muted-foreground hover:border-muted-foreground")}>
-                    {{"Weekday Mornings": t("onboarding.weekdayMornings"), "Weekday Afternoons": t("onboarding.weekdayAfternoons"), "Weekday Evenings": t("onboarding.weekdayEvenings"), "Weekend Mornings": t("onboarding.weekendMornings"), "Weekend Afternoons": t("onboarding.weekendAfternoons"), "Weekend Evenings": t("onboarding.weekendEvenings")}[a] ?? a}
+                  <button key={a} onClick={() => toggleAvailability(a)} className={cn("px-2 py-2 rounded-lg text-xs font-medium border transition-all", avail.includes(a) ? "border-accent bg-accent/20 text-accent" : "border-border bg-background/30 text-muted-foreground hover:border-muted-foreground")}>
+                    {{"Any": t("onboarding.anyAvailability"), "Weekday Mornings": t("onboarding.weekdayMornings"), "Weekday Afternoons": t("onboarding.weekdayAfternoons"), "Weekday Evenings": t("onboarding.weekdayEvenings"), "Weekend Mornings": t("onboarding.weekendMornings"), "Weekend Afternoons": t("onboarding.weekendAfternoons"), "Weekend Evenings": t("onboarding.weekendEvenings"), "Specific date(s)": t("onboarding.specificDates")}[a] ?? a}
                   </button>
                 ))}
               </div>
+              {avail.includes("Specific date(s)") && (
+                <Input
+                  value={specificDates}
+                  onChange={e => setSpecificDates(e.target.value)}
+                  placeholder={t("onboarding.specificDatesPlaceholder")}
+                  className="bg-background/50 mt-2"
+                  maxLength={120}
+                />
+              )}
             </div>
             <div>
               <Label>{t("onboarding.courtPreference")}</Label>
@@ -242,6 +349,16 @@ export default function OnboardingFlow() {
                 {courtPrefs.map(c => (
                   <button key={c} onClick={() => setCourtPref(c)} className={cn("px-3 py-3 rounded-lg text-sm font-medium border transition-all", courtPref === c ? "border-secondary bg-secondary/20 text-secondary" : "border-border bg-background/30 text-muted-foreground hover:border-muted-foreground")}>
                     {{"Indoor": t("onboarding.indoor"), "Outdoor": t("onboarding.outdoor"), "Both": t("onboarding.both")}[c] ?? c}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <Label>{t("onboarding.courtAccess")}</Label>
+              <div className="grid grid-cols-3 gap-2 mt-2">
+                {courtAccessPrefs.map(c => (
+                  <button key={c} onClick={() => setCourtAccess(c)} className={cn("px-3 py-3 rounded-lg text-sm font-medium border transition-all", courtAccess === c ? "border-secondary bg-secondary/20 text-secondary" : "border-border bg-background/30 text-muted-foreground hover:border-muted-foreground")}>
+                    {{"Public": t("onboarding.publicAccess"), "Private": t("onboarding.privateAccess"), "Any": t("onboarding.anyAccess")}[c] ?? c}
                   </button>
                 ))}
               </div>
@@ -257,21 +374,21 @@ export default function OnboardingFlow() {
               <p className="text-muted-foreground text-sm">{t("onboarding.photosDesc")}</p>
             </div>
             <div className="grid grid-cols-3 gap-3">
-              {uploadedPhotos.map((url, i) => (
+              {displayedPhotos.map((url, i) => (
                 <div key={url} className="relative aspect-[3/4] rounded-xl overflow-hidden group">
                   <img src={url} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
                   {i === 0 && (
                     <div className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-md bg-secondary/90 text-[8px] font-bold text-black uppercase">{t("onboarding.main")}</div>
                   )}
                   <button
-                    onClick={() => setUploadedPhotos(prev => prev.filter((_, idx) => idx !== i))}
+                    onClick={() => url === selectedAvatar ? setSelectedAvatar("") : setUploadedPhotos(prev => prev.filter(photoUrl => photoUrl !== url))}
                     className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                   >
                     <X size={12} className="text-white" />
                   </button>
                 </div>
               ))}
-              {uploadedPhotos.length < 6 && (
+              {displayedPhotos.length < 6 && (
                 <button
                   onClick={openFilePicker}
                   disabled={uploading}
@@ -281,15 +398,36 @@ export default function OnboardingFlow() {
                     <Loader2 size={20} className="animate-spin text-muted-foreground" />
                   ) : (
                     <>
-                      <Plus size={20} className="text-muted-foreground" />
+                      {displayedPhotos.length === 0 ? <Camera size={20} className="text-muted-foreground" /> : <Plus size={20} className="text-muted-foreground" />}
                       <span className="text-[10px] text-muted-foreground font-medium">{t("onboarding.addPhoto")}</span>
                     </>
                   )}
                 </button>
               )}
             </div>
+            <div className="space-y-2">
+              <Label>{t("onboarding.avatarPresetLabel")}</Label>
+              <div className="grid grid-cols-4 gap-2">
+                {presetAvatars.map(avatar => {
+                  const label = t(avatar.labelKey);
+                  return (
+                    <button
+                      key={avatar.url}
+                      type="button"
+                      onClick={() => setSelectedAvatar(selectedAvatar === avatar.url ? "" : avatar.url)}
+                      title={label}
+                      aria-label={label}
+                      className={cn("aspect-square rounded-full border-2 overflow-hidden bg-background/40 transition-all", selectedAvatar === avatar.url ? "border-secondary shadow-[0_0_0_3px_rgba(191,255,0,0.18)]" : "border-border hover:border-muted-foreground")}
+                    >
+                      <img src={avatar.url} alt="" className="w-full h-full object-cover" />
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">{t("onboarding.avatarPresetDesc")}</p>
+            </div>
             <p className="text-center text-xs text-muted-foreground">
-              {uploadedPhotos.length === 0 ? t("onboarding.photoRequired") : t("onboarding.photosAdded", { count: uploadedPhotos.length })}
+              {displayedPhotos.length === 0 ? t("onboarding.photoOptional") : t("onboarding.photosAdded", { count: displayedPhotos.length })}
             </p>
             {cropSrc && (
               <ImageCropper
@@ -308,16 +446,16 @@ export default function OnboardingFlow() {
             <span className="text-6xl block">🎉</span>
             <h2 className="text-2xl font-bold">{t("onboarding.allSetTitle")}</h2>
             <p className="text-muted-foreground">{t("onboarding.allSetDesc")}</p>
-            {uploadedPhotos.length > 0 && (
+            {displayedPhotos.length > 0 && (
               <div className="flex justify-center gap-2">
-                {uploadedPhotos.slice(0, 3).map((url, i) => (
+                {displayedPhotos.slice(0, 3).map((url, i) => (
                   <div key={url} className="w-16 h-20 rounded-xl overflow-hidden">
                     <img src={url} alt="" className="w-full h-full object-cover" />
                   </div>
                 ))}
-                {uploadedPhotos.length > 3 && (
+                {displayedPhotos.length > 3 && (
                   <div className="w-16 h-20 rounded-xl bg-muted/20 flex items-center justify-center text-sm text-muted-foreground font-bold">
-                    +{uploadedPhotos.length - 3}
+                    +{displayedPhotos.length - 3}
                   </div>
                 )}
               </div>
@@ -328,8 +466,8 @@ export default function OnboardingFlow() {
               <p><span className="text-muted-foreground">{t("onboarding.summaryVibe")}</span> <span className="text-foreground font-medium">{vibe || "—"}</span></p>
               {pace && <p><span className="text-muted-foreground">{t("onboarding.summaryPace")}</span> <span className="text-foreground font-medium">{pace}</span></p>}
               {styles.length > 0 && <p><span className="text-muted-foreground">{t("onboarding.summaryStyles")}</span> <span className="text-foreground font-medium">{styles.join(", ")}</span></p>}
-              <p><span className="text-muted-foreground">{t("onboarding.summaryGoals")}</span> <span className="text-foreground font-medium">{goals.join(", ") || "—"}</span></p>
-              <p><span className="text-muted-foreground">{t("onboarding.summaryAvailability")}</span> <span className="text-foreground font-medium">{avail.join(", ") || "—"}</span></p>
+              <p><span className="text-muted-foreground">{t("onboarding.summaryGoals")}</span> <span className="text-foreground font-medium">{buildGoalsSummary() || "—"}</span></p>
+              <p><span className="text-muted-foreground">{t("onboarding.summaryAvailability")}</span> <span className="text-foreground font-medium">{buildAvailabilitySummary() || "—"}</span></p>
               {courtPref && <p><span className="text-muted-foreground">{t("onboarding.summaryCourt")}</span> <span className="text-foreground font-medium">{courtPref}</span></p>}
             </div>
           </div>
@@ -398,12 +536,16 @@ export default function OnboardingFlow() {
                 toast.error(t("onboarding.selectGoalError"));
                 return;
               }
+              if (step === 3 && goals.includes("Other") && !otherGoal.trim()) {
+                toast.error(t("onboarding.otherGoalError"));
+                return;
+              }
               if (step === 3 && avail.length === 0) {
                 toast.error(t("onboarding.selectAvailabilityError"));
                 return;
               }
-              if (step === 4 && uploadedPhotos.length === 0) {
-                toast.error(t("onboarding.addPhotoError"));
+              if (step === 3 && avail.includes("Specific date(s)") && !specificDates.trim()) {
+                toast.error(t("onboarding.specificDatesError"));
                 return;
               }
               setStep(s => s + 1);

@@ -1,6 +1,6 @@
 import { useApp } from "@/contexts/AppContext";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, MessageCircle, Mail, ChevronRight, Search, HelpCircle, Book, Shield, FileText, X } from "lucide-react";
+import { ArrowLeft, MessageCircle, Mail, ChevronRight, Search, HelpCircle, Book, Shield, FileText, LockKeyhole, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -15,6 +15,8 @@ const faqEntries = [
   { qKey: "faq_courts", aKey: "faq_courtsAnswer" },
   { qKey: "faq_premium", aKey: "faq_premiumAnswer" },
   { qKey: "faq_report", aKey: "faq_reportAnswer" },
+  { qKey: "faq_sampleSize", aKey: "faq_sampleSizeAnswer" },
+  { qKey: "faq_courtImports", aKey: "faq_courtImportsAnswer" },
 ];
 
 export default function HelpScreen() {
@@ -62,6 +64,17 @@ export default function HelpScreen() {
         t("help.guideTerms4"),
         t("help.guideTerms5"),
         t("help.guideTerms6"),
+      ],
+    },
+    "Privacy Policy": {
+      title: t("help.guidePrivacyTitle"),
+      content: [
+        t("help.guidePrivacy1"),
+        t("help.guidePrivacy2"),
+        t("help.guidePrivacy3"),
+        t("help.guidePrivacy4"),
+        t("help.guidePrivacy5"),
+        t("help.guidePrivacy6"),
       ],
     },
     "Community Rules": {
@@ -131,6 +144,10 @@ export default function HelpScreen() {
         <button onClick={() => setActiveGuide(activeGuide === "Terms of Service" ? null : "Terms of Service")} className={cn("card-elevated rounded-xl p-3 text-center transition-all", activeGuide === "Terms of Service" && "border-secondary/40 bg-secondary/5")}>
           <FileText size={20} className="mx-auto text-secondary mb-1" />
           <p className="text-xs font-medium">{t("help.termsOfService")}</p>
+        </button>
+        <button onClick={() => setActiveGuide(activeGuide === "Privacy Policy" ? null : "Privacy Policy")} className={cn("card-elevated rounded-xl p-3 text-center transition-all", activeGuide === "Privacy Policy" && "border-secondary/40 bg-secondary/5")}>
+          <LockKeyhole size={20} className="mx-auto text-secondary mb-1" />
+          <p className="text-xs font-medium">{t("help.privacyPolicy")}</p>
         </button>
         <button onClick={() => setActiveGuide(activeGuide === "Community Rules" ? null : "Community Rules")} className={cn("card-elevated rounded-xl p-3 text-center transition-all", activeGuide === "Community Rules" && "border-secondary/40 bg-secondary/5")}>
           <HelpCircle size={20} className="mx-auto text-secondary mb-1" />
